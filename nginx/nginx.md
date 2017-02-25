@@ -1,9 +1,11 @@
 # Nginx
 
-[특징](##특징)<br/>
-[설치](##설치)
+[특징](#특징)<br/>
+[설치](#설치)<br/>
+[설정](#설정)<br/>
+[권장 환경설정](#권장 환경설정)<br/>
 
-## 특징
+# 특징
 * apache보다 설정이 간단하고 기능이 적어서 성능, 속도에서 뛰어남
 * 더 적은 자원으로 더 빠르게 데이터를 서비스할 수 있다
 * 별로 많은 연산을 하지않고, 주로 전달자 역할만하여 `Reverse Proxy Tool`이라고도 부른다
@@ -21,8 +23,7 @@
 > * 만들어진 프로세스가 계속해서 새로운 요청 처리
 
 
-
-## 설치
+# 설치
 ### 1. apt 소스 리스트에 저장소 추가
 ```sh
 $ vi /etc/apt/sources/list
@@ -76,7 +77,7 @@ $ ststemctl enable nginx
 * [OS별 init 스크립트](https://www.nginx.com/resources/wiki/start/topics/examples/initscripts/)
 
 
-## 설정
+# 설정
 * 파일에 설정 값을 기술하여 nginx가 어떻게 동작해야 하는가를 지정하는 기능
 * `/etc/nginx/nginx.conf` - nginx 설정파일
    * 업데이트시 설정파일이 덮어쓰여질 위험이 있다
@@ -240,7 +241,7 @@ http {
 > #### 로그파일
 > * `/var/log/nginx`에 위치
 
-## 권장 환경설정
+# 권장 환경설정
 
 ### nginx.conf
 
@@ -494,7 +495,7 @@ upstream backend {
 * $request_filename
 /usr/local/nginx/html/production/module/index.php
 
-> 참고
+> #### 참고
 > [생활코딩 nginx](https://opentutorials.org/module/384/3462) <br/>
 > [Nginx Doc](https://www.nginx.com/resources/wiki/start/) <br/>
 > [NginX 주요 설정 (nginx.conf)](http://sarc.io/index.php/nginx/61-nginx-nginx-conf) - Nginx 카테고리 포스팅 참고하면 좋을듯 <br/>
@@ -503,7 +504,7 @@ upstream backend {
 > [tomcat + nginx 연동하기](http://misoin.tistory.com/7) <br/>
 > [Nginx 설정](https://brunch.co.kr/@elijah17/19) - 정리 잘되있음 <br/>
 
-> 더보면 좋을 자료
+> #### 더보면 좋을 자료
 > [Nginx HTTP Server](http://ohgyun.com/477) - Nginx HTTP Server 책 정리 <br/>
 > [HTTP loadbalancing springboot servers with Nginx](http://christoph-burmeister.eu/?p=2951) <br/>
 > [nginx 공부자료](http://knight76.tistory.com/entry/Nginx-%EA%B3%B5%EB%B6%80-%EC%9E%90%EB%A3%8C-Nginx-References) <br/>
