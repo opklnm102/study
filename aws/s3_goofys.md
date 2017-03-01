@@ -8,6 +8,7 @@
 
 2. permissions에 들어가서 `AmazonS3FullAccess` policy를 설정
 3. S3에 사용할 Bucket 생성
+   * `Any authenticated AWS user`에 access permissions 설정
 
 ## 2. golang 설치 - ubuntu 기준
 
@@ -68,12 +69,45 @@ $ cat > ~/.aws/credentials
 $ mkdir -p ~/storage  # mount할 디렉토리 생성
 $ $GOPATH/bin/goofys 9tique /storage
 
+# 특정 유저, 그룹 권한으로 mount
+$ $GOPATH/bin/goofys --uid <uid> --gid <gid> <bucket> <mountpoint>
+
 # mount 확인
+# mount 안될 때 S3 Bucket Any Authenticated AWS에 권한 설정하고 다시 시도
 $ df -h  
 ```
 
+### 웹브라우저에서 이미지를 보려면
+* allow_other, acl 설정
+* 안하면 `Access Denied`라고 뜬다
+```sh
+$ $GOPATH/bin/goofys -o allow_other <bucket> <mountpoint>
+
+# invalid argument라고 뜰 때
+# fuse에 allow_other 옵션 활성화
+$ sudo vim /etc/fuse.conf
+# user_allow_other 옵션에 주석 제거 후 acl option 추가
+# $ $GOPATH/bin/goofys -o allow_other --acl <option> <bucket> <mountpoint>
+$ $GOPATH/bin/goofys -o allow_other --acl public-read <bucket> <mountpoint>
+```
+
+### Un mount
+```sh
+$ fusermount -u <mountpoint>
+```
+
+### 자동 마운트
+```sh
+$ vi /etc/fstab
+
+# 아래 내용 추가
+<goofys path>#<bucket> <mountpoint> fuse _netdev,allow_other,--file-mode=0666 0 0
+```
 
 > 참고  
 [go github wiki](https://github.com/golang/go/wiki/Ubuntu) -> 설치, 삭제 다있음  
 [goofys를 이용해 AWS S3 mount 해서 사용하기](http://bluese05.tistory.com/23)  
-[http://m.blog.naver.com/carrotcarrot/220680500604](http://m.blog.naver.com/carrotcarrot/220680500604)
+[S3를 EC2에 마운트하기 with goofys](http://m.blog.naver.com/carrotcarrot/220680500604)  
+<br/>
+> 더보면 좋을 것  
+[goofys가 계속 종료되서 s3 연결 끊길 때...](http://m.blog.naver.com/carrotcarrot/220822213764#)  
