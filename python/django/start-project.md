@@ -2,6 +2,8 @@
 
 ## Project 만들기
 ```sh
+$ pip install "django>=1.10"  # 조건 주기
+$ pip install "django==1.10.6"  # 특정 version install
 $ django-admin startproject <project name> <location>
 
 # example. mysite project make current directory
