@@ -42,7 +42,7 @@ print(9 / 5.0)
 # 섭씨 온도: 32.2
 # 화씨 온도: 89.96
 print("섭씨를 화씨로 변환")
-celcius = float(raw_input("섭씨 입력>>"))
+celcius = float(input("섭씨 입력>>"))
 fah = ((9.0 / 5.0) * celcius) + 32
 print("섭씨온도: ", celcius)
 print("화씨온도: ", fah)
