@@ -496,15 +496,16 @@ upstream backend {
 /usr/local/nginx/html/production/module/index.php
 
 > #### 참고
-> [생활코딩 nginx](https://opentutorials.org/module/384/3462) <br/>
-> [Nginx Doc](https://www.nginx.com/resources/wiki/start/) <br/>
-> [NginX 주요 설정 (nginx.conf)](http://sarc.io/index.php/nginx/61-nginx-nginx-conf) - Nginx 카테고리 포스팅 참고하면 좋을듯 <br/>
-> [리눅스에서 웹서비스를 위한 웹서버 nginx 설치 - yum이용](https://www.conory.com/note_linux/42847) <br/>
-> [NginX 주요 설정](http://whiteship.me/?p=13014) <br/>
-> [tomcat + nginx 연동하기](http://misoin.tistory.com/7) <br/>
-> [Nginx 설정](https://brunch.co.kr/@elijah17/19) - 정리 잘되있음 <br/>
+> [생활코딩 nginx](https://opentutorials.org/module/384/3462)  
+> [Nginx Doc](https://www.nginx.com/resources/wiki/start/)  
+> [NginX 주요 설정 (nginx.conf)](http://sarc.io/index.php/nginx/61-nginx-nginx-conf) - Nginx 카테고리 포스팅 참고하면 좋을듯  
+> [리눅스에서 웹서비스를 위한 웹서버 nginx 설치 - yum이용](https://www.conory.com/note_linux/42847)  
+> [NginX 주요 설정](http://whiteship.me/?p=13014)  
+> [tomcat + nginx 연동하기](http://misoin.tistory.com/7)  
+> [Nginx 설정](https://brunch.co.kr/@elijah17/19) - 정리 잘되있음  
 
 > #### 더보면 좋을 자료
-> [Nginx HTTP Server](http://ohgyun.com/477) - Nginx HTTP Server 책 정리 <br/>
-> [HTTP loadbalancing springboot servers with Nginx](http://christoph-burmeister.eu/?p=2951) <br/>
-> [nginx 공부자료](http://knight76.tistory.com/entry/Nginx-%EA%B3%B5%EB%B6%80-%EC%9E%90%EB%A3%8C-Nginx-References) <br/>
+> [Nginx HTTP Server](http://ohgyun.com/477) - Nginx HTTP Server 책 정리  
+> [HTTP loadbalancing springboot servers with Nginx](http://christoph-burmeister.eu/?p=2951)  
+> [nginx 공부자료](http://knight76.tistory.com/entry/Nginx-%EA%B3%B5%EB%B6%80-%EC%9E%90%EB%A3%8C-Nginx-References)  
+> [nginx upstream 성능 최적화](https://brunch.co.kr/@alden/11)  
