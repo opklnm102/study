@@ -37,8 +37,7 @@
 > 서로 다른 기능들을 가진 다양한 칩셋들을 사용하기 때문에 통합적용되지 않는다
 > Android 플랫폼상으로 이전 버전과 큰차이가 있다
 
-
-사진 넣기
+![ble](https://github.com/opklnm102/study/blob/master/android/images/ble.PNG)
 
 ## Example
 ```java

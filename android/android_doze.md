@@ -12,6 +12,8 @@
 * `네트워크, CPU 사용량`이 많은 서비스에 `액세스를 제한`하여 배터리 절약
 * 네트워크에 액세스하지 못하도록 하고 `작업, 동기화 및 표준알람`을 지연
 
+![doze](https://github.com/opklnm102/study/blob/master/android/images/doze.PNG)
+
 ### maintenance window
 * 유지관리 기간
 * 지연된 작업를 완료할 수 있도록 주기적으로 잠깐 동안 Doze를 종료 
