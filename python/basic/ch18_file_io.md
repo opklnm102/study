@@ -31,6 +31,14 @@ s = f.read()
 print(s)
 ```
 
+> ### 자동으로 열고 닫기
+> * 매번 파일을 열고 닫는것이 귀찮은 경우 파일관리를 하는 컨텍스트 매니저 사용
+> * 자동으로 열고 닫고 수행
+> ```python
+> with open('t.txt', 'a') as test:
+>     test.write('\n with test \n')
+> ```
+
 
 ## Line단위로 File Read
 
@@ -47,7 +55,7 @@ f.close()
 ```
 
 ### 2. readline()
-* 현재 파일포인터에서 개행문자까지 한번에 한줄씩 읽는다
+* 현재 파일포인터에서 개행문자까지 `한번에 한줄씩` 읽는다
 ```python 
 f = open('t.txt', mode='r')
 line = f.readline()
@@ -60,7 +68,7 @@ f.close()
 ```
 
 ### 3. readlines()
-* 파일 전체를 라인단위로 끊어서 메모리에 리스트로 저장
+* `파일 전체를 라인단위로` 끊어서 메모리에 리스트로 저장
 * 메모리 비효율적 사용
 ```python
 f = open('t.txt', mode='r')
