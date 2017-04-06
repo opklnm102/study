@@ -31,7 +31,26 @@ public class SwaggerConfig {
                 .select()
                 .apis(RequestHandlerSelectors.any())  // 현재 RequestMapping으로 할당된 모든 url 리스트 추출
                 .paths(PathSelectors.ant("/api/**"))  // '/api'로 시작하는 것만 문서화
-                .build();
+                .build()
+                .pathMapping("/api")  // 문서화시 servlet mapping경로에 perfix로 붙여준다 -> 실제 request에는 영향 X
+                .useDefaultResponseMessages(false)  // default message를 사용하지 않는다
+                // global response message 설정
+                .globalResponseMessage(RequestMethod.GET,
+                        Arrays.asList(
+                                new ResponseMessageBuilder()
+                                        .code(500)
+                                        .message("server error")
+                                        .responseModel(
+                                                new ModelRef("Error")
+                                        ).build(),
+                                new ResponseMessageBuilder()
+                                        .code(400)
+                                        .message("bad request")
+                                        .responseModel(
+                                                new ModelRef("Error")
+                                        ).build()
+                        )
+                );
     }
 
     private ApiInfo apiInfo() {
