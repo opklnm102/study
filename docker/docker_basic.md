@@ -3,14 +3,26 @@
 ## [컨테이너란?](https://www.docker.com/what-container)
 가상화보다 훨씬 가벼운 기술
 
-![Container](https://www.docker.com/sites/default/files/Container%402x.png)
-Container - 격라
+<div align="center">
+<img src="https://www.docker.com/sites/default/files/VM%402x.png" alt="Virtual Machines" width="350" height="350"/>
+<img src="https://www.docker.com/sites/default/files/Container%402x.png" alt="Container" width="350" height="350"/>  
+</div>
 
-![Virtual Machines](https://www.docker.com/sites/default/files/VM%402x.png)
-Virtual Machines - 가상화
+#### Virtual Machines - 가상화  
+* Hypervisor 위에 Guest OS 설치하여 가상화
+   * 항상 Guest OS 필요
+   * 이미지 용량이 커짐
+#### Container - 격리  
+* Docker Engine 위에 애플리케이션 격리
+   * Docker 이미지에 애플리케이션과 라이브러리만 격리하여 설치
+   * OS 자원(System Call)은 호스트와 공유
+   * 이미지 용량 감소
+* HW 가상화 계층 X
+   * 메모리 접근, 파일 시스템, 네트워크 속도가 VM에 비해 월등히 빠르다
 
 ![Containers and Virtual Machines Togeter](https://www.docker.com/sites/default/files/containers-vms-together.png)
-Containers and Virtual Machines Togeter
+#### Containers and Virtual Machines Togeter  
+* VM 위에 Docker를 사용 예시
 
 ### 1. 서버의 성능이 좋아졌다 
 * 서버가 놀고 있다
@@ -62,7 +74,7 @@ Containers and Virtual Machines Togeter
 ### 4. 다양한 API를 제공하여 원하는 만큼 자동화 가능
 * 개발과 서버 운영에 매우 유용
 * 개발, 테스트, 서비스 환경을 하나로 통일하여 효율적으로 관리
-* 복잡한 리눅스 애플리케이션을 컨테이너로 묶어서 실행
+* 복잡한 리눅스 애플리케이션을 `컨테이너로 묶어서` 실행
 
 
 ## 도커 이미지와 컨테이너의 차이?
@@ -72,12 +84,12 @@ Containers and Virtual Machines Togeter
    * OS로 치면 `실행파일`
 * 컨테이너
    * `이미지를 실행`한 상태
-   * 이미지로 `여러개의 컨테이너를 만들 수` 있음
+   * 이미지로 `여러개의 컨테이너`를 만들 수 있음
    * OS로 치면 `프로세스`
 
 > #### 도커의 이미지 처리방식, 도커는 이미지의 바뀐 부분을 어떻게 관리하나?
 > * 유니온 파일 시스템 형식(aufs, btrfs, devicemapper)
-> * 베이스 이미지에서 바뀐부분만 이미지로 생성
+> * 베이스 이미지에서 `바뀐부분만` 이미지로 생성
 > * 컨테이너로 실행할 때는 베이스 이미지와 바뀐 부분을 합쳐서 실행
 > * Docker Hub 및 개인저장소에서 이미지를 공유할 때 바뀐 부분만 주고 받음
 >    *각 이미지는 의존관계 형성
@@ -121,8 +133,11 @@ Containers and Virtual Machines Togeter
 * `Immutable Infrastructure`를 구현한 프로젝트
 * 컨테이너를 싣고 다니는 고래
    * 고래는 서버에서 여러개의 컨테이너(이미지)를 실행하고 이미지 저장과 배포(운반)을 의미
-* Build, Ship, Run
+   * 고래 -> Docker(이미지 생성, 저장, 실행, 배포)
+   * 고래 위 컨테이너 -> 이미지, 컨테이너
+* Build, Ship, and Run Any App, Anywhere
    * 서비스 운영환경을 묶어서 손쉽게 배포하고 실행하는 `경량 컨테이너 기술`
+   * 애플리케이션과 애플레케이션 실행에 필요한 것들을 `포장`하고, 포장한 것을 손쉽게 이동시켜 어디서나 실행시킬 수 있게 하는 도구와 환경을 제공하는 `오픈소스 컨테이너 플랫폼`
 
 ### 도커 설치하기
 * 리눅스
@@ -187,6 +202,7 @@ $ sudo /usr/local/bin/docker -d
 
 ### 명령어
 * 항상 root권한으로 실행
+* `root 권한 + docker <command>`
 ```sh
 $ docker <command>
 # ex) docker run, docker push
@@ -198,6 +214,7 @@ $ docker <command>
 > $ sudo su
 > ```
 > * 현재 계정을 docker 그룹에 포함(root 권한과 동일하므로 꼭 필요한 계정만 포함)
+>    * 재로그인 필요
 > ```sh
 > $ sudo usermod -aG docker ${USER}
 > $ sudo service docker restart
@@ -342,6 +359,24 @@ $ sudo docker run  --name hello-nginx -d -p 80:80 -v /root/data:/data hello:0.1
 * `-v /root/data:/data`옵션으로 호스트의 /root/data 디렉토리를 /data 디렉토리에 연결
 * http://<host ip>:80으로 접속하면 Welcome to nginx! 페이지가 표시됨!
 
+#### ex. Docker로 Spring Boot 프로젝트 빌드
+```sh
+# Dockerfile
+FROM dockerfile/java:oracle-java8  # java8 기반의 이미지 생성
+MAINTAINER opklnm102 opklnm102@gmail.com  # 이미지를 생성한 사람의 정보 설정
+ADD springboot_demo-0.0.1-SNAPSHOT.jar /opt/springboot_demo-0.0.1-SNAPSHOT/  # 배포본 복사
+EXPOSE 8080  # 호스트와 연결할 포트 설정
+WORKDIR /opt/springboot_demo-0.0.1-SNAPSHOT/  # RUN, CMD, ENTRYPOINT의 명령이 실행될 디렉토리 설정
+CMD ["java", "-jar", "springboot_demo-0.0.1-SNAPSHOT.jar"]  # 컨테이너 시작 후 실행될 명령어(배포본 실행)
+
+# Dockerfile기반의 이미지 생성
+docker build -t <image name> <dockerfile path>
+
+# 호스트 8080과 컨테이너 8080 연결하고 외부에 노출시킴으로 이미지 실행(컨테이너 상태로 전환됨)
+docker run -p 8080:8080 <image name/image id>
+```
+
 > #### 침고
 > [도커 무작정 따라하기: 도커가 처음인 사람도 60분이면 웹 서버를 올릴 수 있습니다!](https://www.slideshare.net/pyrasis/docker-fordummies-44424016)  
 > [What is a Container](https://www.docker.com/what-container)  
+> [Spring boot와 docker를 이용한 MSA](https://www.slideshare.net/heungrae_kim/spring-boot-docker-msa)  
