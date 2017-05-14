@@ -43,15 +43,17 @@ $ go env  # 환경변수 확인
 $ brew install go
 ```
 
-## Hello world
+## Hello world 찍어보기
+
+### 1. main.go 작성
 ```sh
 $ mkdir hello
 $ cd hello
 $ vi main.go
 ```
 
-### edit main.go
 ```go
+// main.go
 package main
 
 import "fmt"
@@ -61,10 +63,13 @@ func main() {
 }
 ```
 
-### build
+### 2. build
 ```sh
 $ go build
-$ ./hello
+$ ./hello  # run
+
+# result
+hello, 안녕
 ```
 
 > #### 참고자료
