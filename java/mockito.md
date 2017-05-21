@@ -1,5 +1,8 @@
 # mockito를 사용해 유닛 테스트하기
 
+> 여러 Layer에 걸친(Controller -> Service -> DB Access) 통합 테스트를 하다보면 DB I/O, Application Context Load로 인해 테스트 속도가 느려지는 문제가 있다.  
+> 통합 테스트가 아닌 비즈니스 로직 그 자체만을 테스트하고 싶을 경우에는 Mock을 사용해 테스트를 진행할 수 있다
+
 ## mockito
 * Java에서 유닛 테스트를 위한 Mocking Framework
 * Mock이 필요한 테스트에 직관적으로 사용
