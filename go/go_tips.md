@@ -1,5 +1,18 @@
 # go tips
 
+## 실행
+
+```sh
+# 코드 실행
+$ go run ex
+
+# 바이너리 빌드
+$ go build ex
+
+# 바이너리 실행
+$ ./ex
+```
+
 ## 환경 변수
 ```go
 package main
@@ -207,6 +220,125 @@ func main() {
 	for h.Len() > 0 {
 		m := heap.Pop(h)  // pop시 위치가 재정렬
 		fmt.Print(m, " ")
+	}
+}
+```
+
+## 프로그램 실행시간 측정
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	// 시작 시간
+	startTime := time.Now()
+
+	// Task 실행
+	for i := 0; i < 1000; i++ {
+		println("Hello")
+	}
+
+	// 경과시간
+	elapsedTime := time.Since(startTime)
+	// elapsedTime := time.Now().Sub(startTime)
+
+	fmt.Printf("실행시간 %s\n", elapsedTime)
+}
+```
+
+## 체널을 이용한 비동기 로깅
+```go
+package main
+
+import (
+	"os"
+	"strconv"
+	"time"
+)
+
+// 비동기 로깅
+var logChannel chan string
+
+func logSetup(logFile string) {
+	// 로그 파일이 없으면, 생성
+	if _, err := os.Stat(logFile); os.IsNotExist(err) {
+		f, _ := os.Create(logFile)
+		f.Close()
+	}
+
+	logChannel = make(chan string, 100)
+
+	// 체널을 통한 비동기 로깅
+	go func() {
+		// 체널이 닫힐 때까지 메시지를 받으면 로깅
+		for msg := range logChannel {
+			f, _ := os.OpenFile(logFile, os.O_WRONLY|os.O_APPEND, 0666)
+			f.WriteString(time.Now().String() + " " + msg + "\n")
+			f.Close()
+		}
+	}()
+}
+
+func main() {
+	logSetup("./logfile.txt")
+
+	go func() {
+		for i := 1; i < 20; i++ {
+			n := strconv.Itoa(i)
+			logChannel <- n
+		}
+	}()
+
+	go func() {
+		for i := 100; i < 120; i++ {
+			logChannel <- strconv.Itoa(i)
+		}
+	}()
+
+	time.Sleep(1 * time.Second)
+	close(logChannel)
+}
+```
+
+## 체널 타임 아웃
+```go
+package main
+
+import "time"
+
+func main() {
+	ch1 := make(chan bool)
+	ch2 := make(chan bool)
+
+	go func(done chan bool) {
+		// time.Sleep(5 * time.Second)
+		done <- true
+	}(ch1)
+
+	go func(done chan bool) {
+		time.Sleep(1 * time.Second)
+		done <- true
+	}(ch2)
+
+	// time.After()는 입력 파라미터에 지정된 시간이 지나면 Ready되는 체널을 리턴한다
+	timeoutChan := time.After(2 * time.Second)
+
+	for {
+		select {
+		case <-ch1:
+			println("run1")
+		case <-ch2:
+			println("run2")
+		// select 문 내에서 타임아웃 체크
+		case <-timeoutChan:
+			println("timeout")
+			return
+		}
+
 	}
 }
 ```
