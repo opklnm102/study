@@ -198,6 +198,13 @@ for <index>, <value> range <slice or map> {
 }
 ```
 
+* string에서는 value로 `rune` 리턴
+```go
+// 시작 byte index, rune valeu
+for i, c := range "go" {
+    fmt.Println(i, c)  // 0 103, 1 111
+}
+```
 
 ## Map
 * key, value 자료구조
@@ -386,7 +393,10 @@ func main(){
 }
 ```
 
-## 구조채
+## 구조체
+* 필드들로 이루어진 타입을 갖는 `Collection`
+* Record를 구성하기 위한 Data Grouping에 유용
+
 ```go
 type <name> struct {
 
@@ -425,7 +435,9 @@ func main(){
 ```
 
 ### 메소드
-* Go에는 클래스가 없는 대신 `리시버 인자를 갖는 함수`로 메소드를 정의
+* Go에는 class가 없는 대신 `리시버 인자를 갖는 함수`로 메소드를 정의
+* 구조체 타입에 정의할 수 있다
+* method 호출에 대해 값과 포인터간의 변환을 자동으로 처리
 ```go
 func (<receiver>) <name> <return type>{
 
@@ -448,13 +460,16 @@ p.Scale(10)  // 포인터로도 접근
 
 ## 인터페이스
 * 메소드의 집합
+* 관련있는 method를 `grouping`하고 `naming`하기 위한 메커니즘
 * interface는 `type이 구현해야 하는 method(prototype) 정의`
 * type이 interface를 구현하기 위해서는 `interface가 가지는 메소드를 구현`
+
 ```go
 type <name> interface {
     <function>
 }
 ```
+
 * example
 ```go
 // interface 정의
@@ -507,6 +522,10 @@ func describe(i interface{}){
 }
 ```
 
+> #### 읽어보면 좋을 자료
+> * [How to use interfaces in Go](http://jordanorelli.com/post/32665860244/how-to-use-interfaces-in-go)  
+
+
 ## Error
 ```go
 type error interface {
@@ -515,7 +534,10 @@ type error interface {
 ```
 * error는 `error interface를 통해` 주고 받는다
 * error interface를 구현하는 Custom Error를 만들 수 있다
+* 명시적으로 `별도의 반환값을 통해 에러를 전달`하는게 일반적이고 관용적
+   * 어떤 함수가 에러를 반환했는지를 보고 다른 에러 없는 작업에 사용되는 구조체를 사용하여 쉽게 처리할 수 있다
 
+* example 1
 ```go
 package main
 
@@ -546,6 +568,68 @@ func main() {
 	}
 }
 ```
+
+* example 2
+```go
+package main
+
+import (
+	"errors"
+	"fmt"
+)
+
+// 관용적으로 에러는 마지막 반환값
+func f1(arg int) (int, error) {
+	if arg == 42 {
+		return -1, errors.New("can't work with 42") // error 생성
+	}
+	return arg + 3, nil // nil - error가 없다는 의미
+}
+
+type argError struct {
+	arg  int
+	prob string
+}
+
+// Custom error
+func (e *argError) Error() string {
+	return fmt.Sprintf("%d - %s", e.arg, e.prob)
+}
+
+func f2(arg int) (int, error) {
+	if arg == 42 {
+		return -1, &argError{arg, "can't work with it"}
+	}
+	return arg + 3, nil
+}
+
+func main() {
+	for _, i := range []int{7, 42} {
+		// 1줄로 error를 check -> 관용적 표현
+		if r, e := f1(i); e != nil {
+			fmt.Println("f1 failed:", e)
+		} else {
+			fmt.Println("f1 worked:", r)
+		}
+	}
+	for _, i := range []int{7, 42} {
+		if r, e := f2(i); e != nil {
+			fmt.Println("f2 failed:", e)
+		} else {
+			fmt.Println("f2 worked:", r)
+		}
+	}
+
+	_, e := f2(42)
+	if ae, ok := e.(*argError); ok {
+		fmt.Println(ae.arg)
+		fmt.Println(ae.prob)
+	}
+}
+```
+
+> #### 읽어보면 좋을 자료
+> * [Error handling and Go](https://blog.golang.org/error-handling-and-go)  
 
 
 ## 지연실행 defer
@@ -640,7 +724,7 @@ go f(x, y, z)  // 새로운 고루틴 실행
 ```
 * Go runtime이 담당하는 `경량 쓰레드`
 * 같은 주소 공간을 쓰기 때문에 shared memory에 접근할 때 `동기화 필요`
-* 비동기적으로(asynchronously) 함수 루틴 실행, 여러 코드를 동시에(concurrently) 실행
+* `비동기`적으로(asynchronously) 함수 루틴 실행, 여러 코드를 동시에(concurrently) 실행
 * os 쓰레드보다 훨씬 가볍게 비동기 Concurrent 처리를 구현하기 위해 만든 것
    * 고루틴들은 os쓰레드와 1:1로 대응되지 않고, Multiplexing으로 훨씬 적은 os쓰레드를 사용
 * `체널`을 통해 고루틴간 통신을 쉽게 할 수 있다
@@ -698,36 +782,91 @@ func main() {
 > 동시성은 하나의 일을 많이 처리 하는 것   
 > 평행성은 많은 일을 하는 것
 
-### 체널
-* 파이프
-* `<-`를 통해 값을 주고받을 수 있다
-* 별도의 동기화, condition variable 설정 없이 고루틴 사용 가능
-   * 디폴트로 상대방이 준비된 후 값을 주고받을 수 있기 때문에
+### Channel
+* 동시에 실행되고 있는 고루틴을 연결해주는 `Pipe`
+* `<-`를 통해 값을 주고 받을 수 있다
+* 별도의 `동기화`, `condition variable` 설정 없이 고루틴 사용 가능
+   * 디폴트로 상대방이 준비된 후 값을 주고 받을 수 있기 때문에
 
 #### Unbuffered Channel
+* channel은 default로 `Unbuffered`
 ```go
-ch := make(chan <type>)  // 
+ch := make(chan <type>)
 ch <- v  // 체널 ch를 통해 v를 보냄
 v := <- ch  // ch로부터 값을 전달받아, v에 할당
 ```
-* 수신자가 데이터를 받을 때까지 `송신자가 데이터를 보내는 체널에 블락`
+* 수신자가 데이터를 받을 때까지 `송신자가 데이터를 보내는 체널에 block`
+   * 송신된 값을 받으려고 준비하고 있는 대응되는 리시브(<- chan)가 있는 경우에만 (chan <-)을 보낼 수 있음을 의미
 
 #### Buffered Channel
 ```go
 ch := make(chan <type>, <buffer size>)
 ```
 * 전송시
-   * 버퍼가 꽉 찰 때까지 블락
+   * 버퍼가 꽉 찰 때까지 block
 * 수신시
-   * 다 빌 때까지 블락
+   * 다 빌 때까지 block
 * 수신자가 받을 준비가 되어 있지 않을지라도 `지정된 버퍼만큼 데이터를 보내고 다른 일 수행` 가능
+
+#### 체널 동기화
+* 고루틴간의 실행을 동기화하기 위해 channel을 사용
+* 고루틴이 끝날때까지 대기하기 위해 `blocking receive`를 사용하는 예제
+
+```go
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func worker(done chan bool) {
+    fmt.Print("working...")
+    time.Sleep(time.Second)
+    fmt.Println("done")
+
+    done <- true
+}
+
+func main() {
+    done := make(chan bool, 1)
+    go worker(done)
+
+    // blocking receive
+    <-done // 지우면 worker가 실행되기도 전에 프로그램이 종료될 수 있다
+}
+```
 
 #### 체널 파라미터
 * 일반적으로 송수신을 모두하는 체널을 전달
 * 해당 체널로 송신 or 수신만할 것인지 지정 가능
    * 송신 - `(ch chan <- string)`
    * 수신 - `(ch <- chan string)`
+   * 프로그램의 타입 안전성을 높여준다
    * 용도와 다르게 사용하면 에러
+   
+```go
+package main
+
+import "fmt"
+
+func ping(pings chan<- string, msg string) {
+    pings <- msg
+}
+
+func pong(pings <-chan string, pongs chan<- string) {
+    msg := <-pings
+    pongs <- msg
+}
+
+func main() {
+    pings := make(chan string, 1)
+    pongs := make(chan string, 1)
+    ping(pings, "passed message")
+    pong(pings, pongs)
+    fmt.Println(<-pongs)
+}
+```
 
 ### Range Close
 * sender가 더 이상 보낼 값이 없어 체널을 닫으면 receiver가 알아챌 수 있어야 한다
@@ -746,10 +885,12 @@ for i: range ch {  // ch가 닫힐 때 까지 계속 값을 받는다
 ```
 
 ### select
-* 고루틴은 적어도 하나의 case가 실행될 수 있을 때까지 블락
+* 다중 체널 연산들을 대기할 수 있게 해준다
+* select을 사용한 고루틴과 체널의 조합은 Go의 강력한 기능
+* 고루틴은 적어도 하나의 case가 실행될 수 있을 때까지 block
 * case가 준비되면 case를 실행하는데, 여러 case가 준비된 경우 `무작위`로 실행
 * 준비된 case가 없을 경우 `default case`가 실행
-* `블락 없이` 값을 주거나 받을 때 사용
+* `block 없이` 값을 주거나 받을 때 사용
 ```go
 select {
     case i := <- ch:
@@ -758,3 +899,84 @@ select {
         // ch로 부터 받는게 블락
 }
 ```
+
+* 총 실행시간 2초 -> Sleep 1초와 2초가 동시에 실행되기 때문
+```go
+
+package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    c1 := make(chan string)
+    c2 := make(chan string)
+
+    go func() {
+        time.Sleep(time.Second * 1)
+        c1 <- "one"
+    }()
+
+    go func() {
+        time.Sleep(time.Second * 2)
+        c2 <- "two"
+    }()
+
+    for i := 0; i < 2; i++ {
+        select {
+        case msg1 := <-c1:
+            fmt.Println("received", msg1)
+        case msg2 := <-c2:
+            fmt.Println("received", msg2)
+        }
+    }
+}
+```
+
+### 체널 타임 아웃
+* 외부 리소스를 연결하거나 실행시간을 제한해야하는 프로그램에서 중요
+* channel과 select을 사용하면 쉽고 우아하게 할 수 있다
+* `select timeout 패턴`을 사용하려면 체널을 통해 결과값을 전달
+* Go의 중요한 기능들이 체널과 select 기반이기 때문에 `일반적으로는 좋은 아이디어`
+```go
+package main
+
+import "time"
+
+func main() {
+	ch1 := make(chan bool)
+	ch2 := make(chan bool)
+
+	go func(done chan bool) {
+		// time.Sleep(5 * time.Second)
+		done <- true
+	}(ch1)
+
+	go func(done chan bool) {
+		time.Sleep(time.Second * 1)
+		done <- true
+	}(ch2)
+
+	// time.After()는 입력 파라미터에 지정된 시간이 지나면 Ready되는 체널을 리턴한다
+	// timeout 2초
+	timeoutChan := time.After(time.Second * 2)
+
+	for {
+		select {
+		case <-ch1:
+			println("run1")
+		case <-ch2:
+			println("run2")
+		// select 문 내에서 타임아웃 체크
+		case <-timeoutChan:
+			println("timeout")
+			return
+		}
+
+	}
+}
+```
+
+
