@@ -868,22 +868,6 @@ func main() {
 }
 ```
 
-### Range Close
-* sender가 더 이상 보낼 값이 없어 체널을 닫으면 receiver가 알아챌 수 있어야 한다
-```go
-v, ok := <- ch
-```
-* 더이상 받을 값이 없고, 닫혔다면 `ok는 false`
-* `sender만 체널을 닫는다`
-   * receiver가 체널을 닫아, 닫힌 체널에 데이터를 전송하면 패닉 발생
-* 파일과 다름
-   * 보통은 닫을 필요가 없고 `보낼 값이 없다`는 뜻을 전달하는 의미에서 닫는다
-```go
-for i: range ch {  // ch가 닫힐 때 까지 계속 값을 받는다
-
-}
-```
-
 ### select
 * 다중 체널 연산들을 대기할 수 있게 해준다
 * select을 사용한 고루틴과 체널의 조합은 Go의 강력한 기능
@@ -979,4 +963,115 @@ func main() {
 }
 ```
 
+### 비동기 체널 연산
+* 체널의 송수신은 기본적으로 `동기적`
+* select를 default문과 함께 사용하면 `non-blocking 송수신` 구현 가능
+* 비동기 다중 select도 구현 가능
+```go
+package main
+
+import "fmt"
+
+func main() {
+	messages := make(chan string)
+	signals := make(chan bool)
+
+	// 비동기 수신
+	select {
+	case msg := <-messages:
+		fmt.Println("received message", msg)
+	default:
+		fmt.Println("no message received")
+	}
+
+	// 비동기 송신
+	msg := "hi"
+	select {
+	case messages <- msg:
+		fmt.Println("sent message", msg)
+	default:
+		fmt.Println("no message sent")
+	}
+
+	select {
+	case msg := <-messages:
+		fmt.Println("received message", msg)
+	case sig := <-signals:
+		fmt.Println("received signal", sig)
+	default:
+		fmt.Println("no activity")
+	}
+}
+```
+
+### 체널 close
+* 더 이상 channel에 보낼 데이터가 없음을 나타낸다
+* channel의 receiver들에게 완료 상태를 전달하는데 유용
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	jobs := make(chan int, 5)
+	done := make(chan bool)
+
+	go func() {
+		for {
+			j, more := <-jobs // jobs가 close되면 more은 false
+			if more {
+				fmt.Println("received job", j)
+			} else {
+				fmt.Println("received all jobs")
+				done <- true
+				return
+			}
+		}
+	}()
+
+	// 반복적으로 값 수신
+	for j := 1; j <= 3; j++ {
+		jobs <- j
+		fmt.Println("sent job", j)
+	}
+	close(jobs)
+	fmt.Println("sent all jobs")
+
+	<-done
+}
+```
+
+### Range Close
+* sender가 더 이상 보낼 값이 없어 체널을 닫으면 receiver가 알아챌 수 있어야 한다
+```go
+v, ok := <- ch
+```
+* 더이상 받을 값이 없고, 닫혔다면 `ok는 false`
+* `sender만 체널을 닫는다`
+   * receiver가 체널을 닫아, 닫힌 체널에 데이터를 전송하면 패닉 발생
+* 파일과 다름
+   * 보통은 닫을 필요가 없고 `보낼 값이 없다`는 뜻을 전달하는 의미에서 닫는다
+```go
+for i: range ch {  // ch가 닫힐 때 까지 계속 값을 받는다
+
+}
+```
+* channel을 닫아도 남아있는 값 수신 가능
+```go
+package main
+
+import "fmt"
+
+func main() {
+	queue := make(chan string, 2)
+	queue <- "one"
+	queue <- "two"
+	close(queue)
+
+	for elem := range queue {
+		fmt.Println(elem)
+	}
+}
+```
 

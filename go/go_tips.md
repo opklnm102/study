@@ -303,3 +303,351 @@ func main() {
 	close(logChannel)
 }
 ```
+
+
+## Timers
+* 미래의 한 시점에 `무언가를 하고싶을 때` 사용
+* timer는 미래의 한 이벤트를 나타낸다
+* 해당 시각에 알림을 주는 `channel`을 반환
+* timer가 만료되기 전에 취소 가능
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	timer1 := time.NewTimer(time.Second * 2)
+
+	<-timer1.C
+	fmt.Println("Timer 1 expired")
+
+	timer2 := time.NewTimer(time.Second)
+	go func() {
+		<-timer2.C
+		fmt.Println("Timer 2 expired")
+	}()
+	stop2 := timer2.Stop()
+	if stop2 {
+		fmt.Println("Timer 2 stopped")
+	}
+}
+```
+
+
+## Tickers
+* 일정한 간격으로 `무언가를 반복하고자 할 때` 사용
+* timer와 유사한 메커니즘 사용
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	ticker := time.NewTicker(time.Millisecond * 500)
+	go func() {
+		for t := range ticker.C {
+			fmt.Println("Tick at", t)
+		}
+	}()
+
+	time.Sleep(time.Millisecond * 1600)
+	ticker.Stop()
+	fmt.Println("Tiker stopped")
+}
+```
+
+
+## Go에서 상태를 관리하는 법
+* channel을 통한 통신
+* atomic counters
+* mutex
+
+### channel을 통한 통신
+* 가장 기본적인 메커니즘
+* ex. 고루틴 + channel을 이용한 `worker pool` 구현
+```go
+// 총 작업시간은 5초지만, worker가 동시에 실행되고 있기 때문에 전체작업은 2초
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func worker(id int, jobs <-chan int, results chan<- int) {
+	for j := range jobs {
+		fmt.Println("worker", id, "started job", j)
+		time.Sleep(time.Second)
+		fmt.Println("worker", id, "finished job", j)
+		results <- j * 2
+	}
+}
+
+func main() {
+	// worker에 작업을 보내고 결과값을 받을 channel
+	jobs := make(chan int, 100)
+	results := make(chan int, 100)
+
+	for w := 1; w <= 3; w++ {
+		go worker(w, jobs, results) // 처음에는 job이 없어서 blocking
+	}
+
+	for j := 1; j <= 5; j++ {
+		jobs <- j
+	}
+	close(jobs)
+
+	for a := 1; a <= 5; a++ {
+		<-results
+	}
+}
+```
+
+### atomic counters
+* 여러개의 고루틴에서 접근되는 atomic counters를 위한 `sync/atomic 패키지` 사용
+
+```go
+package main
+
+import (
+	"fmt"
+	"sync/atomic"
+	"time"
+)
+
+func main() {
+	var ops uint64 = 0 // 항상 양수인 counter
+
+	// 동시 업데이트 시뮬레이션 - 1ms마다 counter를 증가시키는 고루틴 50개
+	for i := 0; i < 50; i++ {
+		go func() {
+			for {
+				atomic.AddUint64(&ops, 1) // 원자적으로 증가
+
+				time.Sleep(time.Millisecond)
+			}
+		}()
+	}
+
+	time.Sleep(time.Second) // ops가 누적되도록 기다림
+
+	// counter가 다른 고루틴에 의해 증가되는 도중에 안전하게 사용하기 위해 복사
+	opsFinal := atomic.LoadUint64(&ops)
+	fmt.Println("ops:", opsFinal)
+}
+```
+
+### mutex
+* `좀 더 복잡한 상태`에 대해서 여러개의 고루틴이 데이터에 안전하게 접근할 수 있는 메커니즘
+```go
+package main
+
+import (
+	"fmt"
+	"math/rand"
+	"sync"
+	"sync/atomic"
+	"time"
+)
+
+func main() {
+	var state = make(map[int]int)
+
+	var mutex = &sync.Mutex{} // state에 대한 접근을 동기화
+
+	// read, write가 얼마나 이루어지는지 tracking
+	var readOps uint64 = 0
+	var writeOps uint64 = 0
+
+	for r := 0; r < 1000; r++ {
+		go func() {
+			total := 0
+			for {
+				key := rand.Intn(5)
+				mutex.Lock() // 상호배제 접근 보장을 위한 Lock
+				total += state[key]
+				mutex.Unlock() // 상호배제 접근 보장을 위한 Unlock
+				atomic.AddUint64(&readOps, 1)
+
+				time.Sleep(time.Millisecond)
+			}
+		}()
+	}
+
+	for w := 0; w < 10; w++ {
+		go func() {
+			for {
+				key := rand.Intn(5)
+				val := rand.Intn(100)
+				mutex.Lock()
+				state[key] = val
+				mutex.Unlock()
+				atomic.AddUint64(&writeOps, 1)
+				time.Sleep(time.Millisecond)
+			}
+		}()
+	}
+
+	time.Sleep(time.Second)
+
+	readOpsFinal := atomic.LoadUint64(&readOps)
+	fmt.Println("readOps:", readOpsFinal)
+	writeOpsFinal := atomic.LoadUint64(&writeOps)
+	fmt.Println("writeOps:", writeOpsFinal)
+
+	mutex.Lock()
+	fmt.Println("state:", state)
+	mutex.Unlock()
+}
+```
+
+### 동일한 상태 관리 작업을 `고루틴과 channel의 내장 동기화 기능`만을 가지고 구현
+* `channel기반 접근법`은 `통신을 통한 메모리 공유`와 `정확히 한 고루틴이 각 데이터의 일부를 소유`한다는 아이디어에 기반
+* 상태는 `1개의 고루틴`이 소유
+   * 데이터가 동시 접근으로인해 손상되지 않음을 보장
+* 상태의 R/W를 위해 소유중인 고루틴으로 메시지를 보내고 응답을 받는다
+* mutex 기반보다 조금 더 복잡
+* 유용한 경우
+   * 다른 channel들이 관련되어 있는 경우
+   * error가 발생하기 쉬운 `다중 mutex`들을 관리하는 
+```go
+package main
+
+import (
+	"fmt"
+	"math/rand"
+	"sync/atomic"
+	"time"
+)
+
+// 상태를 소유한 고루틴이 응답하기 위한 방법을 캡슐화
+type readOp struct {
+	key  int
+	resp chan int
+}
+
+type writeOp struct {
+	key  int
+	val  int
+	resp chan bool
+}
+
+func main() {
+	var readOps uint64 = 0
+	var writeOps uint64 = 0
+
+	reads := make(chan *readOp)
+	writes := make(chan *writeOp)
+
+	go func() {
+		var state = make(map[int]int)
+		for {
+			select {
+			case read := <-reads:
+				read.resp <- state[read.key]
+			case write := <-writes:
+				state[write.key] = write.val
+				write.resp <- true
+			}
+		}
+	}()
+
+	for r := 0; r < 100; r++ {
+		go func() {
+			for {
+				read := &readOp{
+					key:  rand.Intn(5),
+					resp: make(chan int)}
+				reads <- read                 // read request
+				<-read.resp                   // read response
+				atomic.AddUint64(&readOps, 1) // 연산 횟수 count
+				time.Sleep(time.Millisecond)
+			}
+		}()
+	}
+
+	for w := 0; w < 10; w++ {
+		go func() {
+			for {
+				write := &writeOp{
+					key:  rand.Intn(5),
+					val:  rand.Intn(100),
+					resp: make(chan bool)}
+				writes <- write // write request
+				<-write.resp    // write response
+				atomic.AddUint64(&writeOps, 1)
+				time.Sleep(time.Millisecond)
+			}
+		}()
+	}
+
+	time.Sleep(time.Second)
+
+	readOpsFinal := atomic.LoadUint64(&readOps)
+	fmt.Println("readOps:", readOpsFinal)
+	writeOpsFinal := atomic.LoadUint64(&writeOps)
+	fmt.Println("writeOps:", writeOpsFinal)
+}
+```
+
+
+## Rate limiting
+* 리소스 이용을 제어하고 서비스의 품질을 유지하기위한 중요한 메커니즘
+* Go는 고루틴, channel, tickers로 지원
+
+```go
+// example. request handling을 제한
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	requests := make(chan int, 5)
+	for i := 1; i <= 5; i++ {
+		requests <- i
+	}
+	close(requests)
+
+	limiter := time.Tick(time.Millisecond * 200) // rate limiter
+
+	for req := range requests {
+		<-limiter // channel 수신으로 blocking, rate limit가 된다
+		fmt.Println("request", req, time.Now())
+	}
+	burstyLimiter := make(chan time.Time, 3)
+
+	// 전반적으로는 rate limit를 유지하면서 bursts of requests하고 싶은 경우
+	// limiter channel을 버퍼링
+	for i := 0; i < 3; i++ { // 최대 3개의 이벤트를 bursting
+		burstyLimiter <- time.Now()
+	}
+
+	go func() {
+		for t := range time.Tick(time.Millisecond * 200) {
+			burstyLimiter <- t
+		}
+	}()
+
+	burstyRequests := make(chan int, 5)
+	for i := 1; i <= 5; i++ {
+		burstyRequests <- i
+	}
+	close(burstyRequests)
+
+	// 처음 3개는 bursting의 이점 가진다
+	for req := range burstyRequests {
+		<-burstyLimiter
+		fmt.Println("request", req, time.Now())
+	}
+}
+```
