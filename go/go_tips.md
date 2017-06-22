@@ -651,3 +651,147 @@ func main() {
 	}
 }
 ```
+
+
+## 정렬
+* sort 패키지는 `내장 타입`, `사용자 정의 타입`을 위한 정렬을 구현하고 있다
+```go
+package main
+
+import (
+	"fmt"
+	"sort"
+)
+
+func main() {
+	strs := []string{"c", "a", "b"}
+	sort.Strings(strs)
+	fmt.Println("Strings:", strs)
+
+	ints := []int{7, 2, 4}
+	sort.Ints(ints)
+	fmt.Println("Ints:   ", ints)
+
+	// 정렬 여부 확인
+	s := sort.IntsAreSorted(ints)
+	fmt.Println("Sorted:  ", s)
+}
+```
+
+### 함수를 사용한 정렬
+* 해당하는 Type 필요
+* sort.Interface - Len, Less, Swap를 구현
+   * Len, Swap은 일반적으로 Type에 따라 유사
+   * Less가 실제 커스텀 `정렬 로직을 갖는다`
+```go
+package main
+
+import (
+	"fmt"
+	"sort"
+)
+
+type ByLength []string
+
+func (s ByLength) Len() int {
+	return len(s)
+}
+func (s ByLength) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s ByLength) Less(i, j int) bool {
+	return len(s[i]) < len(s[j])
+}
+func main() {
+	fruits := []string{"peach", "banana", "kiwi"}
+	sort.Sort(ByLength(fruits)) // casting하고 사용
+	fmt.Println(fruits)
+}
+```
+
+
+## 컬렉션 함수
+* Go에서는 제네릭을 지원하지 않는다
+* 필요한 경우 컬렉션 함수를 제공하는게 일반적
+```go
+package main
+
+import "fmt"
+import "strings"
+
+// 문자열 t의 1번째 index 반환
+func Index(vs []string, t string) int {
+	for i, v := range vs {
+		if v == t {
+			return i
+		}
+	}
+	return -1
+}
+
+// 문자열 t가 존재하면 true
+func Include(vs []string, t string) bool {
+	return Index(vs, t) >= 0
+}
+
+// 슬라이스의 문자열중 하나가 조건 f를 만족하면 true
+func Any(vs []string, f func(string) bool) bool {
+	for _, v := range vs {
+		if f(v) {
+			return true
+		}
+	}
+	return false
+}
+
+// 슬라이스의 문자열 모두가 조건 f를 만족하면 true
+func All(vs []string, f func(string) bool) bool {
+	for _, v := range vs {
+		if !f(v) {
+			return false
+		}
+	}
+	return true
+}
+
+// 슬라이스에서 조건 f를 만족하는 모든 문자열을 포함하는 새로운 슬라이스 반환
+func Filter(vs []string, f func(string) bool) []string {
+	vsf := make([]string, 0)
+	for _, v := range vs {
+		if f(v) {
+			vsf = append(vsf, v)
+		}
+	}
+	return vsf
+}
+
+// 기존 슬라이스에 있는 각각의 문자열에 함수 f를 적용한 결과값드을 포함하는 새로운 슬라이스 반환
+func Map(vs []string, f func(string) string) []string {
+	vsm := make([]string, len(vs))
+	for i, v := range vs {
+		vsm[i] = f(v)
+	}
+	return vsm
+}
+
+func main() {
+	var strs = []string{"peach", "apple", "pear", "plum"}
+
+	fmt.Println(Index(strs, "pear"))
+	fmt.Println(Include(strs, "grape"))
+
+	fmt.Println(Any(strs, func(v string) bool {
+		return strings.HasPrefix(v, "p")
+	}))
+
+	fmt.Println(All(strs, func(v string) bool {
+		return strings.HasPrefix(v, "p")
+	}))
+
+	fmt.Println(Filter(strs, func(v string) bool {
+		return strings.Contains(v, "e")
+	}))
+
+	fmt.Println(Map(strs, strings.ToUpper))
+}
+```
