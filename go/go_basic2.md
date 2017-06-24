@@ -20,7 +20,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer fi.Close()
+	defer fi.Close()  // 관행
 
 	// 출력파일 생성
 	fo, err := os.Create("2.txt")
@@ -50,6 +50,7 @@ func main() {
 			panic(err)
 		}
 	}
+	fo.sync()  // 안정적인 스토리지에 쓰기를 플러시
 }
 ```
 
@@ -75,6 +76,50 @@ func main() {
 	}
 }
 ```
+
+### bufio
+* 많은 작은 읽기의 효율성과 패키지가 제공하는 추가적인 읽기 메소드 덕분에 유용할 수 있는 `버퍼링된 리더`를 구현
+```go
+
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+)
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
+func main() {
+	f, err := os.Open("/tmp/dat")
+	check(err)
+	defer f.Close()
+
+	// Read
+	r := bufio.NewReader(f)
+	b, err := r.Peek(5)
+	check(err)
+	fmt.Printf("5 bytes: %s\n", string(b))
+
+	fo, err := os.Oepn("/w_file")
+	check(err)
+	defer fo.Close()
+
+	// Write
+	w := bufio.NewWriter(fo)  // 버퍼링된 writer
+	n, err := w.WriteString("buffered\n")
+	check(err)
+	fmt.Printf("wrote %d bytes\n", n)
+	w.Flush()  // 모든 버퍼링된 작업이 라이터에 적용되었는지 확인
+}
+```
+
 
 ## http.Get()
 * `http 패키지`는 웹 관련 클라이언트, 서버 기능 제공
@@ -314,6 +359,31 @@ func main() {
 	}
 
 	fmt.Println(mem.Name, mem.Age, mem.Active)
+}
+```
+
+### json key name custom
+* 구조체 선언부에 `태그`를 사용
+```go
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+// 태그를 사용하여 json field명을 custom
+type Response struct {
+	Page   int      `json:"page"`
+	Fruits []string `json:"fruits"`
+}
+
+func main() {
+	resD := &Response{
+		Page:   1,
+		Fruits: []string{"apple", "peach", "pear"}}
+	resB, _ := json.Marshal(resD)
+	fmt.Println(string(resB))
 }
 ```
 
