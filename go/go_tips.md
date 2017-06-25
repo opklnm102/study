@@ -1272,3 +1272,183 @@ func main() {
 	fmt.Println(string(uDec)) // abc123!?$*&()'-=@~
 }
 ```
+
+
+## Line Filter
+* stdin으로 입력을 읽고, 처리한 후, 결과를 stdout으로 출력하는 프로그램
+* ex. grep, sed
+```go
+// 입력받은 소문자를 대문자로 출력
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"strings"
+)
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
+func main() {
+
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for scanner.Scan() {
+		ucl := strings.ToUpper(scanner.Text())
+		fmt.Println(ucl)
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+}
+```
+
+## 프로세스
+
+### 프로세스 생성
+* `exec.Command()` - 외부 프로세스 표현
+* `exec.Output()` - 커맨드 실행, 종료 대기, output을 가져온다
+```go
+package main
+
+import (
+	"fmt"
+	"io/ioutil"
+	"os/exec"
+)
+
+func main() {
+	dateCmd := exec.Command("date")
+
+	dateOut, err := dateCmd.Output()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("> date")
+	fmt.Println(string(dateOut))
+
+	// stdin으로 pipe하여 stdout에서 output을 가져오는 복잡한 케이스
+	grepCmd := exec.Command("grep", "hello")
+
+	grepIn, _ := grepCmd.StdinPipe()   // stdin pipe
+	grepOut, _ := grepCmd.StdoutPipe() // stdout pipe
+	grepCmd.Start()
+	grepIn.Write([]byte("hello grep\ngoodbye grep"))
+	grepIn.Close()
+	grepBytes, _ := ioutil.ReadAll(grepOut)
+	grepCmd.Wait()
+
+	fmt.Println("> grep hello")
+	fmt.Println(string(grepBytes))
+
+	// bash -c. 전체 커맨드를 담은 문자열을 하나로 프로세스 생성
+	lsCmd := exec.Command("bash", "-c", "ls -a -l -h")
+	lsOut, err := lsCmd.Output()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("> ls -a -l -h")
+	fmt.Println(string(lsOut))
+}
+```
+
+### 프로세스 실행
+* 프로세스 전체를 다른 프로세스로 대체하고 싶을 때
+* `os/exec` 사용
+* Unix의 fork를 제공하지 않는다
+* 고루틴을 이용하여 프로세스를 생성하거나 exec하여 fork의 대부분의 use case를 다룰 수 있다
+```go
+package main
+
+import (
+	"os"
+	"os/exec"
+	"syscall"
+)
+
+func main() {
+	// 절대 경로 찾기
+	binary, lookErr := exec.LookPath("ls")
+	if lookErr != nil {
+		panic(lookErr)
+	}
+
+	args := []string{"ls", "-a", "-l", "-h"}
+
+	env := os.Environ()
+
+	// 프로세스가 대체된다
+	execErr := syscall.Exec(binary, args, env)
+	if execErr != nil {
+		panic(execErr)
+	}
+}
+```
+
+### Unix signal 처리
+* signal 알림은 os.Signal값을 channel에 보내는 방식으로 동작
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+)
+
+func main() {
+	sigs := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+
+	// 지정한 signal을 받을 수 있는 channel을 받고 등록
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	// signal을 받기 위한 blocking gorutine
+	go func() {
+		sig := <-sigs
+		fmt.Println()
+		fmt.Println(sig)
+		done <- true
+	}()
+
+	fmt.Println("awaiting signal")
+	<-done
+	fmt.Println("exiting")
+}
+```
+
+```sh
+go run signal.go
+awaiting signal
+^C
+interrupt
+exiting
+```
+
+### 종료
+* `os.Exit`를 이용하여 프로그램을 지정된 status로 즉시 종료
+* 0이 아닌 다른 status로 종료하고 싶다면 사용
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+)
+
+func main() {
+	// defer는 os.Exit()를 이용할 때에는 작동하지 않는다
+	defer fmt.Println("!")
+
+	os.Exit(3)
+}
+```
+
