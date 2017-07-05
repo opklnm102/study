@@ -109,7 +109,7 @@ public interface BookRepository {
 ```java
 @Component
 @CacheConfig(cacheNames = "books")
-public class SimpleBookRepository {
+public class SimpleBookRepository implements BookRepository {
 
     @Cacheable(value = "books", key = "#isbn")  // isbn에 따라 별도로 캐시, 다른 인자가 key로 무의미할 경우 사용 가능
     // @Cacheable(value = "books", key="T(SimpleBookRepository).getKey(#isbn)")
@@ -175,5 +175,38 @@ public class AppRunner implements CommandLineRunner {
 }
 ```
 
-> #### [스프링 부트에서 레디스 캐시 유효시간 설정 기능 추가하기](http://javacan.tistory.com/entry/customize-redis-cache-expire-time-in-boot)  
+## Test
+```java
+@RunWith(SpringRunner.class)
+@SpringBootTest
+@Transactional
+@Rollback
+public class SimpleBookRepositoryTest {
+
+    @Autowired
+    private CacheManager cacheManager;
+
+    @Autowired
+    private BookRepository bookRepository;
+
+    @Test
+    public void testGetByIsbn() throws Exception {
+        // given : isbn으로
+        String isbn = "isbn-4567";
+        Cache cache = cacheManager.getCache("books");
+
+        // when : book을 조회하면
+        Book book = bookRepository.getByIsbn(isbn);
+
+        // then : book이 조회되고, 캐싱되었다
+        assertThat(book, is(notNullValue()));
+        assertThat(cache.get(isbn), is(notNullValue()));
+    }
+}
+```
+
+> #### 더 보면 좋을 자료
+> * [스프링 부트에서 레디스 캐시 유효시간 설정 기능 추가하기](http://javacan.tistory.com/entry/customize-redis-cache-expire-time-in-boot)  
+> 
+
 
