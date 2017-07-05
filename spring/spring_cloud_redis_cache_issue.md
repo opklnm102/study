@@ -105,7 +105,7 @@ public class DemoApplication {
 ## 문제점
 * Proxy가 `@Cacheable`을 동작하여 Redis에 캐싱하려고 할 때 아래의 Exception이 발생
 ```
-java.lang.IllegalArgumentException: Cannot find cache named 'mission:bundle' for Builder[public java.lang.String io.tbal.promotion.manager.MissionBundleManagerImpl.readMissionBundle(java.lang.Long)] caches=[mission:bundle] | key='T(io.tbal.promotion.manager.MissionBundleManagerImpl).createKey(#missionId)' | keyGenerator='' | cacheManager='' | cacheResolver='' | condition='' | unless='' | sync='false'
+java.lang.IllegalArgumentException: Cannot find cache named 'books' for Builder[public java.lang.String com.example.SimpleBookRepository.getByIsbn(java.lang.Long)] caches=[mission:bundle] | key='#isbn' | keyGenerator='' | cacheManager='' | cacheResolver='' | condition='' | unless='' | sync='false'
 	at org.springframework.cache.interceptor.AbstractCacheResolver.resolveCaches(AbstractCacheResolver.java:81)
 	at org.springframework.cache.interceptor.CacheAspectSupport.getCaches(CacheAspectSupport.java:242)
 	at org.springframework.cache.interceptor.CacheAspectSupport$CacheOperationContext.<init>(CacheAspectSupport.java:675)
