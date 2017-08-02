@@ -11,8 +11,6 @@ at org.hibernate.jpa.internal.QueryImpl.getSingleResult(QueryImpl.java:529)
 ```
 
 ## 문제
-* flush 되지 않은 임시 인스턴스에 대해 save가 되고 있어서 생김
-
 * flush 하지 않은 임시 인스턴스에 대해 참조가 일어나서 생김
 
 ## 해결법
