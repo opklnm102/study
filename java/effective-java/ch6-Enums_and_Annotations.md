@@ -358,10 +358,42 @@ public static Operation inverse(Operation op) {
    * 정책 enum 패턴 사용 고려
 
 
-## 규칙 31. Use instance fields insted of ordinals
+## 규칙 31. Use instance fields insted of ordinals(ordinal 대신 객체 필드를 사용하라)
 
+* enum 상수는 자연스레 int값 하나에 대응
 
+### `ordinal()`를 통해 대응되는 정수값을 구하면 편리하지 않을까?
+```java
+public enum Ensemble {
+    SOLO, DUET, TRIO, QUARET;
 
+    public int numberOfMusicians() {
+        return ordinal() + 1;
+    }
+}
+```
+
+* 유지보수 관점에서 보면 끔찍한 코드
+* 이미 사용한 정수값에 대응되는 상수 추가 불가
+* 11을 추가하고 싶을 경우, 현재 10까지 대응되는 상수가 없어서 불가
+
+### enum 상수에 연계되는 값은 ordinal 사용해 표현하지말고, 객체 필드에 저장해라
+```java
+public enum Ensemble {
+    SOLO(1), DUET(2), TRIO(3), QUARET(4);
+
+    private final int numberOfMusicians;
+
+    Ensemble(int size) {
+        this.numberOfMusicians = size;
+    }
+
+    public int getNumberOfMusicians() {
+        return numberOfMusicians;
+    }
+}
+```
+* ordinal()은 EnumSet, EnumMap처럼 일반적인 용도의 enum기반 자료구조를 만들 경우 사용
 
 
 ## 규칙 32. Use EnumSet instead of bit fields
