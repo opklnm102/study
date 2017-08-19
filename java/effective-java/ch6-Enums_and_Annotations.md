@@ -393,18 +393,210 @@ public enum Ensemble {
     }
 }
 ```
-* ordinal()은 EnumSet, EnumMap처럼 일반적인 용도의 enum기반 자료구조를 만들 경우 사용
+
+> ordinal()은 EnumSet, EnumMap처럼 일반적인 용도의 enum기반 자료구조를 만들 경우 사용
 
 
-## 규칙 32. Use EnumSet instead of bit fields
+## 규칙 32. Use EnumSet instead of bit fields(bit field 대신 EnumSet을 사용하라)
+
+### 열거 자료형 원소들이 주로 집합에 사용될 경우
+#### int enum 패턴 사용
+```java
+public class Text {
+
+    public static final int STYLE_BOLD = 1 << 0;  // 1
+    public static final int STYLE_ITALIC = 1 << 1;  // 2
+    public static final int STYLE_UNDERLINE = 1 << 2;  // 4
+    public static final int STYLE_STRIKETHROUGH = 1 << 3;  // 8
+
+    /**
+     * @param styles STYLE_상수를 비트별 OR 한 값이거나 0
+     */
+    public void applyStyles(int styles) {
+        ...
+    }
+}
+```
+* bitwise arithmetic(비트 단위 산술 연산)을 통해 합집합, 교집합 등의 집합 연산도 효율젹
+* int enum 패턴과 동일한 단점을 가진다
+   * bit field를 출력한 결과는 int enum 패턴보다 이해하기 어렵다
+   * 모든 요소를 순차적으로 살펴보기도 어렵다
+
+#### 더 나은 방법 : java.util.EnumSet 사용
+```java
+public class Text {
+    public enum Style{
+        BOLD, ITALIC, UNDERLINE, STRIKETHROUGH
+    }
+
+    public void applyStyles(Set<Style> styles){
+        ...
+    }   
+}
+
+// usage
+text.applyStyles(EnumSet.of(Text.Style.BOLD, Text.Style.ITALIC));
+```
+* enum으로 구성된 집합을 효율적으로 표현할 수 있다
+* Set Interface 구현
+   * Set의 풍부한 기능 제공
+   * 타입 안전성 제공
+   * Set과 같은 수준의 interoperability(상호운용성)도 제공
+* 내부적으로는 `bit vector` 사용
+   * bit field에 필적하는 성능
+* bit field를 직접 조작할 때 생기는 어려움을 해결해준다
+* 단점
+   * immutable EnumSet 객체를 만들 수 없다
+
+### 정리
+* 열거 자료형을 집합에 사용해야 한다고 해서 bit field로 표현하면 곤란하다
+* EnumSet을 활용하자
 
 
+## 규칙 33. Use EnumMap instead of ordinal indexing(ordinal을 배열 첨자로 사용하는 대신 EnumMap을 이용하라)
+```java
+// 요리용 허브를 표현하는 클래스
+public class Herb {
+
+    public enum Type {
+        ANNUAL, PERENNIAL, BIENNIAL
+    }
+
+    final String name;
+    final Type type;
+
+    public Herb(String name, Type type) {
+        this.name = name;
+        this.type = type;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+}
+```
+
+### 허브를 품종별로 나열할 경우
+
+#### ordinal을 index로 사용
+```java
+Herb[] garden = ...;
+
+Set<Herb>[] herbsByType = (Set<Herb>[]) new Set[Herb.Type.values().length];
+
+for(int i=0; i<herbsByType.length; i++){
+    herbsByType[i] = new HashSet<>();
+
+    for(Herb h : garden){
+        herbsByType[h.type.ordinal()].add(h);
+    }
+}
+```
+#### 문제점
+* 배열은 제네릭과 호환되지 않는다
+   * 무점검 형변환 필요, 깔끔하게 컴파일되지 않는다
+* 배열 원소를 참조할 때 정확한 int값을 사용해야한다
+   * 오동작의 원인
+   * ArrayIndexOutOfBoundsException 발생
+
+#### 더 나은 방법 : EnumMap 사용
+```java
+Map<Herb.Type, Set<Herb>> herbsByType = new EnumMap<>(Herb.Type.class);
+        
+for(Herb.Type t : Herb.Type.values()){
+    herbsByType.put(t, new HashSet<>());
+            
+    for(Herb h : garden){
+        herbsByType.get(h.type).add(h);
+    }
+}
+```
+* 무점검 형변환이 없다
+* index 때문에 오류도 나지 않는다
+
+> EnumMap 생성자는 key의 자료형을 나타내는 Class 객체를 인자로 받는다  
+> 이런 Class 객체를 bounded type token(한정적 자료형 토큰)이라 부르는데,  
+> 실행시점 제네릭 자료형 정보(runtime generic type informatio)를 제공한다
 
 
+### phase transition(상전이) 관계를 표현할 경우
+* phase transition
+   * 액체 -> 고체 = 언다
+   * 액체 -> 기체 = 끓는다
 
-## 규칙 33. Use EnumMap instead of ordinal indexing
+#### ordinal을 index로 사용
+```java
+public enum Phase {
+    SOLID, LIQUID, GAS;
+
+    public enum Transition {
+        MELT, FREEZE, BOIL, CONDENSE, SUBLIME, DEPOSIT;
+        
+        private static final Transition[][] TRANSITIONS = {
+                {null, MELT, SUBLIME},
+                {FREEZE, null, BOIL},
+                {DEPOSIT, CONDENSE, null}
+        };
+
+        // 특정 상전이 과정을 표현하는 enum 반환
+        public static Transition from(Phase src, Phase dest){
+            return TRANSITIONS[src.ordinal()][dest.ordinal()];
+        }
+
+    }
+}
+```
+* ArrayIndexOutOfBoundsException
+* NullPointerException
+* 상태가 늘어나면 상전이 테이블의 크기가 증가
+
+#### 더 나은 방법 : EnumMap 사용
+```java
+public enum Phase {
+    SOLID, LIQUID, GAS;
+
+    public enum Transition {
+        MELT(SOLID, LIQUID),
+        FREEZE(LIQUID, SOLID),
+        BOIL(LIQUID, GAS),
+        CONDENSE(GAS, LIQUID),
+        SUBLIME(SOLID, GAS),
+        DEPOSIT(GAS, SOLID);
+
+        private final Phase src;
+        private final Phase dest;
+
+        Transition(Phase src, Phase dest) {
+            this.src = src;
+            this.dest = dest;
+        }
+
+        // 상전이 맵 초기화
+        private static final Map<Phase, Map<Phase, Transition>> m = new EnumMap<>(Phase.class);
+
+        static {
+            for (Phase p : Phase.values()){
+                m.put(p, new EnumMap<>(Phase.class));
+
+                for(Transition trans : Transition.values()){
+                    m.get(trans.src).put(trans.dest, trans);
+                }
+            }
+        }
+
+        public static Transition from(Phase src, Phase dest){
+            return m.get(src).get(dest);
+        }
+    }
+}
+```
 
 
+### 정리
+* ordinal 값을 배열 첨자로 사용하는 것은 적절하지 않다
+* EnumMap을 활용하자
+   * 관계가 다차원적이라면, EnumMap<..., EnumMap<...>>과 같이 표현
 
 
 
