@@ -600,9 +600,103 @@ public enum Phase {
 
 
 
-## 규칙 34. Emulate extensible enums with interfaces
+## 규칙 34. Emulate extensible enums with interfaces(확장 가능한 enum을 만들어야 한다면 인터페이스를 이용하라)
+* enum 자료형은 final 이라서 상속할 수 없다
+   * 상속 가능해도, 상수들이 상속되는 것은 바람직하지 않다
+* enum 자료형을 확장하면 좋을 경우
+   * 연산 코드를 만들어야 할 때
 
+### interface를 이용
+```java
+public interface Operation {
+    double apply(double x, double y);
+}
 
+public enum BasicOperation implements Operation {
+    PLUS("+") {
+        @Override
+        public double apply(double x, double y) {
+            return x + y;
+        }
+    },
+    MINUS("-") {
+        @Override
+        public double apply(double x, double y) {
+            return x - y;
+        }
+    },
+    TIMES("*") {
+        @Override
+        public double apply(double x, double y) {
+            return x * y;
+        }
+    },
+    DIVIDE("/") {
+        @Override
+        public double apply(double x, double y) {
+            return x / y;
+        }
+    };
+
+    private final String symbol;
+
+    BasicOperation(String symbol) {
+        this.symbol = symbol;
+    }
+}
+```
+* BasicOperation은 enum 자료형이라 상속할 수 없지만, Operation은 interface라 확장 가능
+```java
+public enum ExtendedOperation implements Operation {
+    EXP("^") {
+        @Override
+        public double apply(double x, double y) {
+            return Math.pow(x, y);
+        }
+    },
+    REMINDER("%") {
+        @Override
+        public double apply(double x, double y) {
+            return x % y;
+        }
+    };
+
+    private final String symbol;
+
+    ExtendedOperation(String symbol) {
+        this.symbol = symbol;
+    }
+}
+
+// usage
+public static void main(String[] args) {
+    double x = 1.0;
+    double y = 2.0;
+
+    test(ExtendedOperation.class, x, y);
+    test(Arrays.asList(ExtendedOperation.values()), x, y);
+}
+    
+// 1. 한정적 자료형 토큰
+// <T extends Enum<T> & Operation> -> Class 객체가 나타내는 자료형이 enum인 동시에 Operation의 하위 자료형이 되도록 한다
+private static <T extends Enum<T> & Operation> void test(Class<T> opSet, double x, double y){
+    for(Operation op : opSet.getEnumConstants()){
+        ...
+    }
+}
+
+// 2. 한정적 와일드카드 자료형
+// EnumSet, EnumMap을 사용할 수 없다
+// 여러 자료형에 정의한 연산들을 함께 전달하는 유연성이 필요 없다면, 한정적 자료형 토큰 방법을 사용하는편이 낫다
+private static void test(Collection<? extends Operation> opSet, double x, double y){
+    for(Operation op : opSet){
+        ...
+    }
+}
+```
+
+### 정리
+* 상속 가능 enum은 만들 수 없지만, interface를 만들고, interface를 구현하는 enum을 만들면된다
 
 
 
