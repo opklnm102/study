@@ -925,11 +925,36 @@ public class Bigram {
 
 
 
-## 규칙 37. Use maker interfaces to define types
+## 규칙 37. Use maker interfaces to define types(자료형을 정의할 때 표식 인터페이스를 사용하라)
 
+### Marker Interface(표식 인터페이스)
+* 아무 메소드도 선언하지 않는 인터페이스
+* 클래스를 만들 때 표식 인터페이스를 구현하는 것은, 해당 클래스가 어떤 속성을 만족한다는 사실을 표시하는 것과 같다
+   * ex. Serializable
 
+### Marker Annotation보다 Marker Interface 좋은 점
+1. Marker Interface는 결국 표식 붙은 클래스가 만드는 객체들이 구현하는 자료형, 표식 annotation은 자료형이 아니다
+   * 컴파일 시점에 오류를 발견할 수 있다
+      * `ObjectOutputStream.write(Object)`는 Serializable를 구현하지 않은 객체면 runtime에 오류를 낸다
+      * `ObjectOutputStream.write(Serializable)`로 했으면 컴파일 시에 오류를 파악할 수 있었을 것이다
 
+2. 적용 범위를 좀 더 세밀하게 지정할 수 있다
+   * annotation 선언시에 `@Target(ElementType.TYPE)`으로 지정하면 어떤 Class나 Interface에도 적용 가능하다
+   * 특정 interface를 구현한 클래스에만 적용할 수 있어야 하는 표식이 필요하다면, marker interface를 쓴다면 interface를 구현하도록 하면 된다
 
+### Marker Annotation의 주된 장점은, 프로그램 안에서 annotation 자료형을 쓰기 시작한 뒤에도 더 많은 정보를 추가할 수 있다는 것
+* 단순 marker annotation이었던 것이 나중에는 기능이 풍부한 annotation으로 잔화해 나갈 수도 있다
+* marker interface는 불가능
+   * 일단 구현이 이루어진 다음에는 새로운 메소드를 추가하는 것이 일반적으로는 불가능하기 때문
+* 더 큰 Annotation 기능의 일부라는 장점도 있다
 
-
+### Marker Annotation, Marker Interface 각각 어떤 상황에...?
+* 둘의 쓰임새는 다르다
+* 새로운 메소드가 없는 자료형을 정의하고자 한다면 `marker interface` 사용
+* marker가 붙은 객체만 인자로 받을 수 있는 메소드를 만들거라면 `marker interface` 사용
+* 특정 interface에만 적용된다면?
+   * 하위 interface로 `marker interface`를 정의하여 사용
+   * `marker annotation` 사용
+* Class, Interface 이외의 요소에 표식을 달아야하고, 표식에 더 많은 정보를 추가할 가능성이 있다면, `marker annotation`을 사용
+* `@Target(ElementType.TYPE)`에 적용될 `marker annotation`을 작성하고 있다면, 반드시 annotation으로 구현해야 하는지, `marker interface`로 만드는 것이 바람직하지는 않은지 고민해볼 것
 
