@@ -877,9 +877,51 @@ public class RunTests {
 
 
 
-## 규칙 36. Consistently use the Override annotation
+## 규칙 36. Consistently use the Override annotation(@Override는 일관되게 사용하라)
+
+### @Override
+* 메소드 선언부에만 사용 가능
+* 상위 클래스에 선언된 메소드를 재정의한다는 사실을 표현
+* 일관되게 사용하면 끔찍한 버그들을 방지할 수 있다
+
+### @Override 사용하지 않아 컴파일러가 버그를 발견하지 못하는 케이스
+```java
+public class Bigram {
+
+    private final char first;
+
+    private final char second;
+
+    public Bigram(char first, char second) {
+        this.first = first;
+        this.second = second;
+    }
+
+    // equals(Object o)가 override되지 못했다
+    public boolean equals(Bigram b) {
+        return b.first == first && b.second == second;
+    }
+
+    public int hashCode() {
+        return 31 * first + second;
+    }
+
+    public static void main(String[] args) {
+        Set<Bigram> bigrams = new HashSet<>();
+        for (int i = 0; i < 10; i++) {
+            for (char ch = 'a'; ch <= 'z'; ch++) {
+                bigrams.add(new Bigram(ch, ch));
+            }
+        }
+        System.out.println(bigrams.size());
+    }
+}
+```
+* `equals(Object o)`가 override 되지 않아 의도한대로 동작하지 않는다
 
 
+### 정리
+* 상위 클래스에 선언된 메소드를 재정의할 때는 반드시 선언부에 `@Override`를 붙여야 한다
 
 
 
