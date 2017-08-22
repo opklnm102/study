@@ -78,24 +78,6 @@
 29. Consider typesafe heterogeneous containers
 
 
-# Ch7. Methods
-
-38. Check parameters for validity
-
-39. Make defensive copies when needed
-
-40. Design method signatures carefully
-
-41. Use overloading judiciously
-
-42. Use varargs judiciously
-
-
-43. Return empty arrays or collections, not nulls
-
-44. Write doc comments for al exposed API elements
-
-
 # Ch8. General Programming
 
 45. Minimize the scope of local variables
