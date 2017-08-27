@@ -332,7 +332,72 @@ for (int i = 0; i < 3; i++) {
 
 
 
-## 규칙 42. Use varargs judiciously
+## 규칙 42. Use varargs judiciously(varargs는 신중히 사용하라)
+### varargs(가변 인자) 메소드
+* 임의 개수의 인자를 처리하는 메소드를 만들어야할 때 효과적
+* `printf()`, `reflection`에서 많이 사용
+```java
+static int sum(int... args) {
+    int sum = 0;
+    for (int arg : args) {
+        sum += arg;
+    }
+    return sum;
+}
+```
+
+### 1개 이상의 paramter가 필요할 경우
+```java
+// 실행시점에 배열 길이 검사
+static int min(int... args) {
+    if (args.length == 0) {
+        throw new IllegalArgumentException("Too few arguments");
+    }
+    int min = args[0];
+    for (int i = 1; i < args.length; i++) {
+        if (args[i] < min) {
+            min = args[i];
+        }
+    }
+    return min;
+}
+```
+* 문제점
+   * parameter 없이 호출 가능
+   * runtime error
+   * args 유효성 검사 필요
+   * min을 Integer.MAX_VALUE로 초기화하지 않으면 for-each 사용 불가
+   * 가독성 떨어짐
+
+#### 개선 - parameter를 2개로 선언
+```java
+static int min(int firstArg, int... remainingArgs) {
+    int min = firstArg;
+    for (int arg : remainingArgs) {
+        if (arg < min) {
+            min = arg;
+        }
+    }
+    return min;
+}
+```
+
+### 배열을 인자로 받는 메소드는 반드시 varargs를 사용해야 하는 것은 아니다
+* varargs는 정말로 임의 개수의 인자를 처리할 수 있는 메소드를 만들어야 할 때만 사용
+* varargs 메소드를 호출할 때 마다 배열이 만들어지고 초기화 된다
+   * 성능이 중요하다면 신중해야 한다
+```java
+// 95%는 2개이하의 인자가 전달된다면 아래처럼 최적화
+public void foo(){ }
+public void foo(int a1){ }
+public void foo(int a1, int a2){ }
+public void foo(int a1, int a2, int...remaing){ }
+```
+* `EnumSet`의 정적 팩토리 메소드들은 위의 기법을 통해 enum 집합 생성비용을 낮춘다
+
+### 정리
+* varargs 메소드는 parameter 수가 가변적인 메소드를 정의할 때 편리하지만, 남용되면 곤란하다
+
 
 ## 규칙 43. Return empty arrays or collections, not nulls
 
