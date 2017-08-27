@@ -451,8 +451,124 @@ public List<Cheese> getCheeseList() {
 
 
 
-## 규칙 44. Write doc comments for all exposed API elements
+## 규칙 44. Write doc comments for all exposed API elements(외부에 제공하는 모든 API 요소에 대해 문서화 주석을 넣자)
+
+### 사용 가능한 API라면 반드시 문서화
+* 외부에 제공하는 모든 `클래스`, `인터페이스`, `생성자`, `메소드`, `필드`의 선언부 앞에 문서화 주석을 넣어야 한다
+* 유지보수하기 쉬운 코드를 작성하려면 `외부에 공개되지 않는(public이 아닌)` 클래스, 인터페이스, 생성자, 메소드, 필드에도 문서화 주석을 작성해야 한다
+
+### 문서화 방법
+* 클래스, 인터페이스의 어떤 멤버나 생성자도 `동일한 요약설명을 가져서는 안된다`
+
+#### 메소드
+* 메소드가 수행하는 `동작을 설명하는 완전한 동사구`
+   * ex. `Collection.size() - Returns the number of elements in this collection`
+* 메소드의 문서화 주석에는 메소드와 클라이언트 사이의 계약을 `간략하게 설명`
+* 어떻게 일을 처리하는가 보다는 `무슨 일을 하는지`를 나타내야 한다
+* 모든 `사전 조건(precondition)`(메소드를 호출하기 위해 반드시 만족되어야 하는 것), `사후 조건(postcondition)`(메소드 호출이 성공적으로 완료된 후에 만족해야 할 것들)을 열거
+   * 사전 조건
+      * unchecked 예외에 대해 `@throws` 태그에서 자동으로 기술
+      * `@param` 태그의 매개변수와 함께 설명될 수 있다
+* 메소드의 `부작용(side effect)`도 문서화
+   * side effect
+      * 시스템 상태에 눈에 띄는 변화
+   * ex. 백그라운드 쓰레드를 시작시킨다면, thread safety를 기술
+* `@param`, `@return`
+   * 매개변수나 반환값에 나타나는 값을 설명하는 명사구
+* `@throws`
+   * 해당하는 예외가 발생하는 조건을 설명하는 문구
+```java
+/**
+ * <p>This method is <i>not</i>guaranteed to run in constant
+ * time . In some imp1ementations it may run in time proportiona1
+ * to the e1ement position .
+ *
+ * @param index index of e1ement to return; must be
+ *              non-negative and 1ess than the size of this 1ist
+ * @return the e1ement at the spec ified position in this 1i st
+ *         IndexOutOfBoundsException if the index is out of range 
+ * ({@codeindex<011 index>=this.size()}) 
+ */
+E get(int index) ;
+```
 
 
+#### 클래스, 인터페이스, 필드
+* 클래스, 인터페이스, 필드가 나타내는 것을 `명사구`로 설명
+   * ex. `TimerTask - task that can be scheduled for one-time or repeated execution by a Timer`
 
+#### 제네릭
+* `모든 타입의 매개변수`가 문서화되었는지 확인
+```java
+/**
+* ...
+* @param <K> the type of keys maintained by this map
+* @param <V> the type of mapped values
+*/
+public interface Map<K, V> {
+    ...
+}
+```
+
+#### enum
+* `타입`, `public 메소드`, `상수`들이 문서화되었는지 확인
+```java
+public enum Phase  {
+    // 고체
+    SOLID,
+
+    // 액체 
+    LIQUID,
+
+    // 기체 
+    GAS;
+}
+```
+
+#### annotation
+* annotaion 자신, 모든 멤버가 문서화되었는지 확인
+```java
+/**
+ * Indicates that a method declaration is intended to override a
+ * method declaration in a supertype. If a method is annotated with
+ * this annotation type compilers are required to generate an error
+ * message unless at least one of the following conditions hold:
+ *
+ * <ul><li>
+ * The method does override or implement a method declared in a
+ * supertype.
+ * </li><li>
+ * The method has a signature that is override-equivalent to that of
+ * any public method declared in {@linkplain Object}.
+ * </li></ul>
+ *
+ * @author  Peter von der Ah&eacute;
+ * @author  Joshua Bloch
+ * @jls 9.6.1.4 @Override
+ * @since 1.5
+ */
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.SOURCE)
+public @interface Override {
+}
+```
+
+#### 패키지
+* `package-info.java`에 기술
+* 패키지 수준의 문서화 주석
+* `패키지 선언`과 `패키지 annotation`을 포함
+
+#### thread safety
+* thread safe를 문서화
+
+####serializability
+* 직렬화 가능하다면, 직렬화 형태 문서화
+
+
+### 정리
+* 문서화 주석은 API를 문서화하는 가장 좋고 효율적인 방법
+* 모든 외부 API에 대해 문서화 주석의 사용을 반드시 고려
+* 표준을 따르는 일관성 있는 스타일 채택
+* 주석 내부에 HTML 사용 가능
+   * HTML 메타 문자는 이스케이프 처리
 
