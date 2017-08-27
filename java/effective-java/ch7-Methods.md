@@ -399,7 +399,57 @@ public void foo(int a1, int a2, int...remaing){ }
 * varargs 메소드는 parameter 수가 가변적인 메소드를 정의할 때 편리하지만, 남용되면 곤란하다
 
 
-## 규칙 43. Return empty arrays or collections, not nulls
+
+## 규칙 43. Return empty arrays or collections, not nulls(null 대신 빈 배열이나 컬렉션을 반환하라)
+
+### 값이 없을 때 null을 반환하는 경우
+```java
+private final List<Cheese> cheesesInStock = ...;
+
+public Cheese[] getCheeses() {
+    // 값이 하나도 없는 상황을 특별하게 처리할 이유는 없다
+    // null을 처리하기 위해 클라이언트의 코드가 추가된다
+    if(cheesesInStock.size() == 0) {
+        return null;
+    }
+    ...
+}
+
+// client
+Cheese[] cheeses = shop.getCheeses();
+if(cheeses != null && Arrays.asList(cheeses).contains(Cheese.STILTON)){
+    ...
+}
+```
+* null을 반환하면, null 처리를 위한 불필요한 코드가 추가된다
+* null 처리 코드를 추가하는 것을 잊어버릴 수 있다
+* null을 반환하면 배열이나 컬렉션을 반환하는 메소드를 복잡하게 만든다
+
+### 개선 - 빈 배열이나 컬렉션 반환
+```java
+private final List<Cheese> cheesesInStock = ...;
+
+// 불변 객체이므로, 하나만 생성해서 공유
+private static final Cheese[] EMPTY_CHEESE_ARRAY = new Cheese[0];
+
+public Cheese[] getCheeses() {
+    return cheesesInStock.toArray(EMPTY_CHEESE_ARRAY);
+}
+
+public List<Cheese> getCheeseList() {
+    if(cheesesInStock.isEmpty()) {
+        return Collections.emptyList();  // 항상 똑같은 List를 반환
+    } else {
+        return new ArrayList<Cheese>(cheesesInStock);
+    }
+}
+```
+
+### 정리
+* 배열, 컬렉션 반환 메소드에서 빈 배열이나 컬렉션을 반환하는 대신 null을 반환해야 할 이유가 없다
+* `빈 배열, 컬렉션을 반환해라`
+
+
 
 ## 규칙 44. Write doc comments for all exposed API elements
 
