@@ -228,13 +228,115 @@ public Date getEnd(){
 
 
 
-## 규칙 41. Use overloading judiciously
+## 규칙 41. Use overloading judiciously(오버로딩할 때는 주의하라)
+```java
+// Set, List, Unknown Collection을 순서대로 출력하지 않을까..?
+public class CollectionClassifier {
+
+    public static String classify(Set<?> set) {
+        return "Set";
+    }
+
+    public static String classify(List<?> list) {
+        return "List";
+    }
+
+    public static String classify(Collection<?> collection) {
+        return "Unknown Collection";
+    }
+
+    public static void main(String[] args) {
+        Collection<?>[] collections = {
+                new HashSet<>(),
+                new ArrayList<>(),
+                new HashMap<String, String>().values()
+        };
+
+        for (Collection<?> collection : collections) {
+            System.out.println(classify(collection));
+        }
+    }
+}
+```
+* Unknown Collection만 3번 출력
+   * `classify()`가 오버로딩되어 있지만, `오버로딩된 메소드 가운데 어떤 것이 호출될지는 컴파일 시점에 결정되기 때문`
+
+> 오버로딩된 메소드는 `정적(static)`으로 선택되지만, 오버라이딩된 메소드는 `동적(dynamic)`으로 선택되기 때문  
+> 오버라이딩된 메소드의 경우 선택 기준은 메소드 호출 대상 객체의 자료형
+
+### 해결 : 하나로 합치고 instanceof 사용
+```java
+public static String classify(Collection<?> collection) {
+    return collection instanceof Set ? "Set" :
+           collection instanceof List ? "List" :
+           "Unknown Collection";
+}
+```
+* 오버라이딩이 일반적 규범이라면, 오버로딩은 예외에 해당
+   * 오버로딩은 classify()처럼 예측하기 힘들다
+
+### 오버로딩을 사용할 때는 `혼란스럽지 않게 사용할 수 있도록 주의`
+#### 1. 같은 수의 parameter를 갖는 2개의 오버로딩 메소드를 API에 포함시키지 않기
+* 같은 수의 parameter를 가지고 있으면 혼란스러울 수 있다
+
+#### 2. 오버로딩하지 않고 메소드 이름으로 나타내기
+```java
+// before
+public void write(boolean b){
+}
+
+// after
+public void writeBoolean(boolean b){
+}
+```
+* writeXX()에 대응하는 readXX()를 만들 수 있다
+* 생성자라면, 정적 팩토리 메소드를 사용
+
+### parameter가 casting될 경우
+```java
+// 원하는 결과
+// [-3, -2, -1] [-3, -2, -1]
+public class SetList {
+
+    public static void main(String[] args) {
+        Set<Integer> set = new TreeSet<>();
+        List<Integer> list = new ArrayList<>();
+
+        for (int i = -3; i < 3; i++) {
+            set.add(i);
+            list.add(i);
+        }
+        for (int i = 0; i < 3; i++) {
+            set.remove(i);  // boolean remove(Object o);
+            list.remove(i);  // E remove(int index);
+        }
+        System.out.println(set + " " + list);  // [-3, -2, -1] [-2, 0, 2]
+    }
+}
+```
+
+#### 수정
+```java
+for (int i = 0; i < 3; i++) {
+    set.remove(i);
+    list.remove((Integer)i);
+}
+```
+* List에는 `remove(Object o)`와 `remove(int index)`가 있기 때문에 혼란을 야기한다
+
+### 정리
+* 메소드를 오버로딩할 수 있다고 해서 반드시 해야하는 것은 아니다
+* parameter 수가 같은 메소드의 오버로딩은 피해야한다
+* casting만 추가하면 같은 인자 집합으로 여러 오버로딩 메소드를 호출할 수 있는 상황은 피하자
+* 같은 parameter면 똑같이 동작하도록 구현해야한다 
+
+
 
 ## 규칙 42. Use varargs judiciously
 
 ## 규칙 43. Return empty arrays or collections, not nulls
 
-## 규칙 44. Write doc comments for al exposed API elements
+## 규칙 44. Write doc comments for all exposed API elements
 
 
 
