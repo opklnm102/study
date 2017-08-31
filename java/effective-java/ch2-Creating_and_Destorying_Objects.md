@@ -173,12 +173,199 @@ Map<String, List<String>> m = HashMap.newInstance();
 * static factory 메소드가 좋을 때가 많다
 * static factory 메소드를 고려하지 않고, public 생성자를 사용하는 습관을 피하자
  
+</br>
+
+## 규칙 2. Consider a builder when faced with many constructor(생성자의 매개변수가 많을 때는 builder를 고려하자)
+* `static factory 메소드`와 `생성자`는 `선택 가능한 parameter가 많아질 경우 신축성있게 처리하지 못한다는` 공통적인 제약이 존재
+
+### 대안 1. telescoping constructor 패턴
+* `여러개의 생성자를 겹겹이 만든다`
+   * 필수 parameter만 갖는 생성자
+   * 필수 parameter와 선택 parameter 1개를 갖는 생성자
+   * 필수 parameter와 선택 parameter 2개를 갖는 생성자
+   * ...
+
+```java
+// telescoping constructor 패턴
+public class NutritionFacts {
+    private final int servingSize;  // 필수
+    private final int servings;     // 필수
+    private final int calories;     
+    private final int fat;          
+    private final int sodium;       
+    private final int carbohydrate; 
+
+    public NutritionFacts(int servingSize, int servings) {
+        this(servingSize, servings, 0);
+    }
+
+    public NutritionFacts(int servingSize, int servings, int calories) {
+         this(servingSize, servings, calories, 0);
+    }
+    ...
+}
+```
+* parameter의 수가 증가하면...?
+   * 클라이언트 코드 작성이 힘들고, 
+   * 동일한 타입의 parameter가 길게 연속되어 가독성도 떨어진다 
+
+### 대안 2. JavaBeans 패턴
+* `parameter가 없는 생성자로 객체를 생성한 후 setter`로 필수 필드와 선택 필드의 값을 지정
+
+```java
+// JavaBeans 패턴
+public class NutritionFacts {
+    // default value로 초기화
+    private final int servingSize = -1;  // 필수
+    private final int servings = -1;     // 필수
+    private final int calories = 0;    
+    private final int fat = 0; 
+    private final int sodium = 0;      
+    private final int carbohydrate = 0;
+
+    public NutritionFacts() {}
+
+    public void setServingSize(int val) {
+        this.servingSize = val;
+    }
+    ...
+}
+
+// usage
+NutritionFacts cocaCola = new NutritionFacts();
+cocaCola.setServingSize(240);
+cocaCola.setServings(8);
+cocaCola.setCalories(100);
+...
+```
+
+#### 장점
+* telescoping constructor 패턴과 같은 단점을 가지고 있지 않다
+* 코드가 길어지긴하지만 `인스턴스의 생성이 간단`하고, `가독성이 좋다`
+
+#### 단점
+* `여러번의 메소드 호출로 인스턴스가 생성`되므로, 생성과정을 거치는 동안 JavaBean 객체가 일관된 상태를 유지하지 못할 수 있다
+   * 생성자의 유효성을 검사하여 일관성을 유지하도록하는 옵션조차도 클래스에 없기 때문
+* 일관성 없는 상태의 객체를 사용하려 한다면 결함을 찾기 어려운 문제를 야기시킬 수 있다
+* immutable 클래스를 만들 수 있는 가능성을 배제하므로, thread safty를 유지하려면 추가적인 노력 필요
 
 
+### 대안 3. Builder 패턴
+`telescoping constructor 패턴의 안전성`과 `JavaBeans 패턴의 가독성`을 결합한 패턴
+
+1. 원하는 객체를 바로 생성하는 대신 클라이언트는 `필수 매개변수를 갖는 생성자(또는 static factory 메소드)`를 호출하여 Builder 객체를 얻는다
+2. Builder의 setter로 선택 매개변수의 값을 설정
+3. `build()`로 immutable 객체를 생성
+   * immutable 객체인 이유 -> setter를 가지지 않기 때문
+
+> #### immutable 객체  
+> 생성 후에 상태가 변하지 않는다  
+> ex. String
+
+```java
+// Builder 패턴
+public class NutritionFacts {
+    private final int servingSize;
+    private final int servings;
+    private final int calories;
+    private final int fat;
+
+    public static class Builder {
+        // 필수
+        private final int servingSize;
+        private final int servings;
+
+        // 선택
+        private int calories = 0;
+        private int fat = 0;
+
+        public Builder(int servingSize, int servings) {
+            this.servingSize = servingSize;
+            this.servings = servings;
+        }
+
+        public Builder calories(int val) {
+            this.calories = val;
+            return this;
+        }
+
+        public Builder fat(int val) {
+            this.fat = val;
+            return this;
+        }
+
+        public NutritionFacts build() {
+            return new NutritionFacts(this);
+        }
+    }
+
+    private NutritionFacts(Builder builder) {
+        servingSize = builder.servingSize;
+        servings = builder.servings;
+        calories = builder.calories;
+        fat = builder.fat;
+    }
+}
+
+// usage
+NutritionFacts cocaCola = new NutritionFacts.Builder(240, 8)
+                            .calories(100)
+                            .fat(20)
+                            .build();
+```
+
+* parameter의 값이 Builder로부터 객체에 복사된 후 Builder의 필드가 아닌 `객체의 필드에 대해 불변 규칙 검사를 수행`
+* 만일 어떤 불변 규칙이라도 위배되면, `build()에서 IllegalStateException을 발생`시키며, 이 예외 관련 메소드에서는 어떤 불변 규칙이 위배되었는지 알려주어야 한다
+
+> #### 복수 개의 parameter에 불변 규칙을 적용시키는 또다른 방법
+> * 모든 그룹(필수와 선택)의 parameter를 받는 setter를 두는것
+> * 만일 불변 규칙이 충족되지 않으면, `setter에서 IllegalStateException을 발생`
+> * build()가 호출될 때까지 기다릴 필요 없고, 부적합한 parameter가 전달되는 즉시 이상 유무를 검출할 수 있다
 
 
+#### 생성자 대비 Builder 패턴의 장점
+* 여러개의 varargs(가변인자)를 가질 수 있다
+   * setter당 하나씩 
+* 유연성이 좋다
+   * 하나의 Builder는 여러개의 객체를 생성하는데 사용될 수 있으며, 이러한 과정 중에 Builder의 매개변수는 다양하게 조정될 수 있다
+   * 일부 필드의 값을 자동으로 설정할 수 있다
+      * ex. 객체 생성시 자동으로 증가하는 일련 번호
+* parameter의 값이 설정된 Builder는 훌륭한 `Abstract Factory`를 만든다
+   * 클라이언트 코드에서는 Builder를 메소드로 전달하여, 그 메소드에서 하나 이상의 객체를 생성할 수 있다
+   * Builder를 나타내는 type 필요
+```java
+public interface Builder<T> {
+    public T build();
+}
+```
 
-## 규칙 2. Consider a builder when faced with many constructor
+* 특정 Builder 인스턴스를 매개변수로 받는 메소드에서는 Builder의 타입 매개변수로 bounded wildcard 타입을 사용
+   * ex. 이진 트리를 만드는 메소드
+```java
+// 메소드에서는 클라이언트 코드에서 제공하는 Builder 인스턴스를 사용해서 각 노드를 생성하는 트리를 만든다
+Tree buildTree(Builder<? extends Node> nodeBuilder) { ... }
+``` 
+
+* 자바에서는 Class란 이름을 갖는 클래스가 Abstract Factory 패턴을 구현하고 있는데, 이 클래스의 newInstance()에서 build()의 역할을 수행
+* 문제 -> `newInstance()`는 항상 생성될 클래스의 parameter 없는 생성자 호출
+   * 생성자가 없을 수 있다 -> runtime exception에 대처해야 한다
+* parameter 없는 생성자에서 발생시키는 어떤 예외건 그대로 전달한다
+   * 즉, Class의 newInstance()는 컴파일 시점의 예외 검사를 어렵게 만들며, runtime에 exception을 발생시킬 수 있다
+* `Builder interface`는 이런 결함을 해소
+
+
+#### Builder 패턴의 단점
+* 어떤 객체를 생성하려면 Builder를 생성해야 한다
+* Builder 객체의 생성 비용이 눈에 띄게 클 정도는 아니더라도 성능이 매우 중요한 상황에서는 문제가 될 수 있다
+* telescoping 패턴보다 코드가 길어지므로, `parameter가 많을 때(4개 이상)만 사용하는 것이 좋다`
+   * 추후 parameter가 추가될 가능성을 염두
+   * 생성자나 static factory로 시작한 후, parameter의 수가 많이 늘어나는 시점이 되어 Builder를 추가한다면, 쓸모 없게 된 생성자나 static factory가 너무 아까울 수 있다
+   
+### 정리
+* 생성자나 static factory에서 많은 선택 paramter를 갖게 될 클래스를 설계할 때는 Builder 패턴이 좋은 선택
+* telescoping constructor 패턴보다 클라이언트 `가독성이 좋고`, `작성이 쉽다`
+* JavaBeans 패턴보다 `안전`하다
+
 
 
 ## 규칙 3. Enforce the singleton property with private constructor or an enum type
