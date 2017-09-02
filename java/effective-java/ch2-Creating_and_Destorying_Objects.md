@@ -439,7 +439,39 @@ public enum Elvis {
 
 
 
-## 규칙 4. Enforce noninstantiability with a private constructor
+## 규칙 4. Enforce noninstantiability with a private constructor(private 생성자를 사용해서 인스턴스 생성을 못하게 하자)
+
+### static 메소드, static 필드만 모아놓은 클래스의 적합한 용도
+1. java.lang.Math, java.util.Arrays 처럼 `산술 연산에 필요한 기본형 값`이나 `배열에 관련된 메소드들을 모아 놓는데` 사용
+2. java.util.Collections처럼 `특정 인터페이스를 구현하는 객체들에 사용되는 static 메소드를 모아놓는데` 사용
+3. 상속을 통해 서브 클래스로 확장하는 대신 하나의 `final 클래스로 메소드를 모아 놓는데` 사용
+
+### utility 클래스들은 인스턴스를 생성하지 못하게 설계
+* 인스턴스의 생성이 무의미
+* 그러나 컴파일러가 default 생성자를 자동으로 생성
+
+#### abstract 클래스로 인스턴스 생성을 불가능 하자
+* 잘못된 생각
+* 서브 클래스를 만들 수 있고, 서브 클래스는 인스턴스 생성이 가능
+* 상속을 위해 설계된 것처럼 보이게 된다
+
+#### 해결법 - 명시적인 private 생성자를 이용
+```java
+public class UtilityClass {
+
+    /**
+     * default 생성자가 자동으로 생기는 것을 방지 -> 이처럼 의도를 나타내는 주석 추가
+    */
+    private UtilityClass() {
+        throw new AssertionError();  // 필수는 아니지만 내부에서 잘못 호출될 경우를 방지
+    }
+}
+```
+* 클래스 외부에서 생성자 호출 불가
+* 서브 클래스를 만들 수 없다는 부작용
+   * 서브 클래스는 super()를 사용해 생성자 호출
+   * 외부에서 호출이 불가하므로 컴파일시 error 발생
+
 
 
 ## 규칙 5. Avoid creating unnecessary objects
