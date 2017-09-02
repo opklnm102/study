@@ -368,7 +368,75 @@ Tree buildTree(Builder<? extends Node> nodeBuilder) { ... }
 
 
 
-## 규칙 3. Enforce the singleton property with private constructor or an enum type
+## 규칙 3. Enforce the singleton property with private constructor or an enum type(private 생성자나 enum 타입을 사용해서 싱글톤의 특성을 유지하자)
+* singleton은 정확히 `하나의 인스턴스만 생성`되는 클래스
+* 본질적으로 `유일한 시스템 컴포넌트`를 나타낸다
+
+### 1. public final 필드를 갖는 singleton
+```java
+public class Elvis {
+    public static final Elvis INSTANCE = new Elvis();
+
+    private Elvis() { }
+
+    public void leaveTheBuilding() {    }
+}
+```
+* private 생성자는 딱 1번만 호출되어 INSTANCE 초기화
+* 멤버 필드만 봐도 singleton인지 알 수 있다
+* `public static 필드가 final`이므로 항상 같은 참조를 갖는다
+* static factory 메소드를 사용하는 것에 비해 성능 이점은 없다
+   * JVM은 static factory 메소드를 인라인코드로 호출하기 때문
+
+
+### 2. static factory 메소드를 갖는 싱글톤
+```java
+public class Elvis {
+    private static final Elvis INSTANCE = new Elvis();
+
+    private Elvis() {  }
+    
+    public static Elvis getInstance() {
+        return INSTANCE;
+    }
+
+    public void leaveTheBuilding() {
+    }
+}
+```
+* 몇번이 호출되건 Elvis.getInstance()에서 항상 같은 객체의 참조 반환
+* 클래스의 API를 변경하지 않고, 반환하는 싱글톤 인스턴스의 형태를 바꿀 수 있는 유연성을 제공
+   * ex. factory 메소드에서는 오직 하나의 인스턴스를 반환하지만, 호출하는 각 thread마다 하나씩의 인스턴스를 반환하도록 쉽게 수정할 수 있다
+* 제네릭 타입에 관련된 장점은 규칙 27에서 설명
+* 위의 장점은 그다지 유용하지 않으며, `final 필드를 이용한 방법이 더 간단`
+
+
+> #### 앞의 2가지 방법으로 구현된 싱글톤 클래스르 serializable하려면?
+> * implements Serializable 추가
+> * 싱글톤을 보장하기 위해 모든 인스턴스 필드를 `transient`로 선언
+> * readResolve 메소드를 추가
+>    * 안하면, deserialized될 때 마다 새로운 인스턴스가 생성됨
+```java
+// 싱글톤 특성 보존을 위한 readResolve()
+private Object readResolve() {
+    // 하나의 진짜 Elvis를 반환하고 GC가 가짜 Elvis를 처리하도록 한다
+    return INSTANCE;
+}
+```
+
+### 3. 하나의 요소를 갖는 enum 타입
+```java
+public enum Elvis {
+    INSTANCE;
+    
+    public void leaveTheBuilding() {  }
+}
+```
+* 가장 좋은 방법
+* public 필드 방법과 기능적으로 동일하지만 더 간단
+* 복잡한 직렬화나 reflection에서도 직렬화가 자동으로 지원
+* 인스턴스가 여러개 생기지 않도록 확실히 보장
+
 
 
 ## 규칙 4. Enforce noninstantiability with a private constructor
