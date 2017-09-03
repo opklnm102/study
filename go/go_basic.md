@@ -20,6 +20,16 @@ var (
 )
 ```
 
+### package 내부, 외부 변수
+```go
+// 소문자로 시작 - package 외부에서 직접 접근 불가
+// return 받아서 간접 접근 가능
+var matchers = make(map[string]Matcher)
+
+// 대문자로 시작 - package 외부에서 직접 접근 가능
+var Matchers = make(map[string]Matcher)
+```
+
 
 ## 기본 자료형
 * bool
