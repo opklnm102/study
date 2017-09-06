@@ -474,7 +474,110 @@ public class UtilityClass {
 
 
 
-## 규칙 5. Avoid creating unnecessary objects
+## 규칙 5. Avoid creating unnecessary objects(불필요한 객체의 생성을 피하자)
+* 기능적으로 동일한 객체를, 필요할 때마다 매번 새로 생성하기보다는 하나의 객체를 재사용하는 것이 좋을 때가 많다
+
+### 재사용의 이점
+* 객체 생성에 소요되는 시간, 자원이 절감
+* 속도가 빨라지고, 가독성 향상
+* immutable 객체는 항상 재사용 가능
+```java
+// 실행시마다 매번 새로운 객체 생성
+String s = new String("stringette");
+```
+
+#### 개선
+```java
+String s = "stringette";
+```
+* 하나의 String 인스턴스 사용
+* 동일한 문자열 리터럴 사용
+
+### immutable 클래스의 불필요한 객체 생성을 막으려면 생성자보다는 static factory 메소드를 사용
+* `Boolaen(String)`보다 `Boolean.valueOf(String)` 사용
+
+
+### 객체의 상태가 변경되지 않는다면 mutable 객체도 재사용 가능
+```java
+public class Person {
+    private final Date birthDate;
+
+    // 이렇게 하지 말자
+    public boolean isBabyBoomer() {
+        // 불필요한 객체 생성
+        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        gmtCal.set(1946, Calendar.JANUARY, 1, 0, 0, 0);
+        Date boomStart = gmtCal.getTime();
+        gmtCal.set(1965, Calendar.JANUARY, 1, 0, 0, 0);
+        Date boomEnd = gmtCal.getTime();
+        return birthDate.compareTo(boomStart) >= 0 && birthDate.compareTo(boomEnd) < 0;
+    }
+}
+```
+
+### 개선 - static initializer 사용
+```java
+class Person {
+    private final Date birthDate;
+
+    // 상수로 더 명확해짐
+    private static final Date BOOM_START;
+    private static final Date BOOM_END;
+
+    static {
+        Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        gmtCal.set(1946, Calendar.JANUARY, 1, 0, 0, 0);
+        BOOM_START = gmtCal.getTime();
+        gmtCal.set(1965, Calendar.JANUARY, 1, 0, 0, 0);
+        BOOM_END = gmtCal.getTime();
+    }
+
+    public boolean isBabyBoomer() {
+         return birthDate.compareTo(BOOM_START) >= 0 && birthDate.compareTo(BOOM_END) < 0;
+    }
+}
+```
+* `isBabyBoomer()`가 절대 호출되지 않는다면 BOOM_START, BOOM_END는 `쓸데 없는 초기화`
+* lazy initialization함으로써 배제
+   * 권장하지 않음
+   * 구현이 복잡, 두드러진 성능 개선을 기대하기 어려움
+
+
+### 재사용 여부가 불분명한 경우
+* adapter 패턴
+   * backing 객체에게 기능을 위임, 선택가능한 인터페이스를 backing 객체에게 제공
+
+* Map객체에 대해 KetSet을 여러번 호출하더라도 동일한 Set 인스턴스를 반환
+   * Set은 변경가능하더라도 모든 반환 객체들은 기능적으로 동일
+
+### autoboxing
+* 불필요한 객체를 생성하는 방법
+* 성능 측면을 잘 고려
+
+```java
+public static void main(String[] args) {
+    Long sum = 0L;
+    for(long i=0; i<Integer.MAX_VALUE; i++){
+        sum += i;  // 쓸데없는 객체 생성으로 느려짐
+    }
+    System.out.println(sum);
+}
+```
+
+* 생성자에서 일을 거의 하지 않는 작은 객체의 생성과 재사용은 비용이 적게 든다
+   * 프로그램의 `명확성`과 `단순성` 및 `능력을 향상`시키기 위해서라면 객체를 추가로 만드는 것도 좋은 일
+
+* object pool을 만들고 유지하여 객체 생성을 피하려는 방법은 좋지 않다
+   * 단, pool에 유지할 객체들이 대단히 무거워서 `생성 비용이 많이 드는 것이라면 고려`
+   * ex. DB connection
+
+
+### 정리
+* 기존것을 재사용해야 한다면 새로운 객체는 생성하지 말자
+* 방어 복사와는 반대 의견
+* 방어복사가 필요한 상황에서 객체를 재사용함으로써 생기는 불이익은 중복 객체를 생성하여 받는 불이익보다 훨씬 크다
+* 방어 복사에 실패하면, 찾기 어려운 결함 + 보안에 구멍
+
 
 
 ## 규칙 6. Eliminate obsolete object references
