@@ -673,9 +673,107 @@ public Object pop() {
 
 
 
-## 규칙 7. Avoid finalizers
+## 규칙 7. Avoid finalizers(finalizer의 사용을 피하자)
+* finalizer는 예측불가하고, 위험하고, 일반적으로는 불필요
+* C++의 destructor과는 다르다
+   * Java에서는 destructor 용도로 `try-finally`를 사용
 
 
+### finalizer의 단점
+* 신속하게 실행된다는 보장이 없다
+   * 실행 시간이 중요한 작업을 하면 안된다
+   * ex. 열 수 있는 파일이 제한되어 있는 경우에 파일 닫기 - 언제 닫힐지 보장 X
+* finalizer가 얼마나 빨리 실행되는가는 주로 gc알고리즘에 달려있다
+   * JVM 종류에 따라 다양
+* 클래스에 finalizer를 사용하면 간혹 인스턴스들의 메모리 회수와 재활용이 지연될 수 있다
+   * 객체들이 쌓이고 쌓여 OutOfMemoryError 발생
+* persistent 상태를 변경할 경우에도 X
+   * ex. DB에서 공유 자원에 걸려있는 lock을 해지하는데 finalizer를 사용한다면 분산 시스템 전체를 멈추게 될 것이다
+
+### System.gc()와 System.runFinalization()은 되도록 사용하지 말자
+* finalizer의 실행을 반드시 보장하지 않는다
+
+
+### finalizer를 사용하면 안되는 이유
+1. finalize되는 동안 exception이 발생하면 무시되고, stack trace도 남지 않는다
+2. 엄청난 성능 저하
+   * 간단한 객체를 생성, 소멸시키는 시간은 5.6ns, finalizer를 추가하면 2400ns, 약 430배 느려진다
+
+
+### File, Thread처럼 종결 작업이 필요한 자원을 갖는 객체들의 클래스에서는 무엇을 사용해야 할까?
+
+#### 1. 작업이나 자원을 정상적으로 종료하는 메소드 별도 추가
+* private 필드로 인스턴스에서 자신의 종료 여부를 관리해야 한다
+* 메소드에서 필드 값을 확인하여 유효하지 않은 호출이라면 IllegalStateException 발생
+   * InputStream, OutputStream, java.sql.Connection에 있는 `close()`
+
+#### 2. java.util.Timer의 cancel()
+* Timer 인스턴스와 연관된 Thread가 `자신을 정상적으로 종료하는데 필요한 상태변경`을 수행
+
+#### 3. Image.flush()
+* Image 인스턴스와 관련된 모든 자원을 해지하되, 인스턴스를 사용가능한 상태로 두므로 필요하면 자원을 재할당
+
+
+
+### 가급적 종료 메소드는 try-finally와 함께 사용하여 확실하게 실행되도록 하자
+* exception이 발생해도 항상 실행된다
+```java
+// try-finally를 사용하면 종료 메소드의 실행을 보장
+Foo foo = new Foo();
+try {
+    // doing
+} finally {
+    foo.terminate();  // 종료 메소드
+}
+```
+
+
+### finalizer는 어떤 경우에 사용하면 좋을까??
+1. 생성된 객체를 갖고 있는 코드에서 그 객체의 종료 메소드 호출을 빠뜨렸을 경우 `안전망`역할
+   * 자원의 사용이 완전히 끝나지 않은 경우 finalizer에서 경고 메시지로 기록
+
+2. native peer 객체와 관련이 있다
+* native peer
+   * native 메소드를 통해 일반 Java 객체가 자신의 일을 위임하는 native 객체
+* 일반 Java객체가 아니므로, 그것과 연관된 Java peer 객체가 소멸되면 gc가 알지 못하며 재활용 할 수 없다
+* native peer가 중요한 자원을 갖고 있지 않을 경우에만 적합
+
+
+### finalizer의 연쇄 호출은 자동으로 실행되지 않는다
+* try-catch에서 서브 클래스를 finalize하되, 수퍼 클래스의 finalizer도 호출
+```java
+// finalizer의 연쇄 호출은 직접 해야 한다
+@Override
+protected void finalize() throws Throwable {
+    try {
+        // doing
+    } finally {
+        super.finalize();
+    }
+}
+```
+* 위의 경우 finalize()를 오버라이딩할 때 super.finalize()의 호출을 빼먹을 수 있다
+   * 모든 객체가 finalize 되도록 추가 객체를 생성하여 대응할 수 있다
+   * finalize가 필요한 클래스의 finalizer를 작성하는 대신 자신을 포함하는 `외부 클래스의 인스턴스를 finalize하는 목적만을 갖는 익명의 내부 클래스`에 finalizer를 만드는 것
+```java
+// finalizer guardian
+// public 클래스인 Foo는 finalizer를 갖고 있지 않다
+public class Foo {
+    // 이 객체의 목적은 외부 클래스(Foo) 객체의 finalize를 수행하는 것
+    private final Object finalizerGuardian = new Object() {
+        @Override
+        protected void finalize() throws Throwable {
+            // 외부 클래스(Foo) 객체의 finalize()를 수행
+        }
+    };
+}
+```
+
+### 정리
+* 종료 메소드 호출을 빼먹는 경우를 대비한 `안전망`이나, `중요하지 않은 네이티브 자원`을 종결하는 경우 외에는 finalizer를 사용하지 말자
+   * 안전망으로 finalizer를 사용한다면, 부적절한 상황(자원 사용이 끝나지 않은 객체를 finalize)에 대한 메시지를 남겨라
+* 어쩔수 없이 사용해야 하는 경우 `super.finalize()`를 호출하는 것을 잊지말자
+* `public이고 final이 아닌 클래스`에 finalizer가 필요하다면, `finalizer guardian`의 사용을 고려
 
 
 
