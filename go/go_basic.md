@@ -233,27 +233,104 @@ make(map[key type]<value type>)
    * `elem, ok = m[key]`
    * m에 key가 있으면 ok = true
 
-
 ## 패키지
 * 코드의 `모듈화`, `재사용` 기능 제공
+   * 기능을 의미적으로 분류하여 각기 다른 패키지로 분리
+   * 모듈화로 각 패키지 내에서 데이터 사용을 효과적으로 제어
 * 패키지를 사용해 `컴포넌트 작성`
 * 패키지를 활용해 프로그램 작성을 권장
+* 패키지는 하나의 디렉토리에 저장
+   * 같은 디렉토리에 여러 패키지를 정의할 수 없다
+* `짧고 간결한 소문자`로 명명
+   * ex. cgi, httputil, pprof 등
 
 ### main 패키지
+* 실행 가능한 바이너리 파일로 컴파일되기 위한 패키지
 * 컴파일러가 실행 프로그램으로 만든다
 * main 패키지 안의 `main()`이 프로그램의 시작점이 된다
-* 패키지를 라이브러리로 만들 때에는 main패키지나 main()을 사용하면 안된다
+* 패키지를 `라이브러리로 만들 때`에는 main패키지나 main()을 사용하면 안된다
+
+```go
+// GOPATH/src/hello.go
+package main
+
+import "fmt"  // 형식화된 문자열을 출력하기 위한 메소드 제공
+
+func main() {
+    fmt.Println("Hello");
+}
+```
+
 
 ### 패키지 import
-* import시 컴파일러는 GOROOT, GOPATH를 검색해 패키지를 찾는다
+* import시 컴파일러는 GOROOT(Go가 설치된 경로), GOPATH를 검색해 패키지를 찾는다
    * `GOROOT/pkg` - 표준 패키지
    * `GOPATH/pkg` - 3rd party 패키지
+   * 패키지를 찾으면 탐색을 중단
 * 패키지 내의 함수, 구조체, 인터페이스 등의 이름이 `대문자로 시작되면 public`으로 사용
-* `소문자`면 패키지 내부에서만 사용 가능
+   * `소문자`면 패키지 내부에서만 사용 가능
+
+```go
+// 개별 import 문
+import "fmt"
+
+// 다중 import 문
+import (
+    "fmt"
+    "strings"
+)
+```
+
+> #### GOPATH
+> 패키지를 위한 개별 work space
+
+#### 패키지 탐색 순서
+1. Go 설치 디렉토리
+2. GOPATH에 나열된 순서
+
+```sh
+Go 설치 - /usr/local/go 
+GOPATH - /home/myproject:/home/mylibraries
+
+/usr/local/go 
+/home/myproject
+/home/mylibraries
+```
+
+#### 원격에서 가져오기
+* import문에 URL경로를 포함하고 있으면, `go get`으로 GOPATH에 저장한다 
+
+#### 명명된 가져오기
+* 동일한 이름의 여러 패키지를 가져와야할 경우 사용
+```go
+package main
+
+import (
+    "fmt"
+    myfmt "mylib/fmt"  // 명명된 가져오기
+)
+
+func main() {
+    fmt.Println("standard libary");
+    myfmt.Println("mylib/fmt");
+}
+```
+
+#### `_` - blank identifier
+* 직접 참조하진 않지만 필요한 경우, 컴파일 에러를 피하기 위해 사용
+```go
+import (
+    "fmt"
+    _"http/net"  // 직접 참조하지 않더라도 컴파일 에러가 나지 않는다
+)
+```
+
 
 ### init()
-* 패키지 실행시 호출되는 함수
-* 초기화 작업을 해준다
+* 패키지 실행시 최초 호출되는 함수
+* 모든 init()는 컴파일러가 main()이 실행되기전에 호출되도록 `예약`한다
+* 패키지 설정, 변수 초기화 등 초기화 작업을 수행하기 위한 최적의 장소
+   * ex. DB 드라이버 - sql 패키지는 컴파일 시점에 어떤 드라이버들이 존재하는지 알 수 없기 때문
 ```go
 package testlib
 
