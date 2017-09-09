@@ -580,10 +580,102 @@ public static void main(String[] args) {
 
 
 
-## 규칙 6. Eliminate obsolete object references
+## 규칙 6. Eliminate obsolete object references(쓸모없는 객체 참조를 줄이자)
+* 메모리 관리에도 신경을 써야한다
+
+### Memory Leak
+* 성능 저하
+   * gc 작업이 증가하거나, 메모리 할당과 회수가 빈번하게 생기기 때문
+   * full gc의 경우, 시스템이 정지된다
+* 최악의 겨우 디스크상의 paging이 생기고, OutOfMemoryError도 발생
+
+### Memory Leak의 원인 1 - 쓸모없는 참조
+```java
+// 간단한 스택
+// 어디에서 메모리 누수가 생기는가?
+public class Stack {
+    private Object[] elements;
+    private int size = 0;
+    private static final int DEFAULT_INITIAL_CAPACITY = 16;
+
+    public Stack() {
+        elements = new Object[DEFAULT_INITIAL_CAPACITY];
+    }
+
+    public void push(Object e) {
+        ensureCapacity();
+        elements[size++] = e;
+    }
+
+    public Object pop() {
+        if(size == 0) {
+            throw new EmptyStackException();
+        }
+        return elements[-size];
+    }
+
+    // 배열에 요소를 저장하는데 필요한 공간을 확인하고, 부족할 경우 2배로 늘린다
+    private void ensureCapacity() {
+        if(elements.length == size) {
+            elements = Arrays.copyOf(elements, 2 * size + 1);
+        }
+    }
+}
+```
+* 스택이 커졌다 줄어들면 스택에서 꺼냈던 객체들은 gc되지 않는다
+* 사용되지 않는 쓸모없는 참조를 가지고 있기 때문
+* 쓸모 없는 참조
+   * null이 아닌 객체에 대한 참조를 가지고 있지만 다시는 사용되지 않을 참조
+
+
+#### 해결책 - 쓸모없는 참조를 null로 만든다
+```java
+public Object pop() {
+    if(size == 0) {
+        throw new EmptyStackException();
+    }
+    Object result = elements[--size];
+    elements[size] = null;  // 쓸모없는 참조 제거
+    return result;
+}
+```
+* 쓸모없는 참조를 null로 바꾸면, NPE로 인해 실수 방지
+   * 필수 X, 바람직 X
+   * 꼭 필요할 때만 예외적으로 적용
+   * 스택같이 자신의 메모리를 스스로 관리할 경우
+* 가장 좋은 방법은 `참조값을 갖는 변수가 유효 범위 밖에 있도록 하는 것`
+
+
+### Memory Leak의 원인 2 - 캐시(cache)
+* 객체 참조를 캐시에 저장하면, 잊어버리고 필요 없을 때 까지 캐시에 내버려두기 쉽다
+
+### 해결책 - Weak Reference 사용
+* 캐시 외부에 캐시의 key에 대한 참조가 있을 동안만 저장된 항목이 유효한 캐시라면
+`WeakHashMap`을 캐시로 사용
+* 더이상 참조되지 않을 때 gc의 대상이 된다
+* 캐시에 저장된 항목들의 생명주기가 각 항목의 key에 대한 외부 참조에 의해 결정되도록 할 경우 유용
+* 캐시에 저장된 항목의 생명주기가 잘 정의되지 않을 경우
+   * 시간이 경과하고 가치가 없게 된 항목이 생긴다
+   * 가끔 삭제해주어야 한다
+   * `background thread`(Timer, ScheduledThreadPoolExecutor)로 처리
+   * `새 항목을 캐시에 추가할 때` 처리
+      * `LinkedHashMap.remove-EldestEntry()`
+* 더 복잡한 캐시의 경우 `java.lang.ref의 클래스`들을 직접 사용할 필요가 있다
+
+
+### Memory Leak의 원인 3 - listener, callback
+* callback을 등록하되 해제하지 않는 API를 구현한다면 계속 누적된다
+* callback이 gc의 대상이 되도록 하는 가장 좋은 방법은 `weak reference`로 저장
+   * `WeakHashMap`의 key로 callback을 저장
+
+### 정리
+* memory leak이 생기기전에 예상하고, 발생을 막는 것이 바람직
+
 
 
 ## 규칙 7. Avoid finalizers
+
+
 
 
 
