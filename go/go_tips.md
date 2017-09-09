@@ -3,15 +3,62 @@
 ## 실행
 
 ```sh
-# 코드 실행
-$ go run ex
+# 코드 실행 - <file name> 생략시 현재 패키지
+$ go run <file name>  # $ go run ex
 
 # 바이너리 빌드
-$ go build ex
+$ go build <file name>  # $ go build ex
 
 # 바이너리 실행
 $ ./ex
+
+# 바이너리 제거
+$ go clean <file name>  # $ go clean ex
 ```
+
+### go vet
+```sh
+$ go vet
+```
+* 코드상 발생할 수 있는 에러 검사
+* 검출할 수 있는 에러 종류
+   * Printf 스타일의 함수 호출 시 잘못된 매개변수 지정
+   * 메소드 정의시 signature 관련 에러
+   * 잘못 구성된 tag
+   * composite literal(조합 리터럴) 사용시 누락된 key
+
+### go fmt
+* 코드 정리
+```go
+// before
+func main() {
+	num := 3
+
+	if num != 1 { fmt.Println("not 1") }
+}
+
+// $ go fmt
+// after
+func main() {
+	num := 3
+
+	if num != 1 {
+		fmt.Println("not 1")
+	}
+}
+```
+
+### Go 문서화
+* 터미널에서 접근하기
+```sh
+$ go doc tar
+```
+
+* 웹사이트로 접근하기
+```sh
+$ godoc -http=:6060  # localhost:6060으로 접속
+```
+
 
 ## 환경 변수
 ```go
