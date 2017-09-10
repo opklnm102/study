@@ -1,7 +1,294 @@
-# Ch3. Methods Common to All Objects
+# Ch3. Methods Common to All Objects(모든 객체에 공통적인 메소드)
 > Effective Java를 읽으며 공부했던 내용을 정리한다
+> Object 클래스는 상속을 목적으로 설계  
+> final이 아닌 메소드는 다른 모든 Java 클래스에서 준수해야하는 general contracts을 내포하고 있다. 오버라이드하도록 설계되었기 때문  
+> final이 아닌 Objet의 메소드를 언제 어떻게 오버라이드하는지 알아보자
 
-## 규칙 8. Obey the general contract when overriding equals
+
+## 규칙 8. Obey the general contract when overriding equals(equals 메소드를 오버라이딩 할 때는 보편적 계약을 따르자)
+* 인스턴스의 동일 여부를 판정하는 `equals()`
+
+
+### 수퍼 클래스의 equals()를 오버라이딩하지 않아도 되는 경우
+1. 클래스의 `각 인스턴스가 본래부터 유일`한 경우
+   * 인스턴스가 갖는 값보다 활동하는 개체임을 나타내는 것이 더 중요한 Thread 등은 객체 참조가 같은면 동일한 것임을 알 수 있으므로
+2. 두 인스턴스가 `논리적으로 같은지 검사하지 않아도 되는 클래스`의 경우
+   * `java.util.Random`에서 2개의 Random 인스턴스가 같은 난수열을 만드는지 확인하기 위해 equals를 오버라이딩할 수 있었으나, 그럴 필요가 없었다
+3. 수퍼 클래스의 이미 `오버라이딩된 equals()를 그대로 사용`해도 좋은 경우 
+   * Set은 AbstractSet, List는 AbstractList, Map은 AbstractMap에 구현된 equals()를 상속 받아 사용
+4. `private이나 패키지 전용(package-private) 클래스`라서 equals()가 절대 호출되지 않아야 할 경우
+   * 오버라이딩해서 호출되지 않도록 해야 한다
+```java
+@Override
+public boolean equals(Object o) {
+    throw new AssertionError();  // 메소드가 절대 호출되지 않는다
+}
+```
+
+
+### Object.equals()를 오버라이딩해야 하는 경우
+* 객체 참조만으로 인스턴스의 동일 여부를 판단하는게 아니라, `인스턴스가 갖는 값을 비교하여 판단해야하는 경우`
+   * value 클래스(Integer, Date...)
+   * Map의 key나 Set의 요소로 객체를 저장하고 사용할 수 있게 하려면 equals() 오버라이딩 필요
+      * 같은 값의 객체가 이미 있는지 비교하는 수단을 제공해야 하기 때문
+* 수퍼 클래스에서 equals()를 오버라이드하지 않았을 경우
+
+
+#### equals()를 오버라이드 할 필요 없는 value 클래스
+* 각 값당 최대 하나의 객체만 존재하도록 인스턴스 제어를 사용하는 클래스
+   * enum -> 이들에겐 객체 참조와 논리적 일치는 동일한 의미
+
+
+### equals()의 general contract
+* equivalence relation(동등 관계)을 구현
+* Reflexive(재귀적)
+   * null이 아닌 모든 참조 값 x에 대해, `x.equals(x)는 반드시 true`(x == x)
+* Symmetric(대칭적)
+   * null이 아닌 모든 참조 값 x, y에 대해, `y.equals(x)가 true라면  x.equals(y)도 true`(x == y)
+* Transitive(이행적)
+   * null이 아닌 모든 참조 값 x, y, z에 대해, `x.equals(y)가 true, y.equals(z)가 true면 x.equals(z)도 true`(x == y == z)
+* Consistent(일관적)
+   * null이 아닌 모든 참조 값 x, y에 대해, `equals()에서 사용하는 정보가 변경되지 않는다면, 여러번 호출하더라도 결과에 일관성이 있어야 한다`
+* Non-nullity(Null이 아님)
+   * null이 아닌 모든 참조 값 x에 대해, `x.equals(null)은 반드시 false`  
+
+
+#### Reflexive(재귀적) 위배
+* 일부러하지 않는 이상 위배하기 어렵다
+
+#### Symmetric(대칭적) 위배
+```java
+// Symmetric 위배
+public final class CaseInsensitiveString {
+    private final String s;
+
+    public CaseInsensitiveString(String s) {
+        if (s == null)
+            throw new NullPointerException();
+        this.s = s;
+    }
+
+    /* 
+    Symmetric 위배
+    CaseInsensitiveString cis = new CaseInsensitiveString("Polish");
+    String s = "polish";
+
+    cis.equals(s);  // true
+    s.equals(cis);  // false - 대소문자를 구분한다
+    */
+    @Override
+    public boolean equals(Object o) {
+        if(o instanceof CaseInsensitiveString)
+            return s.equalsIgnoreCase(((CaseInsensitiveString) o).s);
+
+        if(o instanceof String)  // 한 쪽으로만 상호 운용된다
+            return s.equalsIgnoreCase((String)o);
+
+        return false;
+    }
+}
+
+// 개선 - equals()에서 String 처리 제거
+@Override
+public boolean equals(Object o) {
+    return o instanceof CaseInsensitiveString &&
+        ((CaseInsensitiveString)o).s.equalsIgnoreCase(s);
+}
+```
+
+#### Transitive(이행적) 위배
+* 기존 수퍼 클래스에 value component인 Color 객체를 추가하는 서브 클래스
+```java
+// 2차원 정수 좌표의 point를 나타내는 immutable 클래스
+public class Point {
+    private final int x;
+    private final int y;
+
+    public Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if(!(o instanceof Point))
+            return false;
+        Point p = (Point)o;
+        return p.x == x && p.y == y;
+    }
+}
+
+public class ColorPoint extends Point {
+    private final Color color;
+
+    public ColorPoint(int x, int y, Color color) {
+        super(x, y);
+        this.color = color;
+    }
+
+    // Symmetric 위배
+    // Point.equals(ColorPoint)면 Color이 비교 대상에서 제외
+    @Override
+    public boolean equals(Object o) {
+        if(!(o instanceof ColorPoint))
+            return false;
+        return super.equals(o) && ((ColorPoint)o).color == color;
+    }
+}
+
+// Symmetric 위배 개선 ->  그러나 Transitive 위배
+@Override
+public boolean equals(Object o) {
+    if(!(o instanceof Point))
+        return false;
+
+    // o가 Point라면, Color는 빼고 비교
+    if(!(o instanceof ColorPoint))
+        return o.equals(this);
+    
+    // o가 ColorPoint라면, Point, Color 모두 비교
+    return super.equals(o) && ((ColorPoint)o).color == color;
+}
+
+ColorPoint p1 = new ColorPoint(1, 2, Color.RED);
+Point p2 = new Point(1, 2);
+ColorPoint p3 = new ColorPoint(1, 2, Color.BLUE);
+
+p1.equals(p2);  // true
+p2.equals(p3);  // true
+p1.equals(p3);  // false
+```
+* 객체지향 언어가 갖고 있는 동등관계의 문제
+* 인스턴스 생성이 가능한 클래스의 서브 클래스에 value component를 추가하면서 equals() 계약을 지킬 수 있는 방법은 없다
+
+#### 차선책 - inheritance(상속)보다는 composition(컴포지션)을 사용하자
+```java
+// private Point 필드와 public view 메소드를 추가
+public class ColorPoint {
+    private final Point point;
+    private final Color color;
+
+    public ColorPoint(int x, int y, Color color) {
+        if(color == null)
+            throw new NullPointerException();
+        point = new Point(x, y);
+        this.color = color;
+    }
+
+    public Point asPoint() {
+        return point;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if(!(o instanceof ColorPoint)) 
+            return false;
+        ColorPoint cp = (ColorPoint)o;
+        return cp.point.equals(point) && cp.color.equals(color);
+    }
+}
+```
+* abastract 클래스의 서브 클래스에는 equals 계약을 위배하지 않고 value component를 추가할 수 있다
+   * `규칙20. tagged class보다는 클래스 상속 구조를 이용하자`에서는 중요
+   * 수퍼 클래스의 인스턴스를 직접 생성할 수 없기 때문
+
+> ##### Tagged Class  
+> * 인스턴스의 종류를 구분하기 위한 필드를 갖고 있는 클래스  
+> * 상속 구조를 만드는 것이 바람직
+
+#### Consistent(일관적) 위배
+* 가변 객체들은 시점이 달라져도 다른 객체들과 동일할 수 있지만, 불변 객체는 그럴 수 없다
+* 불변 클래스로 만들어야 한다면, 동일한 객체들은 `꾸준히 동일함을 유지하게` equals()를 작성
+* `신뢰할 수 없는 자원에 의존하는 equals()는 작성하지 말자`
+   * java.net.URL의 equals()는 URL과 연관된 호스트의 IP를 비교
+   * 호스트명을 IP로 바꾸기 위해 네트워크 접근, 항상 같다는 보장이 없음
+
+
+#### Non-nullity(Null이 아님)
+* o.equals(null)이 true일 거라고 상상할 수도 없지만, NPE의 가능성이 있다 
+```java
+// 이런 검사는 불필요
+@Override
+public boolaen equals(Object o) {
+    if(o == null) 
+        return false;
+}
+
+// instanceof 사용
+@Override
+public boolean equals(Object o) {
+    if(!(o instanceof MyType))  // null인 경우에도 처리되므로 따로 검사할 필요X
+        return false;
+    MyType mt = (MyType)o;
+}
+```
+
+### 양질의 equals()를 만드는 방법
+```java
+// sample
+public final class PhoneNumber {
+    private final short areaCode;
+    private final short prefix;
+    private final short lineNumber;
+
+    @Override
+    public boolean equals(Object o) {
+        if(o == this)
+            return true;
+        if(!(o instanceof PhoneNumber))
+            return false;
+        PhoneNumber pn = (PhoneNumber)o;
+        return pn.lineNumber == lineNumber 
+            && pn.prefix == prefix
+            && pn.areaCode == areaCode;
+    }
+}
+``` 
+
+#### 1. 객체의 값을 비교할 필요 없고 참조만으로 같은 객체인지 비교 가능하다면 `==`을 사용
+* 같다면 true 반환
+* 코드 성능이 최적화(비교하는 비용이 많이 들 경우) 
+
+#### 2. `instanceof`를 사용해서 전달된 인자가 올바른 타입인지 확인
+* 그렇지 않다면 false 반환
+* 대게는 equals()가 정의된 클래스지만, 인터페이스도 올바른 타입이 될 수 있다
+   * Set, List, Map, Map.Entry 같은 Collection 인터페이스
+
+#### 3. 인자 타입을 올바른 타입으로 변환
+* instanceof 검사 후 행하므로 안전하게 처리된다
+
+#### 4. 클래스의 중요한 필드는 인자로 전달된 객체와 equals()가 호출된 객체의 필드가 모두 같은지 비교
+* 모두 같다면 true 반환
+* float, double이 아닌 기본형일 경우 `==`
+* 객체의 참조일 경우 `equals()`
+* float, double일 경우 `Float.compare(), Double.compare()` 사용
+* 배열의 경우 `Arrays.equals()`
+* NPE 방지
+```java
+(field == null ? o.field == null : field.equals(o.field))
+
+// field와 o.field가 같은 경우가 많다면, 아래의 방법이 더 빠르다
+(field == o.field || (field != null && field.equals(o.field)))
+```
+* 필드 비교가 복잡할 경우 canonical form(표준 형식)을 유지하여 그것을 기준으로 비교
+   * immutable 객체를 비교할 때 적합
+* equals()의 성능은 비교하는 필드의 순서에 영향을 받을 수 있다
+   * 비용이 적게 드는 필드부터 비교
+   * synchronization에 사용되는 lock 필드처럼 자신이 갖지 않는 필드는 비교 X
+   * 필드의 값을 연산하여 나오는 파생 필드도 비교 X
+   * 파생 필드가 요약 정보를 가지고 있다면 파생필드만 비교하는게 성능향상에 도움이 된다
+
+#### 5. equals()를 작성한 후 대칭적이며 이행적이고 일관성이 있는지 확인
+* unit test를 작성하여 검사
+
+### 유의사항
+* equals()를 오버라이드 할 때는 `hashCode()도 항상 오버라이드`한다
+* 지나치게 비교하지 마라
+* equals()의 인자 타입을 Object 대신 다른 타입으로 바꾸지 말자
+   * overload 된다
+   * `@Override`가 이런 실수를 막아준다
+
+
 
 ## 규칙 9. Always override hasCode when you override equals
 
