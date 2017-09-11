@@ -290,7 +290,126 @@ public final class PhoneNumber {
 
 
 
-## 규칙 9. Always override hasCode when you override equals
+## 규칙 9. Always override hasCode when you override equals(equals()를 오버라이드 할 때는 hashCode()도 항상 같이 오버라이드 하자)
+
+* equals()를 오버라이드하는 모든 클래스는 반드시 hashCode()도 오버라이드해야 한다
+* HashMap, HashSet, HashTable 등의 hash기반 Collection을 사용할 때 올바르게 동작하지 않는다
+
+### HashCode() standard contract
+* 애플리케이션 실행 중 `동일한 정수를 일관성` 있게 반환
+* equals() 결과 두 객체가 동일하다면, hashCode()는 `같은 정수` 값이 나와야 한다
+* equals() 결과 두 객체가 다르다고 해서 hashCode()가 `반드시 다른 정수 값이 나올 필요는 없다`
+   * 만약 다른 정수를 반환한다면 hashCode()를 사용하는 Collection의 성능을 향상시킬 수 있다
+
+
+```java
+public final class PhoneNumber {
+    private final short areaCode;
+    private final short prefix;
+    private final short lineNumber;
+
+    public PhoneNumber(int areaCode, int prefix, int lineNumber) {
+        rangeCheck(areaCode, 999, "area code");
+        rangeCheck(prefix, 999, "prefix");
+        rangeCheck(lineNumber, 999, "line number");
+        this.areaCode = (short) areaCode;
+        this.prefix = (short) prefix;
+        this.lineNumber = (short) lineNumber;
+    }
+
+    private static void rangeCheck(int arg, int max, String name) {
+        if(arg < 0 || arg > max) {
+            throw new IllegalArgumentException(name + ": " + arg);
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if(o == this)
+            return true;
+        if(!(o instanceof PhoneNumber))
+            return false;
+        PhoneNumber pn = (PhoneNumber)o;
+        return pn.lineNumber == lineNumber 
+            && pn.prefix == prefix
+            && pn.areaCode == areaCode;
+    }
+
+    // 계약 위배 - hashCode()가 없다
+}
+
+// usage - HashMap은 해시코드를 저장하는 최적화 코드를 갖고 있어서 hashCode가 일치하지 않으면 동일 여부를 확인하지 않는다
+Map<PhoneNumber, String> m = new HashMap<>();
+m.put(new PhoneNumber(707, 867, 5309), "Jenny");
+m.get(new PhoneNumber(707, 867, 5309));  // null 반환
+```
+
+### 최악의 hashCode()
+```java
+@Override
+public int hashCode() {
+    return 42;
+}
+```
+* 모든 객체가 같은 hashCode를 갖는다
+* 모든 객체는 같은 버킷에 위치
+* hash collection(HashMap, HashSet, HashTable 등)에서 linkedlist를 다시 생성
+* 객체 수에 선형적으로 비례하여 느리게 실행된다
+
+### 좋은 hashCode()
+* 동일하지 않은 인스턴스에 대해 모든 가능한 hash를 고르게 분산시켜 준다
+
+#### 1. 17처럼 0이 아닌 상수를 int result 변수에 저장
+
+#### 2. equals()에서 비교하는 f에 대해 다음을 수행
+* 각 필드에 대한 int hashCode c를 산술
+   * f가 boolean이면, (f ? 1 : 0)
+   * f가 byte, char, short, int면, (int)f
+   * f가 long이면, (int)(f ^ (f >>> 32))
+   * f가 float면, Float.floatToIntBits(f)
+   * f가 double이면, Double.doubleToLongBits(f)로 반환된 long값을 3번째 처럼 산술
+   * f가 객체 참조라면, equals() 호출, 복잡하다면 표준 형식을 만들어 처리, null이면 0 반환
+   * f가 배열이면, 각 요소를 별개의 필드로 산술 처리. Arrays.hashCode() 사용 
+   * 파생 필드는 제외
+   * equals()에서 사용하지 않는 필드 제외
+* 산술된 결과 c로 `result = 31 * result + c` 연산
+
+#### 3. result 반환
+
+#### 4. hashCode() 구현이 끝나면, unit test로 검증
+```java
+@Override
+public int hashCode() {
+    int result = 17;
+    result = 31 * result + areaCode;
+    result = 31 * result + prefix;
+    result = 31 * result + lineNumber;
+    return result;
+}
+```
+
+### immutable, hashCode() 연산 비용이 중요한 경우
+* 객체 내부에 hashCode를 저장
+* 인스턴스 생성시 hashCode 산출 or lazy initialzation
+```java
+// lazy initialzation - 최신 기법은 아니다
+private volatile int hashCode();
+
+@Override
+public int hashCode() {
+    int result = hashCode;
+    if (result == 0) {
+        result = 17;
+        result = 31 * result + areaCode;
+        result = 31 * result + prefix;
+        result = 31 * result + lineNumber;
+        hashCode = result;
+    }
+    return result;
+}
+```
+
+
 
 ## 규칙 10. Always override toString
 
