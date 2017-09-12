@@ -411,7 +411,57 @@ public int hashCode() {
 
 
 
-## 규칙 10. Always override toString
+## 규칙 10. Always override toString(toString()은 항상 오버라이드 하자)
+
+### toString()
+* 반환되는 문자열은 `간결하며 읽기 쉬워야 한다`
+* 모든 서브 클래스는 오버라이드 할 것을 권장
+* printX(), +, assert, 디버거 출력 등에 사용
+* 가능하면, 객체의 모든 중요한 정보 반환
+   * 비용이 클 경우 요약정보만
+
+
+### 반환값 형식을 API 문서에 상세하게 규정할 것인가
+* value class라면 권장
+   * 객체의 표현이 표준화되고, 읽기 쉬워진다
+   * XML 문서처럼 입출력에 사용되거나, 영속적인 데이터 객체 내에서 사용
+* 표준화할 경우 값들을 인자로 받아 필드를 초기화하는 static factory 메소드나 생성자를 두는 것이 좋다
+   * BigInteger, BigDecimal, wrapper 클래스에서 많이 사용
+* 잘못 규정하면 차기 버전에서 정보를 추가한다던가, 형식을 개선하는데 유연성이 없어진다
+   * 갈아 엎을 수 없는 경우...
+
+### 표현 형식의 규정 여부와 무관하게 의도를 명쾌하게 문서화
+* 형식을 규정한다면 필수
+```java
+/** 
+ * PhoneNumber 객체(전화번호)의 문자열 표현 반환
+ * 14자이며 "(XXX) YYY-ZZZZ"
+ * XXX - 지역번호, YYY - 국번호, ZZZZ - 선번호
+ * 각 영문 대문자는 한자리 십진수
+ * 지정된 자리수가 채워지지 않은 경우 0으로 채운다
+ */
+@Override
+public String toString() {
+    return String.format("(%03d) %03d-%04d", areaCode, prefix, lineNumber);
+}
+```
+
+* 규정하지 않는다면
+```java
+/**
+ * 간략한 표현 반환
+ * 형식이 정해지지 않았으므로 변경될 수 있다
+ * 일반적인 형태는 다음과 같다
+ * [(XXX) YYY-ZZZZ]
+ */
+```
+* 이런 주석을 보면 형식에 의존하는 코드나 보존 데이터를 만들지 않을 것
+
+### toString()의 반환값에 포함되는 정보에 접근할 수 있는 메소드 제공
+* 존재하지 않을 경우 문자열을 분석해야 하므로...
+* 문자열 형식 변경시 문제 발생
+
+
 
 ## 규칙 11. Override clone judiciously
 
