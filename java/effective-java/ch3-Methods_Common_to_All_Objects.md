@@ -463,7 +463,216 @@ public String toString() {
 
 
 
-## 규칙 11. Override clone judiciously
+## 규칙 11. Override clone judiciously(clone()는 신중하게 오버라이드 하자)
+
+### Cloneable 인터페이스
+* 복제를 허용하는 객체라는 것을 알리는 목적으로 사용하는 `mixin interface`
+* 목적에 부합하지 못하고 있다
+* Cloneable이 clone()을 갖고 있지 않고, Object 클래스의 clone()은 사용 제약이 있다
+* reflection의 도움이 없다면, Cloneable을 구현하더라도 clone()을 호출할 수 없다
+* 그래도 널리 사용되고 있다
+
+
+### Cloneable의 역할
+* Object 클래스의 `protected clone()의 사용 여부 결정`
+   * 수퍼 클래스의 protected 메소드의 동작 여부 결정
+* Cloneable를 구현하고, Object.clone()를 호출하면 `객체의 복제본(필드의 값까지)을 만들어 반환`
+* Cloneable를 구현하지 않고 Object.clone() 호출시 `CloneNotSupportedException`
+* Cloneable를 구현한 효과를 보려면, 그 클래스와 수퍼 클래스들은 문서화된 규약을 준수 해야하지만, 복잡하고 강제성을 띠지 않는다
+   * 규약에 기인하여 만들어진 메커니즘은 생성자를 호출하지 않고 객체가 생성되어 복제되므로 Java의 영역을 벗어남
+
+
+### Object.clone()의 standard contract
+* 아래의 것들은 필수가 아님
+* `x.clone() != x` -> true
+* `x.clone().getClass() == x.getClass()` -> true
+   * final이 아닌 수퍼 클래스의 clone()을 오버라이드 할 경우, 서브 클래스의 clone()에서는 반드시 super.clone()으로 얻은 객체를 반환
+* `x.clone().equals(x)` -> true
+
+* 어떤 생성자도 호출되지 않는다 -> 너무 엄격
+   * 복제 중인 객체의 내부 객체들을 생성하는 호출할 수 있으며, final 클래스의 경우는 생성자 호출로 생성된 객체를 clone()이 반환할 수 있기 때문
+
+### Cloneable 구현하기
+```java
+class PhoneNumber implements Cloneable {
+    
+    @Override
+    public phoneNumber clone() {
+        try {
+            // 오버라이드한 메소드에선 현재 클래스를 리턴 -> 클라이언트에서 casting할 필요 없다
+            // 라이브러리에서 할 수 있는 것을 클라이언트가 하도록 하지 말라
+            return (PhoneNumber) super.clone();  
+        } catch(CloneNotSupportedException e) {
+            throw new AssertionError();  // 여기선 이 예외가 생길 수 없다
+        }
+    }
+}
+```
+
+#### 내부에 객체를 가지는 경우
+```java
+// stack
+public class Stack implements Cloneable {
+    private Object[] elements;
+    private int size = 0;
+    private static final int DEFAULT_INITIAL_CAPACITY = 16;
+
+    public Stack() {
+        this.elements = new Object[DEFAULT_INITIAL_CAPACITY];
+    }
+
+    public void push(Object e) {
+        ensureCapacity();
+        elements[size++] = e;
+    }
+
+    public Object pop() {
+        if(size == 0) 
+            throw new EmptyStackException();
+        Object result = elements[-size];
+        elements[size] = null;  // 쓸모 없는 참조 제거
+        return result;
+    }
+
+    private void ensureCapacity() {
+        if(elements.length == size)
+            elements = Arrays.copyOf(elements, 2 * size + 1);
+    }
+
+    @Override
+    public Stack clone() {
+        try {
+            Stack result = (Stack) super.clone();
+            result.elements = elements.clone();  // 없다면 stack끼리 elements가 공유되어 원본 stack에 에러 발생
+            return result;
+        } catch(CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
+    }
+}
+```
+* clone()은 원본 객체에 손상을 주지 않으면서 원본과 복제 객체 간의 상호 영향도가 없도록 해야 한다
+
+#### 가변 객체를 참조하는 final 상수 필드의 경우
+```java
+public class HashTable implements Cloneable {
+    private Entry[] buckets = ...;
+    private static class Entry {
+        final Object key;
+        Object value;
+        Entry next;
+        Entry(Object key, Object value, Entry next) {
+            this.key = key;
+            this.value = value;
+            this.next = next;
+        }
+    }
+
+    // 원복과 복제본 객체가 buckets에 저장된 객체를 공유한다
+    @Override
+    public HashTable clone() {
+        try {
+            HashTable result = (HashTable) super.clone();
+            result.buckets = buckets.clone();
+            return result;
+        } catch(CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
+    }
+}
+```
+
+##### 개선 - buckets에 저장된 객체를 일일이 복사
+* 그다지 좋은 방법은 아님
+* 링크 리스트의 각 항목마다 스택 영역을 사용하기 때문에 stack overflow 발생 가능성이 있다
+```java
+// 링크 리스트의 현재 항목이 가리키고 있는 다음 항목을 재귀적으로 복사
+Entry deepCopy() {
+    return new Entry(key, value, next == null ? null : next.deepCoty());
+}
+
+@Override
+public HashTable clone() {
+    try {
+        HashTable result = (HashTable) super.clone();
+        result.buckets = new Entry[buckets.length];
+        for(int i=0; i<buckets.length; i++) {
+            if(buckets[i] != null)
+                result.buckets[i] = buckets[i].deepCopy();
+        }
+        return result;
+    } catch(CloneNotSupportedException e) {
+        throw new AssertionError();
+    }
+}
+```
+
+##### 개선 - 재귀대신 루프
+```java
+Entry deepCopy() {
+    Entry result = new Entry(key, value, next);
+
+    // 링크 리스트의 모든 항목을 반복해서 복사
+    for(Entry p = result; p.next != null; p = p.next) {
+        p.next = new Entry(p.next.key, p.next.value, p.next.next);
+    }
+    return result;
+}
+```
+
+#### 마지막 방법
+* `super.clone()`의 반환된 객체의 모든 필드를 초기화 후 고수준의 메소드를 사용하여 원본 객체와 같은 상태로 재생
+* 간단하고 훌륭한 clone()을 만들 수 있지만, 내부 구조를 직접 조작하여 복사하는 만큼 빠르게 실행되지는 않을 것
+
+
+### clone()에서는 복제 중인 객체의 final이 아닌 어떤 메소드도 호출하면 안된다
+* final이 아닌(오버라이드 가능한) 메소드를 호출하면, 서브 클래스가 복제되기 전에 실행될 것이므로, 정상이 아니게 될 수 있다
+
+### CloneNotSupportedException
+* 상속을 목적으로 설계된 클래스라면 Cloneable의 implements 여부를 선택할 수 있게
+```java
+protected XXX clone() throws CloneNotSupportedException;
+```
+
+* 상속을 목적으로 설계된 클래스가 아니라면
+```java
+public XXX clone() {
+    // Todo: ...
+}
+```
+
+### Thread Safty
+* 구현하는 clone()은 다른 메소드처럼 동기화 처리 필요
+
+### 객체를 복제하는 다른 방법을 제공하거나, 또는 복제할 수 없도록 하는 것이 좋다
+* immutable 클래스의 경우 복제 지원 X -> 복제본이 원본과 같기 때문
+
+
+#### 객체를 복제하는 좋은 방법 - 복제 생성자나 factory 메소드 제공
+```java
+// 복제 생성자
+public Yum(Yum yum);
+
+// factory 메소드
+public static Yum newInstance(Yum yum);
+```
+* Java 언어 영역을 벗어난 형태의 메커니즘에 의존하지 않는다
+   * final 필드를 올바르게 사용하는지에 대해 신경 쓸 필요 X
+   * checked 예외를 불필요하게 발생시키지 않는다
+   * 복제된 객체의 타입 변환이 필요 없다
+* 복제 생성자, factory 메소드는 인터페이스에 둘 수 없다
+   * Cloneable도 clone()을 가지고 있지 않으므로 대신 사용하더라도 인터페이스의 장점을 포기하는 것은 아님
+* 자신이 속한 클래스에서 구현하는 인터페이스를 인자의 타입으로 가질 수 있다
+   * Collection, Map 등
+   * 인터페이스 기반의 생성자, factory 메소드 -> conversion 생성자, factory 메소드
+   * 클라이언트는 복사 객체의 구현 타입을 선택할 수 있다
+   * HashSet을 TreeSet으로 복제할 경우 
+
+### 정리
+* Cloneable의 단점이 많기 때문에, 배열 복제 정도로 간단하게 사용한다면 모를까 왠만하면 사용하지 않는다
+* 상속을 위한 클래스를 설계할 경우 protected clone()을 클래스에 두지 않는다면 서브 클래스는 Cloneable을 제대로 구현할 수 없다
+
+
 
 ## 규칙 12. Consider implementing Comparable
 
