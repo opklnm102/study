@@ -674,6 +674,124 @@ public static Yum newInstance(Yum yum);
 
 
 
-## 규칙 12. Consider implementing Comparable
+## 규칙 12. Consider implementing Comparable(Comparable 인터페이스의 구현을 고려하자)
+### compareTo()
+* Comparable 인터페이스 유일하게 존재하는 메소드
+* Object.equals()와 유사하지만 순서 비교, 제네릭 타입 지원 특성이 더 있다
+* Comparable를 implements한다는 것은 natural order를 따른다는 것
+   * 정렬, 검색, 최대값을 구하는게 쉽다
+
+> #### natural order
+> 사람이 상식적인 관점으로 알 수 있는 순서  
+> 한글(가, 나, 다...), 영어(A, B, C...), 숫자(1, 2, 3...)
+
+```java
+Arrays.sort(a);  // 간단하게 정렬 가능
+```
+
+```java
+// String의 Comparable에 의존한 동작
+public class WordList {
+    public static void main(String[] args) {
+        Set<String> s = new TreeSet<String>();
+        Collections.addAll(s, args);  // 알파벳 순으로 출력하되, 같은 값 제거
+        System.out.println(s);
+    }
+}
+```
+
+* 알파벳 순, 숫자 순, 날짜 숫과 같은 natural order를 갖는 value 클래스를 구현한다면 반드시 Comparable 구현
+```java
+public interface Comparable<T> {
+    int compareTo(T t);
+}
+```
+
+### compareTo()를 오버라이드 하기
+* 순서 판단을 위해 현재 객체(A)와 지정 객체(B)를 비교
+   * A < B -> 음수
+   * A = B -> 0
+   * A > B -> 양수
+   * 비교할 수 없으면 ClassCastException
+* signum(x.compareTo(y)) == -signum(y.compareTo(x))
+* 이행적. x.compareTo(y) > 0 && y.compareTo(z) > 0이면 x.compareTo(z) > 0
+* x.compareTo(y) == 0이면, signum(x.compareTo(z)) == signum(y.compareTo(z))
+* (x.compareTo(y) == 0) == (x.equals(y)) -> optional
+   * new BigDecimal("1.0"), new BigDecimal("1.00")을...
+      * `HashSet`에 저장하면 모두 저장 -> equals()를 사용해서 비교되므로 다른 것으로 판정
+      * `TreeSet`에 저장하면 하나만 저장 -> compareTo()를 사용해서 비교되므로 같은 것으로 판정 
+* Comparable을 구현하는 클래스(A)에 value 컴포넌트를 추가하고자 하면, 서브 클래스를 만들기보단 A를 포함하는 다른 클래스를 구현하고 A의 인스턴스를 반환하는 뷰 메소드 추가
+   * compareTo()를 B에 자유롭게 구현할 수 있다
+
+### compareTo() 작성 방법
+* Comparable가 매개변수화 타입을 가지므로, 비교 객체의 타입은 컴파일 시점에 결정
+   * compareTo() 내부에서 타입을 확인하거나, 변환할 필요는 없다
+```java
+public final class CaseInsensitiveString implements Comparable<CaseInsensitiveString> {
+
+    private final String str;
+
+    @Override
+    public int compareTo(CaseInsensitiveString o) {
+        // 이미 구현된 것을 사용 or 직접 구현
+        return String.CASE_INSENSITIVE_ORDER.compare(str, o.str);
+    }
+}
+```
+
+#### 필드의 경우, 동일 여부보다는 순서를 비교
+* 정수는 `<, >`로 비교
+* 실수는 `Double.compare(), Float.compare()`로 비교
+* 객체 참조 필드는 compareTo()를 재귀적으로 호출해서 비교
+   * Comparable을 구현하고 있지 않거나, 다른 natural order를 사용해야 한다면 Comparator 인터페이스를 사용
+
+
+#### 비교할 필드가 여러개라면 비교하는 순서가 중요
+* 가장 우선되는 필드부터 차례로 비교
+* 비교의 결과가 0이 아닌 경우, 그 결과값을 반환
+```java
+public int compareTo(PhoneNumber pn) {
+    // 지역 코드 비교
+    if(areaCode < pn.areaCode)
+        return -1;
+    if(areaCode > pn.areaCode)
+        return 1;
+
+    // 지역코드가 같으므로, 국번호 비교
+    if(prefix < pn.prefix)
+        return -1;
+    if(prefix > pn.prefix)
+        return 1;
+    
+    // 회선 번호 비교
+    if(lineNumber < pn.lineNumber)
+        return -1;
+    if(lineNumber > pn.lineNumber)
+        return 1;
+    
+    return 0;  // 모든 필드의 값이 동일
+}
+```
+
+#### 개선 - 반환값 보다는 부호가 중요..!
+```java
+public int compareTo(PhoneNumber pn) {
+    // 지역 코드 비교
+    int areaCodeDiff = areaCode - pn.areaCode;
+    if(areaCodeDiff != 0) 
+        return areaCodeDiff;
+    
+    // 지역코드가 같으므로, 국번호 비교
+    int prefixDiff = prefix - pn.prefix;
+    if(prefixDiff != 0)
+        return prefixDiff;
+    
+    // 회선 번호 비교
+    return lineNumber - pn.lineNumber;
+}
+```
+* `필드의 값이 음수가 될 수 있을 때`는 사용 X
+   * 최저 값과 최고 값의 차이가 Integer.MAX_VALUE(2^31 - 1)보다 작거나 같아야 한다
+   * 차이를 int에서 수용 못해 overflow가 일어나 음수를 반환하기 때문에
 
 
