@@ -86,7 +86,80 @@ public static final Thing[] values() {
 
 
 
-## 규칙 14. In public classes, use accessor methods, not public fields
+## 규칙 14. In public classes, use accessor methods, not public fields(public 클래스에서는 public 필드가 아닌 접근자 메소드를 사용하자)
+
+```java
+// 이렇게 사용 X
+class Point {
+    public double x;
+    public double y;
+}
+```
+* 클래스의 데이터 필드가 외부에서 직접 접근 가능하므로 encapsulation이 깨진다
+* 클래스 API를 수정하지 않는 한 필드를 변경할 수 없다
+* 값이 변하지 않도록 할 수 없다
+* 필드에 접근시 부수적인 조치 불가
+
+```java
+// getter, setter 추가
+class Point {
+    private double x;
+    private double y;
+
+    public Point(double x, double y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public double getX() {
+        return x;
+    }
+
+    public double getY() {
+        return y;
+    }
+
+    public void setX() {
+        this.x = x;
+    }
+
+    public void setY() {
+        this.y = y;
+    }
+}
+```
+* `어떤 클래스가 자신이 속한 패키지의 외부에서 접근 가능하다면 접근자 메소드를 제공`
+* 클래스 내부 구조를 변경하기가 용이
+* public 클래스에서 내부 데이터를 노출하면 내부 구조의 변경이 어렵다
+* package 클래스, private nested 클래스라면 데이터 필드를 노출해도 아무 문제가 없다
+   * 접근자 메소드보다 코드를 알아보기 쉽다
+   * 외부에 영향을 주지 않고 클래스를 수정할 수 있다
+* immutable 필드면 값이 변하지 않으므로 노출해도 괜찮다 - 별로 좋진 않다
+```java
+public final class Time {
+    private static final int HOURS_PER_DAY = 24;
+    private static final int MINUTES_PER_HOUR = 60;
+
+    public final int hour;
+    public final int minute;
+
+    public Time(int hour, int minute) {
+        if(hour < 0 || hour >= HOURS_PER_DAY)
+            throw new IllegalArgumentException("Hour: " + hour);
+        if(minute < 0 || minute >= MINUTES_PER_HOUR)
+            throw new IllegalArgumentException("Min: " + minute);
+        this.hour = hour;
+        this.minute = minute;
+    }
+}
+```
+
+### 정리
+* public 클래스는 자신의 mutable 필드를 절대로 외부에 노출해서는 안된다
+* immutable 필드를 노출하는 것은 그나마 괜찮다
+* package, private nested 클래스의 경우 필요하다면 노출할 수 있다
+
+
 
 ## 규칙 15. Minimize mutablility
 
