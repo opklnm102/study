@@ -161,7 +161,209 @@ public final class Time {
 
 
 
-## 규칙 15. Minimize mutablility
+## 규칙 15. Minimize mutablility(가변성을 최소화 하자)
+
+### immutable 클래스
+* 인스턴스가 갖는 값을 변경할 수 없는 클래스
+* 모든 정보는 인스턴스 생성시 제공되며, 살아있는 동안 변경되지 않는다
+* String, boxed primitive(wrapper), BigInteger, BigDecimal 등
+* mutable 클래스에 비해 설계, 구현 및 사용이 더 쉽다
+* 에러 발생이 적으며 보안, 사용 측면에서 더 안전
+
+### immutable 클래스 구현 규칙
+* 객체의 상태를 변경하는 메소드를 제공하지 않는다
+* 상속할 수 없게 구현
+   * 서브 클래스에서도 immutablility(불변성)을 보장하기 위해
+   * `final 클래스`
+   * `모든 생성자를 private이나 package`로 하고, 생성자 대신 public static factory 메소드 추가
+* 모든 필드는 `final`
+   * Java에서 immutablility를 지켜줌
+   * memory model에 나와 있듯, 새로 생성된 immutable 객체의 참조가 thread 간의 동기화를 하지 않고, 다른 thread로 확실하게 전달되도록 하는데도 필요
+* 모든 필드는 private
+   * 직접 접근하는 것을 방지
+   * public final로 되면 클래스 내부 구조를 바꾸기 힘들어진다
+* 가변 컴포넌트의 직접적인 외부 접근을 막자
+   * 가변 객체를 참조하는 필드가 클래스에 있다면, 참조를 획득할 수 없게 하자
+   * 외부에서 전달된 객체 참조로 초기회 X
+   * 접근자 메소드에서 반환 X
+   * 생성자, 접근자 메소드 및 readObject 메소드에서 defensive copy을 사용
+```java
+// 복소수 - 이 클래스는 반올림이 정확하지 않고, NaN, 무한대를 제대로 처리하지 못한다
+public final class Complex {
+    private final double re;
+    private final double im;
+
+    public Complex(double re, double im) {
+        this.re = re;
+        this.im = im;
+    }
+
+    // 대응되는 변경자 메소드가 없는 접근자 메소드
+    public double realPart() {
+        return re;
+    }
+
+    public double imaginaryPart() {
+        return im;
+    }
+
+    public Complex add(Complex c) {
+        return new Complex(re + c.re, im + c.im);
+    }
+
+    public Complex subtract(Complex c) {
+        return new Complex(re - c.re, im - c.im);
+    }
+
+    public Complex multiply(Complex c) {
+        return new Complex(re * c.re - im * c.im, re * c.im + im * c.re);
+    }
+
+    public Complex divide(Complex c) {
+        double tmp = c.re * c.re + c.im * c.im;
+        return new Complex((re * c.re + im * c.im) / tmp, (im * c.re - re * c.im) / tmp);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if(o == this)
+            return true;
+        if(!(o instanceof Complex))
+            return false;
+        Complex c = (Complex)o;
+
+        return Double.compare(re, c.re) == 0 && Double.compare(im, c.im) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 17 + hashDouble(re);
+        result = 31 * result + hashDouble(im);
+        return result;
+    }
+
+    private int hashDouble(double val) {
+        long longBits = Double.doubleToLongBits(re);
+        return (int) (longBits ^ (longBits >>> 32));
+    }
+
+    @Override
+    public String toString() {
+        return "(" + re + " + " + im + "i)";
+    }
+}
+```
+* 연산 메소드에서 새로운 인스턴스 생성
+* 대부분 immutable 클래스에서 사용
+* 피연산자를 변경하지 않고 함수를 적용한 결과를 리턴 -> functional 방법
+* immutablility 유지
+
+### immutable은 thread safty므로 자유롭게 공유 가능
+* immutable은 본질적으로 thread safty하여 동기화가 필요 없다
+* immutable 사용은 thread safty를 위한 가장 쉬운 방법
+* 기존 인스턴스를 재사용하도록 하여 장점을 최대한 이용
+
+#### 1. 자주 사용되는 값을 상수로 제공
+```java
+public static final Complex ZERO = new Complex(0, 0);
+public static final Complex ONE = new Complex(1, 0);
+public static final Complex I = new Complex(0, 1);
+```
+
+#### 2. 자주 사용되는 인스턴스를 보관하고 재사용하는 caching을 해주는 static factory 메소드 제공
+* boxed premitive, BigInteger에서 사용 중
+* 메모리의 빈번한 할당, 해지를 줄이고 gc의 부담을 덜어준다
+* 클래스 설계시 public 생성자 대신 static factory 채택시 유연하게 caching 추가 가능
+
+#### 3. immutable은 자유로운 공유가 가능하므로 defensive copies를 만들 필요 없다
+* 항상 원본과 같기 때문
+* clone(), copy constructor를 만들어서는 안된다
+
+#### 4. immutable은 객체의 공유는 물론이고 내부 구조들도 공유
+* BigInteger.negate() - 숫자는 같고, 부호만 반대인 객체 생성
+   * 동일한 원본 숫자 참조
+
+#### 5. 다른 객체를 만들 때 사용할 수 있는 훌륭한 컴포넌트
+* 객체를 구성하는 컴포넌트들이 변하지 않는다면, immutablility에 대해 걱정하지 않아도 된다 
+
+### immutable 클래스의 단점
+* 객체가 가질 수 있는 각 값마다 별개의 객체가 필요
+* 비용이 많이 든다
+* 매 단계마다 새로운 객체를 생성, 중간에 생성된 객체는 필요없고, 최종 결과의 객체만 필요한 다단계 연산을 수행할 때 성능상 문제가 대두
+
+#### 해결법 1. 어떤 다단계 연산인지 알아내어 immutable 대신 기본형 데이터 타입 사용
+* 매 단계마다 immutable을 생성하지 않아도 된다
+* BigInteger는 package 전용의 가변 클래스 사용
+   * 지수 연산 같은 다단계 연산 속도를 위해
+
+#### 해결법 2. 어떤 다단계 연산일지 모른다면 BigInteger처럼 package 전용 가변 클래스 사용
+* 그렇지 않다면 StringBuilder같이 public 가변 클래스 생성 
+
+### immutablility을 보장하는 클래스 설계
+* final 클래스
+* 모든 생성자를 private로 하고, public factory 메소드 추가
+```java
+// public 생성자 대신 static factory를 갖는 immutable 클래스
+public class Complex {
+    private final double re;
+    private final double im;
+
+    private Complex(double re, double im) {
+        this.re = re;
+        this.im = im;
+    }
+
+    public static Complex valueOf(double re, double im) {
+        return new Complex(re, im);
+    }
+}
+```
+* 흔히 사용되진 않지만, 가끔 최상의 대안이 된다
+* public constructor가 없어서 상속 받을 수 없다
+   * final의 효과를 낸다
+* static factory 메소드에 caching 기능을 추가하여 성능을 개선할 수 있다
+
+#### 극좌표를 복소수로 생성
+* 극좌표 -> 실수, 복소수 -> 실수 이므로 생성자를 사용할 수 없다
+   * 기능을 잘 나타내는 이름을 가진 static factory 메소드 추가
+```java
+public static Complex valueofPolar(double r, double theta) {
+    return new Complex(r * Math.cos(theta), r * Math.sin(theta));
+}
+```  
+
+#### 신뢰할 수 없는 immutable 클래스의 서브 클래스가 인자로 왔을 경우
+* immutable 클래스인지 확인하고 방어적 복사
+```java
+public static BigInteger safeInstance(BigInteger val) {
+    if(val.getClass() != BigInteger.class)
+        return new BigInteger(val.toByteArray());
+    return val;
+}
+```
+
+#### 모든 필드가 final일 필요는 없다
+* 외부에서 접근할 수 있는 메소드만 없으면 된다
+* 성능상의 이유로 연산된 값을 보관하여 반환하기 위해
+   * lazy initialization
+
+### immutable 클래스에서 Serializable를 구현시, 가변 객체를 참조하는 필드를 갖고 있다면 
+* readObject()나 readResolve()를 명시적으로 정의
+* 또는 ObjectOutputStream.writeUnshared(), ObjectInputStream.readUnshared()를 사용
+* 사용 안하면 immutable 클래스의 인스턴스를 immutable 객체로 생성할 수 있다 
+
+### 정리
+* 인스턴스가 가변적이어야할 이유가 없다면 immutable 클래스가 되야 한다
+   * 작은 값을 갖는 객체는 immutable 클래스로
+   * String 같이 큰 값을 갖는 객체는 immutable 클래스로 할지 고려
+      * 성능이 필요할 경우 immutable 클래스에서 사용할 public 가변 클래스 구현
+* immutable 클래스가 되기 어렵다면, 가능한 가변성을 제거
+   * final로 하지 말아야할 이유가 없는한 모든 필드를 fianl로 만든다
+* 생성자에서는 완변하게 초기화된 객체 생성
+   * 재 초기화 메소드를 제공하지 말자 -> 복잡한 만큼 성능을 기대하기 어렵다
+   * TimerTask -> 2가지 상태만 갖는다(실행, 중단) 
+
+
 
 ## 규칙 16. Favor composition over inheritance
 
