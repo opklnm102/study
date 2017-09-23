@@ -365,7 +365,165 @@ public static BigInteger safeInstance(BigInteger val) {
 
 
 
-## 규칙 16. Favor composition over inheritance
+## 규칙 16. Favor composition over inheritance(가급적 상속보다는 컴포지션을 사용하자)
+* 상속은 코드를 재사용하는 강력한 방법이지만 일을 하는데 가장 좋은 도구는 아니다
+* 잘못 사용하면 부실한 SW를 초래
+* 안전한 상속
+   * 동일 프로그래머가 같은 패키지 내에서 상속(설계를 알기 때문에)
+   * 상속을 위해 특별히 설계되고 문서화된 클래스를 상속
+
+### 메소드 호출과 달리 상속은 encapsulation 위배
+* 서브 클래스는 수퍼 클래스에 의존
+* 수퍼 클래스에 변화가 생기면 서브 클래스도 그에 맞춰 진화 해야 함
+   * 상속을 위해 설계되고, 문서화된 경우는 예외
+
+
+```java
+// 상속을 잘못 사용한 예 - 수퍼 클래스에 의존도가 높다
+/*
+addAll(Arrays.asList("A", "B", "C")); 시 addCount=3이어야 하지만
+6이 나옴
+addAll()은 내부적으로 add()를 호출
+addAll()을 오버라이딩 안하면, 수퍼 클래스의 addAll()에서 add()를 꼭 호출해야만 한다
+-> 의존도가 높아졌다, 수퍼 클래스의 내부 구현이 바뀌지 않을거란 보장이 없기 때문에 위험
+*/
+public class InstrumentedHashSet<E> extends HashSet<E> {
+    // 요소를 추가했던 횟수
+    private int addCount = 0;
+
+    public InstrumentedHashSet() {
+    }
+
+    public InstrumentedHashSet(int initCap, float loadFactor) {
+        super(initCap, loadFactor);
+    }
+
+    @Override
+    public boolean add(E e) {
+        addCount++;
+        return super.add(e);
+    }
+
+    @Override
+    public boolean addAll(Collection<? extends E> c) {
+        addCount += c.size();
+        return super.addAll(c);  // 내부적으로 add()를 호출
+    }
+
+    public int getAddCount() {
+        return addCount;
+    }
+}
+```
+* addAll()에서 add()를 호출 한다
+   * 수퍼 클래스의 add()를 구현해야 한다 - 어려운 작업
+   * 다음 버전의 업데이트된 내용을 동기화하지 않아서 허약한 메소드가 될 수 있다
+* 메소드를 오버라이딩 하기 때문에 위의 문제 발생
+* 기존 메소드를 오버라이딩하지 않고, 추가시에만 상속하면 조금은 안전
+   * 메소드 이름은 같고, 반환 타입이 다르면 잘못된 오버라이딩으로 간주하여 컴파일 에러
+   * 동일한 메소드라면, 오버라이딩과는 다른 의미가 되므로 문제
+
+### Composition
+* 기존 클래스가 새 클래스의 컴포넌트화
+* 새로운 클래스(서브 클래스가 될뻔
+한)에 기존 클래스(수퍼 클래스가 될뻔한)의 인스턴스를 참조하는 private 필드 생성 
+* 포워딩 메소드
+   * 새로운 클래스에서 기존 클래스에 대응되는 메소드를 호출하여 반환
+* 기존 클래스의 내부 구현에 종속되지 않는다
+```java
+// Wrapper 클래스(decorator pattern) - 상속 대신 컴포지션 사용
+// 하나의 Set을 기능이 추가된 다른 Set으로 변환
+public class InstrumentedSet<E> extends ForwardingSet<E> {
+    private int addCount = 0;
+
+    public InstrumentedSet(Set<E> s) {
+        super(s);
+    }
+
+    @Override
+    public boolean add(E e) {
+        addCount++;
+        return super.add(e);
+    }
+
+    @Override
+    public boolean addAll(Collection<? extends E> c) {
+        addCount += c.size();
+        return super.addAll(c);
+    }
+
+    public int getAddCount() {
+        return addCount;
+    }
+}
+
+// 재사용 가능한 포워딩 클래스
+public class ForwardingSet<E> implements Set<E> {
+    private final Set<E> s;
+    public ForwardingSet(Set<E> s) {
+        this.s = s;
+    }
+
+    public void clear() {
+        s.clear();
+    }
+
+    public boolean contains(Object o) {
+        return s.contains(o);
+    }
+
+    public boolean isEmpty() {
+        return s.isEmpty();
+    }
+
+    public int size() {
+        return s.size();
+    }
+
+    ...
+}
+
+// usage
+// Set을 구현하는 클래스라면 사용 가능
+Set<Date> s = new InstrumentedSet<Date>(new TreeSet<Date>(cmp));
+Set<E> s2 = new InstrumentedSet<E>(new HashSet<E>(capacity));
+
+// 변환해서 사용 가능
+static void walk(Set<Dog> dogs) {
+    InstrumentedSet<Dog> iDogs = new InstrumentedSet<Dog>(dogs);
+    // dogs 대신 iDigs 사용
+}
+```
+
+### Composition의 단점
+* 콜백이 될 수 있도록 객체 자신의 참조를 다른 객체에게 전달하는 callback framework에서의 사용은 부적합
+* SELF 문제
+   * wrapper 객체에 포함된 객체는 wrapper를 모르므로 자신의 참조만 다른 객체에 전달
+* forwarding 메소드는 작성이 번거롭지만 각 인터페이스에 대해 1번만 작성하면 된다
+
+
+### 서브 클래스가 진정한 서브 타입인 경우에만 상속을 사용하는게 좋다
+* `is-a` 관계일 경우
+* `모든 B객체가 진정한 A인가?` yes -> 상속, no -> Composition 고려
+* 위를 위반하는 클래스 - Stack -> Vector가 아니지만 상속받았다
+* Composition이 적합한 곳에 상속을 사용하면 클래스의 내부 구현이 쓸데없이 노출된다
+* 수퍼 클래스를 직접 수정하여 서브 클래스의 immutablility가 저해된다
+
+### Composition시 고려할 점
+* 상속을 하려는 클래스에 API 결함은 없는가?
+* 결함이 있다면 서브 클래스에 그대로 상속받을 것인가?
+* 상속은 결함을 그대로 가져가는 반면, Composition은 결함을 감추는 새로운 API 설계 가능
+
+
+### 정리
+* 상속은 강력하지만 encapsulation을 위배하므로 문제
+* 상속은 진정한 서브 타입 관계에만 적합
+* 수퍼 클래스가 상속을 위해 설계된 것이 아니고, 다른 패키지에 있다면 서브 클래스를 허약하게 만들 수 있다
+* 이런 상속의 문제를 피하기 위해 Composition과 forwarding 메소드를 사용
+   * Wrapper 클래스를 구현하는데 적합한 인터페이스가 존재한다면 더욱 더..
+   * 서브 클래스보다 Wrapper 클래스가 더 견고하기 때문
+
+
 
 ## 규칙 17. Design and document for inheritance or else prohibit it
 
