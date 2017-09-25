@@ -525,7 +525,96 @@ static void walk(Set<Dog> dogs) {
 
 
 
-## 규칙 17. Design and document for inheritance or else prohibit it
+## 규칙 17. Design and document for inheritance or else prohibit it(상속을 위한 설계와 문서화를 하자. 그렇지 않다면 상속을 금지 시킨다)
+
+* 메소드 오버라이딩으로 인한 `파급 효과를 문서화`
+* 오버라이딩 가능한 메소드가 같은 클래스의 다른 메소드를 호출하는지에 대해
+* 오버라이딩 가능한 메소드를 누가 호출하는지, 어떤 순서로, 결과가 다음 처리에 어떤 영향을 주는지에 대해
+* ex. java.util.AbstractCollection.remove(Object o)
+* 잘된 API 문서화 규칙을 깨버리는 일
+   * 상속이 encapsulation을 위반함으로써 초래된 불행
+
+> #### 잘된 API 문서
+> 무슨일(what)을 하는지 기술하고, 어떻게(how) 하는지는 설명하면 안된다
+
+### 효율적인 서브 클래스 작성을 위해 잘 선정된 protected 메소드를 제공하여 클래스 내부의 다른 메소드와 연결
+* ex. java.util.AbstractList.removeRange(int fromIndex, int toIndex)
+* clear()에서 호출
+   * 이 메소드를 오버라이드하면 clear()의 성능을 향상시킬 수 있다
+* clear()의 성능 향상을 위해 제공된 오버라이드 가능한 메소드
+
+### 어떤 protected 메소드를 제공해야 할까?
+* protected 멤버는 클래스 내부 구현을 그렇게 하겠다는 `약속`
+* 서브 클래스에게 가능한 최소화하여 제공
+* 너무 적어도 상속할 수 없는 클래스가 되므로 주의
+* 서브 클래스를 만들어 `상속을 위한 클래스를 테스트`
+   * 3개 정도 만들어보며 테스트
+   * 1개는 다른 사람이 작성
+   * protected 멤버를 전혀 사용하지 않는다면 private로 수정
+
+### 생성자에서는 오버라이딩 가능한 메소드를 호출하면 안된다
+* 수퍼 클래스의 생성자는 서브 클래스 생성자보다 먼저 호출
+* 서브 클래스의 생성자가 호출되기 전에 서브 클래스의 메소드가 호출되어 예상대로 동작하지 않을 수 있다
+```java
+public class Super {
+    // 생성자에서 오버라이드 가능한 메소드 호출
+    public Super() {  
+        overriedMe();
+    }
+
+    public void overriedMe() {
+    }
+}
+
+public final class Sub extends Super {
+    private final Date date;  // 생성자에서 초기화
+
+    Sub() {
+        date = new Date();
+    }
+
+    @Override
+    public void overrideMe() {
+        Sustem.out.println(date);
+    }
+
+    public static void main(String[] args) {
+        Sub sub = new Sub();
+        sub.overrideMe();
+    }
+}
+
+// result
+null
+yyyy.MM.dd...
+```
+
+### 상속을 위한 클래스에서 Cloneable, Serializable 구현하기
+* clone(), readObject()가 생성자와 흡사하게 동작하므로 `생성자와 유사한 규칙이 적용`된다는 것에 유의
+* clone(), readObject()에서 `오버라이딩 가능한 메소드를 호출 X`
+   * readObject() - deserialized되기 전에 오버라이딩 메소드 호출
+   * clone() - 서브 클래스의 clone()에서 복제된 객체의 상태를 결정하기 전에 오버라이딩 메소드 호출
+   * 정상적인 결과를 바라기 어렵다
+* Serializable 구현시 readResolve(), writeReplace()를 가지고 있다면 private이 아닌 protected로 한다
+   * 서브 클래스에서 사용할 수 있도록
+
+### 서브 클래스를 안전하게 만들 수 있도록 설계나 문서화되지 않은 클래스의 상속 금지
+* 상속을 위해 클래스를 설계하다보면 많은 제약이 생기므로 이런 문제를 해결
+* 상속을 금지하는 법
+   * final 클래스
+   * 모든 생성자를 private, package로 하고, public static factory 메소드 추가
+
+### 상속 가능한 클래스에서 어떤 오버라이딩 가능한 메소드를 호출하지 않도록하고 문서화
+
+#### 1. 자체 사용(self-use) 제거
+* 서브 클래스가 안전한 클래스를 생성하게 된다
+* 메소드 오버라이딩은 다른 메소드에 영향을 주지 않는다
+
+#### 2. private hepler 메소드 생성
+* 오버라이딩 가능한 메소드의 body를 private helper 메소드로 옮기고, 오버라이딩 가능한 메소드에서 호출
+* 오버라이딩 가능한 메소드를 호출하는 메소드에서 helper 메소드를 호출하도록 수정
+
+
 
 ## 규칙 18. Prefer interfaces to abstract classes
 
