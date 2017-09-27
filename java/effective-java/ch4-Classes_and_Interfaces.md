@@ -616,7 +616,147 @@ yyyy.MM.dd...
 
 
 
-## 규칙 18. Prefer interfaces to abstract classes
+## 규칙 18. Prefer interfaces to abstract classes(추상 클래스보다는 인터페이스를 사용하자)
+
+### interface와 abstract class의 차이
+* abstract class는 구현된 메소드를 포함할 수 있는 반면 interface는 그렇지 못하다
+   * Java8의 interface default 메소드로 깨짐
+* abstract class를 구현하는 클래스는 반드시 abstract class의 서브클래스가 된다
+* interface 구현은 상속과는 무관
+* 단일 상속만 지원하므로 abstract class로 타입을 정의할 때는 제약이 많다
+   * 2개의 클래스에서 상속하고자 하면 한단계 끌어올려 두 클래스의 조상이 되도록해야 한다
+* 기존 클래스들은 새로운 interface를 구현하기 위해 쉽게 변경될 수 있다
+   * implements하고 메소드를 구현하면 된다
+* interface는 mixin을 정의하는데 이상적
+   * mixin 
+      * 자신의 본래 타입에 `추가하여 구현할 수 있는 타입`
+      * 선택 가능한 기능 제공
+      * 제공 받고자 하는 클래스에서 선언
+      * ex. Comparable
+
+### interface는 비계층적인 타입 프레임워크를 구축할 수 있게 해준다
+```java
+public interface Singer {
+    AudioClip sing(Song s);
+}
+
+public interface Songwriter {
+    Song compose(boolean hit);
+}
+
+// 2개의 interface를 상속하고 추가 메소드 정의
+public interface SingerSongwriter extends Singer, Songwriter {
+    AudioClip strum();
+    void actSensitive();
+}
+```
+* 지원되는 모든 조합의 속성들을 위해 클래스 하나를 포함하는 팽창된(bloated) 클래스
+   * 속성이 n개라면, 조합의 수는 2^n -> combinatorial explosion
+   * 메소드 인자의 타입만 다른 수많은 메소드를 갖는 bloated class 초래
+   * 공통적인 행동을 담고 있는 타입이 없기 때문
+
+
+### interface는 안전하고 강력한 기능 향상을 가능하게 해준다
+* abstract class를 사용하면 기능 추가를 위해 상속을 사용 
+   * 문제가 생길 수 있다
+* 외부에 공개한 중요한 interface와 연관시킨 skeletal implementation abstract class를 제공하여 interface와 abstract class의 장점을 결합
+   * AbstractXX.class - AbstractList, AbstractSet...
+   * interface를 구현하기 쉬워진다
+   * interface를 구현하는 클래스의 private 클래스로 메소드 호출 전달 가능
+      * 골격 구현 클래스를 상속한 서브 클래스로 정의
+      * `simulated multiple inheritance`
+```java
+// skeletal implementation abstract class를 이용한 List interface 구현
+static List<Integer> intArrayAsList(final int[] a) {
+    if(a == null) 
+        throw new NullPointerException();
+    
+    // Adapter pattern
+    // 익명 클래스
+    return new AbstractList<Integer>() {
+        public Integer get(int i) {
+            return a[i];  // auto boxing
+        }
+
+        @Override
+        public Integer set(int i, Integer val) {
+            int oldVal = a[i];
+            a[i] = val;  // auto unboxing
+            return oldVal;  // auto boxing
+        }
+
+        public int size() {
+            return a.length;
+        }
+    };
+}
+```
+
+### skeletal implementation abstract class 만들기
+* 대상이 되는 interface를 파악하여 `구현할 메소드`와 `그대로 둘 메소드` 결정
+* 그대로 둘 메소드 - 골격 구현 클래스의 abstract 메소드
+* 그대로 둘 메소드를 제외하고 나머지 메소드 구현
+* 상속을 위해 설계되었으므로, `상속 설계 지침`과 `문서화` 필요
+```java
+// example
+public abstract class AbstractMapEntry<K, V> implements Map.Entry<K, V> {
+    // 기본 메소드
+    public abstract K getKey();
+    public abstract V getValue();
+
+    // 수정가능한 Map의 요소들은 이 메소드를 반드시 오버라이딩
+    public V setValue(V value) {
+        throw new UnsupportedOperationException();
+    }
+
+    // Map.Entry.equals에 general contract 구현
+    @Override
+    public boolean equals(Object o) {
+        if(o == this) 
+            return true;
+        if(! (o instanceof Map.Entry))
+            return false;
+        Map.Entry<?, ?> arg = (Map.Entry)o;
+        return equals(getKey(), arg.getKey()) && equals(getValue(), arg.getValue());
+    }
+
+    private static boolean equals(Object o1, Object o2) {
+        return o1 == null ? o2 == null : o1.equals(o2);
+    }
+
+    @Override
+    public int hashCode() {
+        return hashCode(getKey()) ^ hashCode(getValue());
+    }
+
+    public static int hashCode(Object obj) {
+        return obj == null ? 0 : obj.hashCode();
+    }
+}
+```
+
+### simple implementation class
+* skeletal implementation abstract class의 변이
+* AbstractMap.SimpleEntry
+* 같은점 - 인터페이스를 구현하고, 상속을 위해 설계됨
+* 다른점 - abstract class가 아니다
+   * 그대로 사용하거나, 상속하여 사용
+
+### 다수의 구현체를 허용하는 타입 정의시 abstract class의 장점
+* interface보다는 abstract class를 진화시키는게 훨씬 더 쉽다
+* interface에 메소드 추가는 모든 구현 클래스에 영향이 간다
+* interface는 신중하게 설계
+   * interface가 `배포되면 변경이 거의 불가능` 
+   * 여러 프로그래머들이 그 interface를 구현하도록하여 많은 결함을 발견하여 수정
+
+### 정리
+* interface는 많은 class에서 구현하는 타입을 정의하는 가장 좋은 방법
+* 진화의 용이성이 더 중요한 경우는 예외
+   * abstract class 이용
+* interface는 신중하게 설계 후 구현 클래스를 많이 만들어 철저하게 테스트 
+* skeletal implementation abstract class 제공을 고려
+
+
 
 ## 규칙 19. Use interfaces only to define types
 
