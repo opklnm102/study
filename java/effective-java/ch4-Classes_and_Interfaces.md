@@ -758,7 +758,48 @@ public abstract class AbstractMapEntry<K, V> implements Map.Entry<K, V> {
 
 
 
-## 규칙 19. Use interfaces only to define types
+## 규칙 19. Use interfaces only to define types(타입을 정의할 때만 인터페이스를 사용하자)
+* interface는 클래스의 인스턴스를 참조하는데 사용될 수 있는 `type` 역할
+* 클래스의 인스턴스로 `할 수 있는 일`을 나타내야 한다
+
+### constant interface
+* 메소드를 가지지 않고 외부에 제공하는 static final 상수 필드로만 구성
+* interface를 형편없이 사용하는 패턴 - antipattern
+* 상수는 상세 구현이지만 외부로 공개된다
+   * 클라이언트에 디펜던시가 생겨 수정이 어렵다
+```java
+// example
+public interface PhysicalConstants {
+    static final double AVOGADROS_NUMBER = 6.02214199e23;
+    static final double BOLTZMANN_CONSTANT = 1.3806503e-23;
+    static final double ELECTRON_MASS = 9.10938188e-31;
+}
+```
+
+### 상수를 외부에 제공하는 방법
+1. 클래스, interface와 밀접한 연관이 있다면 해당 클래스, interface에 추가
+   * Integer, Double의 MIN_VALUE, MAX_VALUE
+2. 열거 타입의 멤버라면 enum 사용
+3. 인스턴스를 생성할 수 없는 유틸리티 클래스
+```java
+// 상수 유틸리티 클래스
+public class PhysicalConstants {
+    private PhysicalConstants() {}  // 인스턴스 생성 방지
+
+    public final double AVOGADROS_NUMBER = 6.02214199e23;
+    public final double BOLTZMANN_CONSTANT = 1.3806503e-23;
+    public final double ELECTRON_MASS = 9.10938188e-31;
+}
+
+// usage
+PhysicalConstants.AVOGADROS_NUMBER;
+```
+
+### 정리
+* interface는 타입을 정의할 때만 사용
+* 상수를 외부에 공개하기 위해 사용하면 안된다
+
+
 
 ## 규칙 20. Prefer class hierachies to tagged classes
 
