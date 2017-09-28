@@ -801,7 +801,112 @@ PhysicalConstants.AVOGADROS_NUMBER;
 
 
 
-## 규칙 20. Prefer class hierachies to tagged classes
+## 규칙 20. Prefer class hierachies to tagged classes(tagged 클래스 보다는 클래스 계층을 사용하자)
+
+### 특성을 나타내는 tag 필드를 갖는 클래스
+* 인스턴스들이 2개 이상의 특성으로 분류
+```java
+class Figure {
+    enum Shape {
+        RECTANGLE, CIRCLE
+    };
+
+    final Shape shape;
+
+    // rectangle일 때만
+    double length;
+    double width;
+
+    // circle일 떄만
+    double radis;
+
+    Figure(double radis) {
+        shape = Shape.CIRCLE;
+        this.radis = radis;
+    }
+
+    Figure(double length, double width) {
+        shape = Shape.RECTANGLE;
+        this.length = length;
+        this.width = width;
+    }
+
+    double area() {
+        switch(shape) {
+            case RECTANGLE:
+                return length * width;
+            case CIRCLE:
+                return Math.PI * (radius * radius);
+            default:
+                throw new AssertionError();
+        }
+    }
+}
+```
+#### 단점
+* enum 선언
+* tag 필드
+* switch
+* 다양한 구현체들이 하나의 클래스에 뒤범벅
+   * 가독성 저하
+   * 쓸모없는 필드의 메모리 할당, 해지 증가
+   * 여러 생성자가 필드를 초기화하므로 final로 만들 수 없다
+* tag 클래스는 코드가 쓸데없이 장황하고, 에러가 나기 쉬우며, 비효율적
+* 컴파일러가 잘못된 인스턴스 생성을 알 수 없다
+
+### 개선 - 서브 클래스
+* tag 값에 따라 동작이 달라지는 메소드를 추상메소드화하여 abstract class 구현
+* 모든 인스턴스가 사용하는 필드로 abstract class에 넣는다
+```java
+abstract class Figure {
+    abstract double area();
+}
+
+class Circle extends Figure {
+    final double radius;
+
+    Circle(double radius) {
+        this.radius = radius;
+    }
+
+    double area() {
+        return Math.PI * (radius * radius);
+    }
+}
+
+class Rectangle extends Figure {
+    final double length;
+    final double width;
+
+    Circle(double length, double width) {
+        this.length = length;
+        this.width = width;
+    }
+
+    double area() {
+        return length * width;
+    }
+}
+```
+* tag 클래스의 모든 단점 해소
+* 각 클래스는 부적절한 데이터를 가지지 않는다
+* 모든 필드는 final
+   * 생성자가 필드를 초기화하는지 컴파일러가 검사
+* switch문을 빠뜨려서 runtime error발생 가능성 배제
+* 자연적인 계층관계 반영
+```java
+class Square extends Rectangle {
+    Square(double side) {
+        super(side, side);
+    }
+}
+```
+
+### 정리
+* tag 클래스는 적합하지 않다
+* 기존 클래스가 태그 클래스라면 상속을 이용하여 재구성할 수 있는지 고려
+
+
 
 ## 규칙 21. Use function objects to represent strategies
 
