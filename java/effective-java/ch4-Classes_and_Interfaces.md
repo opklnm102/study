@@ -908,7 +908,88 @@ class Square extends Rectangle {
 
 
 
-## 규칙 21. Use function objects to represent strategies
+## 규칙 21. Use function objects to represent strategies(전략을 표현할 때 함수 객체를 사용하자)
+* function pointer, delegate, lambda expression 등으로 특정 `함수의 호출을 저장하거나 전달` 할 수 있다
+* 어떤 함수를 호출할 때 호출된 함수에서 사용할 부속 함수를 전달하여 함수 호출자가 자신의 행동을 특화 시킬 수 있도록 하기 위해 사용
+   * ex. C언어의 qsort()
+   * 정렬 순서는 comparator()를 함수 포인터로 전달함으로써 이루어진다 - `Strategy parrern`
+   * Java는 객체 참조를 사용하여 구현
+
+
+### 문자열 비교를 위한 concrete strategy
+```java
+// StringLengthComparator의 참조가 comparator에 대한 함수 포인터 역할
+class StringLengthComparator {
+
+    // comparator
+    public int compare(String s1, String s2) {
+        return s1.length() - s2.length();
+    }
+}
+```
+
+### 전형적인 concrete strategy class인 StringLengthComparator는 stateless
+* 모든 인스턴스는 기능적으로 동일
+* 불필요한 `객체 생성 비용 절감`을 위해 `singleton`으로 구현
+```java
+class StringLengthComparator {
+    private StringLengthComparator() {}
+
+    public static final StringLengthComparator INSTANCE = new StringLengthComparator();
+
+    public int compare(String s1, String s2) {
+        return s1.length() - s2.length();
+    }
+}
+```
+
+### StringLengthComparator 인스턴스를 메소드에 전달하려면 적절한 타입의 매개변수 필요
+* 클라이언트가 다른 비교 strategy를 전달할 수 있도록 interface를 정의
+```java
+// strategy interface
+// generic으로 String이 아닌것도 사용 가능
+public interface Comparator<T> {
+    public int compare(T t1, T t2);
+}
+
+class StringLengthComparator implements Comparator<String> {
+    ...
+}
+```
+
+### concrete strategy class는 anonymous class를 사용하기도 한다
+```java
+Arrays.sort(stringArray, new Comparator<String>() {
+    public int compare(String s1, String s2) {
+        return s1.length() - s2.length();
+    }
+});
+```
+* 메소드가 호출되어 실행될 때마다 새로운 anonymous class 인스턴스 생성
+   * 자주 호출되면 `private static final 필드에 참조를 저장`하여 `재사용을 고려`
+   * 필드명으로 `함수 객체를 잘 나타낼 수 있다`
+
+```java
+class Host {
+    // strategy interface가 모든 strategy class의 타입 역할을하므로 concrete strategy class는 public으로 만들 필요가 없다 
+    private static class StrLenCmp implements Comparator<String>, Serializable {
+        public int compare(String s1, String s2) {
+            return s1.length() - s2.length();
+        }
+    }
+
+    // host 클래스가 외부에 제공하도록 할 수 있다
+    public static final Comparator<String> STRING_LENGTH_COMPARATOR = new StrLenCmp();
+}
+```
+
+### 정리
+* 함수 포인터의 주 용도는 `strategy pattren`을 구현하는 것
+* Java에서는 strategy를 나타내는 interface를 정의하고, interface를 구현하는 concrete strategy를 정의
+* concrete strategy가 단 1번만 사용될 때는 `anonymous class`로 생성
+* 반복적으로 사용된다면 private static 멤버 클래스로 구현 후 interface로 public static final 필드를 사용해 외부에 제공
+
+
 
 ## 규칙 22. Favor static member classes over nonstatic
 
