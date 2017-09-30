@@ -991,5 +991,126 @@ class Host {
 
 
 
-## 규칙 22. Favor static member classes over nonstatic
+## 규칙 22. Favor static member classes over nonstatic(static 멤버 클래스를 많이 사용하자)
+
+### nested class
+* 다른 클래스 `내부에 정의된 클래스`
+* `enclosing(외곽) class를 지원`하는 목적으로만 존재해야 한다
+* 다른 클래스에서도 사용된다면 최상위 클래스로 분리
+* 종류
+   * static member class
+   * non static member class
+   * anonymous class
+   * local class
+   * 위 4가지를 innner class라 한다
+
+### static member class
+* 다른 클래스의 내부에 선언되어 있고 enclosing class의 모든 멤버들을 사용할 수 있는 일반 클래스
+* 자신의 enclosing class의 static 멤버
+* enclosing class로부터 독립적으로 존재할 수 있다
+* public helper class로도 사용
+   * enclosing class와 함께 사용할 때만 유용
+
+### non static member class
+* enclosing class와 연관
+* Adapter pattren을 구현할 때 사용하기도 함
+* enclosing class가 멤버 클래스와 관계 없는 것처럼 보이게 할 수 있다
+   * ex. Map에서 non static 멤버를 사용해 collection view 구현
+   * ex. Set, List 등에서 non static 멤버를 사용해 iterator 구현
+```java
+public class MySet<E> extends AbstractSet<E> {
+
+    public Iterator<E> iterator() {
+        return new MyIterator();
+    }
+
+    private class MyIterator implements Iterator<E> {
+        ...
+    }
+}
+```
+
+#### enclosing class의 인스턴스를 사용할 필요가 없는 멤버 클래스를 선언한다면, 항상 static 멤버 클래스로 만들자
+* static을 생략하면 인스턴스가 enclosing class의 참조를 갖게 된다
+   * 참조의 저장에 시간, 메모리 소모
+* GC의 대상이 될 enclosing class가 메모리에 남아있게 된다
+* enclosing class의 인스턴스 없이 `메모리에 할당할 수 없다`
+
+#### private static 멤버 클래스
+* 자신의 enclosing class가 나타내는 객체의 컴포넌트들을 표현하는데 주로 사용
+* ex. Map
+   * key, value마다 Entry 객체를 갖는다
+   * Map과 연관되어 있지만, getKey(), getValue(), setValue() 등은 Map을 사용할 필요가 없다
+   * 이런 경우 non static는 낭비 -> 불필요한 Map의 참조를 갖게되어 리소스 낭비
+* 외부에 제공되는 클래스의 public, protected 멤버라면 static, non static 선택이 중요
+   * 멤버 클래스가 외부 API가 되므로 호환성을 유지하려면 non static을 static로 변경할 수 없다
+
+### anonymous class
+* 이름이 없다
+* enclosing class의 멤버가 아니다
+* 다른 멤버와 함께 선언되지 않고, `사용시점에 선언과 인스턴스 생성`이 동시에 이루어진다
+* non static일 때만 enclosing class의 인스턴스를 갖는다
+* static 멤버를 가질 수 없다(static 이더라도)
+```java
+// static일 필요는 없다
+public static BulkOperations bulkOperations() {
+    // anonymous class 
+    return new BulkOperations() {
+
+        private int count;
+        private static int num;  // impossible
+
+        @Override
+        public void bulkPersist(List entities) {
+
+        }
+    };
+}
+```
+
+#### anonymous class의 제약
+* 선언된 곳에서만 인스턴스 생성 가능
+* instanceof로 타입 검사 불가
+* 이름이 필요한 곳에 사용 불가
+* 여러개의 interface를 구현할 수 없다
+* 가급적 코드가 짧아야 가독성이 좋다
+* `funcation object` 생성에 많이 사용
+   * Comparator, Runnable, Thread, TimerTask 등
+* static factory 메소드 내부에서도 사용
+   * 규칙 18의 `intArrayAsList()`
+
+
+### local class
+* 위의 클래스 중 가장 적게 사용된다
+* 지역 변수가 선언될 수 있는 곳이면 어디든 선언 가능
+* 지역 변수와 동일한 scope
+* 이름을 가질 수 있어 재사용 가능
+* static이 아닐 때 anonymous class처럼 enclosing class의 인스턴스를 가지고, static 멤버를 가질 수 없다
+* 가급적 코드가 짧아야 가독성이 좋다
+```java
+public BulkOperations bulkOperations() {
+ 
+    class BulkOperationExtendsion implements BulkOperations {
+
+        @Override
+        public void bulkPersist(List entities) {
+            ...
+        }
+    }
+
+    // 재사용 가능
+    BulkOperationExtendsion bulk1 = new BulkOperationExtendsion();
+    BulkOperationExtendsion bulk2 = new BulkOperationExtendsion();
+
+    return bulk1;
+}
+```
+
+### 정리
+* nested class에는 static member class, on static member class, anonymous class, local class가 있고, 각각의 용도가 있다
+* nested class가 메소드 외부에서 접근할 필요가 있거나, 코드가 너무 길어 메소드 내부에 두기 적합하지 않다면 멤버 클래스를 사용
+* 멤버 클래스가 enclosing class의 참조가 필요가 없을 경우 static member class
+* 아니면 non static member class
+* 메소드 내부에 있다는 가정하에 한곳에서만 사용하고, 해당 클래스의 타입이 존재할 경우 anonymous class로, 아니면 local class
+
 
