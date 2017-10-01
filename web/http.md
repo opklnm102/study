@@ -101,6 +101,8 @@ GET http://aaa.com/search/?q=aaa&version=1 HTTP/1.1
 | Host | 서버의 이름. 포트번호와 함께 사용. 포트번호 생략시 80 포트 사용 |
 | Referer | 페이지 요청시 이전 페이지 주소를 전달하기 위해 사용 |
 | User-Agent | 클라이언트에 대한 설명 정보 |
+| X-Forwarded-For(XFF) | Client의 IP를 식별하기 위한 정보 |
+
 
 ### Response Header
 | 헤더 필드 | 의미 |
@@ -122,3 +124,14 @@ GET http://aaa.com/search/?q=aaa&version=1 HTTP/1.1
 // example
 http://www.example.com?search=xxx#summary
 ```
+
+
+### X-Forwarded-For(XFF)
+* Client의 IP를 식별하기 위한 정보
+* L4(Loca balancers, Proxy server, caching server) 장비가 있을 경우 L4의 IP를 웹 로그에 남기게 된다
+   * Client IP -> L4 -> WAS
+* 이때 header의 `X-Forwarded-For`로 Client IP를 알 수 있다
+* `,`를 구분자로 사용
+   * 1번째 IP로 Client를 식별
+   * X-Forwarded-For: client, proxy1, proxy2
+
