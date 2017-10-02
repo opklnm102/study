@@ -54,12 +54,13 @@ for(Iterator<Stamp> i = stamps.iterator(); i.hasNext();) {
 * 호환성 때문에 raw type을 지원하지만 raw type을 사용하면 generic의 장점인 `type safe`와 `표현력` 모두를 포기하는 것
 
 
-### raw type과 List<Object>의 차이
+### raw type과 `List<Object>`의 차이
 * raw type은 generic type 검사가 생략
-* List<Object>는 어떤 타입이든 저장할 수 있다고 컴파일러에게 알린다
-* List<String>은 List의 매개변수로 전달 가능하지만 List<Object>로는 불가능
-   * List<String>은 List의 서브타입이지만 List<Object>의 서브타입은 아니다
+* `List<Object>`는 어떤 타입이든 저장할 수 있다고 컴파일러에게 알린다
+* `List<String>`은 List의 매개변수로 전달 가능하지만 `List<Object>`로는 불가능
+* `List<String>`은 List의 서브타입이지만 `List<Object>`의 서브타입은 아니다
 * `List 같은 raw type을 사용하면 type safe 상실, List<Obejct> 같은 매개변수 타입을 사용하면 괜찮다`
+
 ```java
 public static void main(String[] args) {
     List<String> strings = new ArrayList<String>();
@@ -119,11 +120,11 @@ Error:(77, 15) java: no suitable method found for add(java.lang.String)
 
 ### raw type을 사용하지 않는다는 규칙의 예외
 1. raw type은 class literal 형태로 사용
-   * String[].class, int.class -> O
-   * List<String>.class, List<?>.class -> X
+   * `String[].class, int.class` -> O
+   * `List<String>.class, List<?>.class` -> X
 2. unbounded wildcard type이 아닌 경우에 instanceof를 사용할 수 없다
    * runtime시에 generic type정보가 사라지기 때문
-   * unbounded wildcard type은 instanceof 동작에 영향을 주지 않으며, <>, ?는 아무 의미 없다
+   * unbounded wildcard type은 instanceof 동작에 영향을 주지 않으며, `<>`, `?`는 아무 의미 없다
 ```java
 // generic type과 instanceof를 사용할 때 좋은 방법
 if(o instanceof Set) {  // raw type
@@ -141,19 +142,20 @@ if(o instanceof Set) {  // raw type
 | type safe | O | O | X | 
 
 * 용어 정리
+
 | 용어 | 사용 예 | 관련 규칙 | 
 |:----|:----|:----|
-| parameterized type(매개변수화 타입) | List<String> | 23 |
-| actual type parameter(실 타입 매개변수) | String | 23 |
-| generic type | List<E> | 23, 26 |
-| formal type parameter(형식 타입 매개변수) | E | 23 |
-| unbounded wildcard type(언바운드 와일드 카드 타입) | List<?> | 23 |
-| raw type(원천 타입) | List | 23 |
-| bounded type paremeter(바운드 타입 매개변수) | <E extends Number> | 26 |
-| recursive type type(재귀적 타입 바운드) | <T extends Comparable<T>> | 27 |
-| bounded wildcard type(바운드 와일드카드 타입) | List<? extends Number> | 28 |
-| generic method | static <E> List<E> asList(E[] a) | 27 |
-| type token | String.class | 29 |
+| parameterized type(매개변수화 타입) | `List<String>` | 23 |
+| actual type parameter(실 타입 매개변수) | `String` | 23 |
+| generic type | `List<E>` | 23, 26 |
+| formal type parameter(형식 타입 매개변수) | `E` | 23 |
+| unbounded wildcard type(언바운드 와일드 카드 타입) | `List<?>` | 23 |
+| raw type(원천 타입) | `List` | 23 |
+| bounded type paremeter(바운드 타입 매개변수) | `<E extends Number>` | 26 |
+| recursive type type(재귀적 타입 바운드) | `<T extends Comparable<T>>` | 27 |
+| bounded wildcard type(바운드 와일드카드 타입) | `List<? extends Number>` | 28 |
+| generic method | `static <E> List<E> asList(E[] a)` | 27 |
+| type token | `String.class` | 29 |
 
 
 ## 규칙 24. Eliminate unchecked warnings
