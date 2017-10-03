@@ -217,7 +217,140 @@ public <T> T[] toArray(T[] a) {
 
 
 
-## 규칙 25. Prefer lists to arrays
+## 규칙 25. Prefer lists to arrays(Array보다는 List를 사용하자)
+
+### Array가 generic과 다른 점
+
+#### 1. array는 공변 covariant(공변), generic은 invariant(불변)
+* array는 covariant
+   * Sub가 Super의 서브 타입이면 Sub[]는 Super[]의 서브타입
+* generic은 invariant
+   * 서로 다른 타입 Type1, Type2에 대해 List<Type1>은 List<Type2>의 서브 타입도, 수퍼 타입도 아니다
+```java
+// runtime error
+Object[] objectArray = new Long[1];
+objectArray[0] = "String";  // ArrayStoreException
+
+// compile error
+List<Object> ol = new ArrayList<>();
+ol.add("String");
+```
+* 일찌감치 error를 발견하는 List를 사용하자
+
+#### 2. array는 reified(구체적)
+* array는 element를 runtime에 알고 지키게 한다
+* generic은 erasure에 의해 구현
+   * compile시 type safe하게 하고 runtime시에는 type 정보를 무시
+
+
+### generic type, parameterized type, type parameter를 저장하는 배열 생성시 compile 발생
+* `new List<E>[]`, `new List<String>[]`, `new E[]` 등
+* `type safe` 때문
+```java
+List<String>[] stringList = new List<String>[1];  // compile error
+
+// 아래 라인들은 정상
+List<Integer> intList = Arrays.asList(42);
+Object[] objects = stringList;
+objects[0] = intList;  // 1번째 요소만 저장 - generic에 의해 나머지 값 소거
+String s = stringList[0].get(0);  // Integer를 읽어서 ClassCastException -> 이걸 방지하기 위해 1번 라인에서 compile error
+```
+
+#### nonreifiable(비구체화) type
+* `E`, `List<E>`, `List<String>` 같은 type 
+* compile시보다 runtime시에 더 적은 정보를 갖는 type
+   * array와 같은 구체화 type과는 반대
+* parameterized type 중 reifiable type
+   * `List<?>`, `Map<?, ?>` 같은 unbounded wildcard type
+
+
+### generic 배열 생성시 E[]보다는 List<E>를 사용
+* generic 배열 생성 에러 방지
+* 성능이나 코드의 간결함에 손해를 볼 수 있지만, generict의 장점(type safe, 호환성 등)을 얻는다
+```java
+// generic을 사용하지 않는 reduce - concurrency의 결함이 있다
+// synchronized 영역에서 alien 메소드를 호출하지 말 것
+static Object reduce(List list, Function f, Object initVal) {
+    synchronized(list) {
+        Object result = initVal;
+        for(Object o : list)
+            result = f.apply(result, o);
+        return result;
+    }
+}
+
+interface Function {
+    Object apply(Object arg1, Object arg2);
+}
+```
+
+```java
+// generic을 사용하지 않으면서 concurrency 결함이 없는 reduce
+// List를 공유하는 다른 thread를 기다리게 하지 않고 복사한 list로 reduce
+static Object reduce(List list, Function f, Object initVal) {
+    Object[] snapshot = list.toArray();  // 내부적으로 List의 lock이 걸림
+    Object result = initVal;
+    for(Object o : list)
+        result = f.apply(result, o);
+    return result;
+}
+```
+
+#### generic method
+```java
+interface Function<T> {
+    T apply(T arg1, T arg2);
+}
+```
+
+* compile error
+```java
+static <E> reduce(List<E> list, Function<E> f, E initVal) {
+    E[] snapshot = list.toArray();  // list에 lock - compile error
+    E result = initVal;
+    for(E e : snapshot)
+        result = f.apply(result, e);
+    return result;
+}
+```
+
+* warning
+* 잘 동작하지만 runtime시에 ClassCastException 발생 가능성이 있다
+```java
+// E[]로 casting
+static <E> reduce(List<E> list, Function<E> f, E initVal) {
+    E[] snapshot = (E[])list.toArray();  // warning
+    E result = initVal;
+    for(E e : snapshot)
+        result = f.apply(result, e);
+    return result;
+}
+```
+
+* 개선 - List 사용
+```java
+static <E> E reduce(List<E> list, Function<E> f, E initVal) {
+    List<E> snapshot;
+    synchronized(list) {
+        snapshot = new ArrayList<>(list);
+    }
+    E result = initVal;
+    for(E e : snapshot) 
+        result = f.apply(result, e);
+    return result;
+}
+```
+
+
+### 정리
+* array와 generic은 전혀 다른 type 규칙
+* array는 covariant, reified
+   * `runtime시 type safe`, compile시 non type safe
+* generic은 invariant, nonreified
+   * `compile시 type safe`, runtime시 non type safe -> type 정보가 사라진다
+* 섞어 쓸 때 compile error, warning 이 나오면 `array를 List로 수정`
+
+
 
 ## 규칙 26. Favor generic types
 
