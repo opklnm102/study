@@ -352,7 +352,152 @@ static <E> E reduce(List<E> list, Function<E> f, E initVal) {
 
 
 
-## 규칙 26. Favor generic types
+## 규칙 26. Favor generic types(제네릭 타입을 애용하자)
+* JDK에서 제공하는 generic을 이용하는 것뿐만 아니라 직접 만드는 법도 알면 좋다
+
+### generification(제네릭화)
+```java
+// Object 기반의 collection -> generic 사용의 우선 대상
+public class Stack {
+    private Object[] elements;
+    private int size = 0;
+    private static final int DEFAULT_INITIAL_CAPACITY = 16;
+
+    public Stack() {
+        elements = new Object[DEFAULT_INITIAL_CAPACITY];
+    }
+
+    public void push(Object e) {
+        ensureCapacity();
+        elements[size++] = e;
+    }
+
+    public Object pop() {
+        if(size == 0)
+            throw new EmptyStackException();
+        Object result = elements[--size];
+        elements[size] = null;
+        return result;
+    }
+
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    private void ensureCapacity() {
+        if(elements.length == size)
+            elements = Arrays.copyOf(elements, 2 * size + 1);
+    }
+}
+```
+* 문제 - stack에서 꺼낸 객체를 일일이 casting 해야함
+   * 잘못 casting시 runtime error
+
+### 1. type parameter E 추가 후 모든 Object를 E로 수정
+```java
+public class Stack<E> {
+    private E[] elements;
+    private int size = 0;
+    private static final int DEFAULT_INITIAL_CAPACITY = 16;
+
+    public Stack() {
+        elements = new E[DEFAULT_INITIAL_CAPACITY];  // compile error
+    }
+
+    public void push(E e) {
+        ensureCapacity();
+        elements[size++] = e;
+    }
+
+    public E pop() {
+        if(size == 0)
+            throw new EmptyStackException();
+        E result = elements[--size];
+        elements[size] = null;
+        return result;
+    }
+    ...
+}
+```
+* E와 같은 `non reifiable`(runtime보다 compile에 더 많은 정보를 갖는) type을 저장하는 array는 생성할 수 없다
+
+
+### 2. non reifiable 생성 error 해결
+
+#### 1. generic array 생성 금지를 피한다
+* Object array를 생성하고 `generic type으로 casting`
+* `@SuppressWarnings`로 warning 제거 및 주석 추가
+```java
+// elements array는 push(E)를 통해서만 인스턴스를 저장해서 type safe
+// 그러나 elements의 runtime type은 Object[]다
+@SuppressWarnings("unchecked")
+public Stack() {
+    elements = (E[]) new Object[DEFAULT_INITIAL_CAPACITY];
+}
+```
+
+#### 2. elements type을 E[]에서 Object[]로 수정
+```java
+public class Stack<E> {
+    private Object[] elements;
+    private int size = 0;
+    private static final int DEFAULT_INITIAL_CAPACITY = 16;
+
+    public Stack() {
+        elements = new Object[DEFAULT_INITIAL_CAPACITY];
+    }
+
+    public void push(E e) {
+        ensureCapacity();
+        elements[size++] = e;
+    }
+
+    public E pop() {
+        if(size == 0)
+            throw new EmptyStackException();
+    
+        // push()에서 E만 element로 받으므로 E로 캐스팅
+        @SuppressWarnings("unchecked")
+        E result = (E) elements[--size];
+
+        elements[size] = null;
+        return result;
+    }
+    ...
+}
+```
+* 2가지 중 scalar type보다는 array에 대한 unchecked cast warning를 억제하는게 더 위험하므로 2번째 방법 사용을 고려
+* 그러나 2번째 방법은 사용하는 곳에서 casting이 많이 일어나므로 1번째 방법이 보편적으로 사용됨
+
+
+### generic type의 경우 내면에 항상 List를 사용하는 것이 가능하거나 바람직하진 않다
+* 언어 자체에서 List를 지원하지 않으므로 ArrayList는 array를 기반으로 구현
+* 성능을 위해 HashMap은 array를 기반으로 구현 
+
+
+### primitive type은 저장할 수 없다
+* generic의 제약
+* primitive type 대신 `boxed primitive` class 이용
+
+
+### bounded type parameter로 type parameter의 허용 가능한 값 제한
+```java
+// E - bounded type parameter
+class DelayQueue<E extends Delayed> implements BlockingQueue<E>;
+```
+* `actual type parameter`가 Delayed의 서브 클래스여야 한다는 의미
+* DelayQueue의 element로 Delayed 메소드 이용 가능
+* 명시적 casting 불필요
+* ClassCastException 발생 위험이 없다
+
+
+### 정리
+* client에서 캐스팅을 하는 type보다 generic type이 더 안전하고 사용하기 쉽다
+* 새로운 type 설계시 casting 없이 사용 가능한지 확인
+   * type을 generic하게 만든다는 의미가 된다
+* 기존 type을 generification하면 기존 코드에 side effect 없이 더욱 쉽게 사용할 수 있다 
+
+
 
 ## 규칙 27. Favor generic methods
 
