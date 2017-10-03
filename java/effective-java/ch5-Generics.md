@@ -158,7 +158,64 @@ if(o instanceof Set) {  // raw type
 | type token | `String.class` | 29 |
 
 
-## 규칙 24. Eliminate unchecked warnings
+
+## 규칙 24. Eliminate unchecked warnings(컴파일 경고 메시지가 없게 하자)
+* generic을 사용하면 unchecked cast, unchecked method call, unchecked generic array generate, unchecked conversion warning 등 발생
+
+### 가능한 unchecked warning message를 없애자
+* type safe 보장
+* runtime시 ClassCastException 발생 방지
+```java
+// unchecked conversion
+Set<Lark> exaltation = new HashSet();
+
+// 수정
+Set<Lark> exaltation = new HashSet<>();
+```
+
+
+### 메시지를 유발시킨 코드가 type safe를 보장한다면 @SuppressWarnings("unchecked")를 사용해 warning message를 억제
+* `@SuppressWarnings`은 가급적 작은 범위에 사용
+   * 변수 선언, 메소드, 생성자 등
+   * Class에 하면 중요한 메시지를 감추게 된다
+
+#### local variable에 @SuppressWarnings 선언
+* return에는 @SuppressWarnings 선언 불가
+```java
+public <T> T[] toArray(T[] a) {
+    if(a.length < size) 
+        return (T[]) Arrays.copyOf(elements, size, a.getClass());  // unchecked warning
+    System.arraycopy(elements, 0, a, 0, size);
+    if(a.length > size)
+        a[size] = null;
+    return a;
+}
+
+// 수정
+public <T> T[] toArray(T[] a) {
+    if(a.length < size) {
+        // 생성하는 배열이 인자로 전달된 것과 같으므로 캐스팅에 적합하다
+        @SuppressWarnings("unchecked")
+        T[] result =  (T[]) Arrays.copyOf(elements, size, a.getClass());
+        return result;
+    }
+
+    System.arraycopy(elements, 0, a, 0, size);
+    if(a.length > size)
+        a[size] = null;
+    return a;
+}
+```
+* 다른 사람의 코드 이해를 위해 `@SuppressWarnings("unchecked")`사용시 이유를 주석화
+
+
+### 정리
+* unchecked warning message는 중요하므로 무시하지 말자
+* 모든 unchecked warning message runtime시 ClassCastException 발생 가능성을 나타낸다
+* unchecked warning message를 최선을 다해 없애자
+* 특정 unchecked warning message를 없앨 수는 없지만 type safe를 보장한다면 최소한의 범위로 `@SuppressWarnings`을 사용해 억제하고 이유도 주석화
+
+
 
 ## 규칙 25. Prefer lists to arrays
 
