@@ -499,7 +499,140 @@ class DelayQueue<E extends Delayed> implements BlockingQueue<E>;
 
 
 
-## 규칙 27. Favor generic methods
+## 규칙 27. Favor generic methods(제네릭 메소드를 애용하자)
+* 메소드 또한 generification하면 이득
+* `static util method`는 generification의 좋은 후보
+* Collection의 알고리즘 메소드(binaraySearch, sort 등)는 generification
+
+### generification
+
+#### raw type 사용
+```java
+public static Set union(Set s1, Set s2) {
+    Set result = new HashSet(s1);  // unchecked warning
+    result.addAll(s2);  // unchecked warning
+    return result;
+}
+```
+
+#### 개선 - generic method
+* type safe, easy use
+* 모두 type이 같아야 하는 제약
+   * `bounded wildcard type`을 사용하면 더 유연하게 만들 수 있다
+```java
+public static <E> Set<E> union(Set<E> s1, Set<E> s2) {
+    Set<E> result = new HashSet<>(s1);
+    result.addAll(s2);
+    return result;
+}
+
+// usage
+public static void main(String[] args) {
+    Set<String> guys = new HashSet<>(Arrays.asList("Tom", "Dick", "Harry"));
+    Set<String> stooges = new HashSet<>(Arrays.asList("Larry", "Moe", "Curly"));
+    Set<String> aflCio = union(guys, stooges);
+    System.out.println(aflCio);
+}
+```
+
+### generic method 특성
+* generic constructor 호출시 반드시 명시적으로 parameter type 지정해야 하지만 `generic method 호출시에는 지정할 필요가 없다`
+   * `type inference(타입 추론)` 때문
+   * Java 7부터 `<>`로 인해 generic constructor도 지정할 필요 없어짐
+   
+> #### type inference
+> * compiler가 method parameter의 type을 조사하여 값을 찾는 것
+
+#### generic constructor에서 명시적 paremater type 지정 개선하기 
+* generic static factory 메소드 작성
+```java
+// before
+Map<String, List<String>> map = new HashMap<String, List<String>>();
+
+// after - generic static factory method 사용
+public static <K, V> HashMap<K, V> newHashMap() {
+    return new HashMap<K, V>();
+}
+
+Map<String, List<String>> map = newHashMap();
+```
+
+### generic singleton factory
+* immutable이지만 여러 type에 적합한 객체를 생성 필요할 경우
+* generic은 erasure에 의해 구현되므로, 필요한 모든 타입의 매개변수화를 위해 `단일 객체를 사용`
+* 요청된 각 타입의 매개변수화에 사용될 객체를 반복해서 `분배하는 static factory method` 작성 필요
+   * `Collections.reverseOrder(`), `Collections.emptySet()` 등에서 사용
+
+#### generic singleton factory pattern을 사용하여 identity function(항등 함수) 구현하기
+```java
+public interface UnaryFunction<T> {
+    T apply(T arg);
+}
+
+// generic singleton factory pattern
+// 상태 값을 가지지 않으므로, 매번 인스턴스를 생성하면 리소스 낭비되므로
+private static UnaryFunction<Object> IDENTITY_FUNCTION = new UnaryFunction<Object>() {
+    @Override
+    public Object apply(Object arg) {
+        return arg;
+    }
+};
+
+// 상태 값이 없고, unbounded type parameter를 갖는다
+// 모든 type에서 하나의 instance를 공유해도 안전
+@SuppressWarnings("unchecked")
+public static <T> UnaryFunction<T> identityFunction() {
+    return (UnaryFunction<T>) IDENTITY_FUNCTION;
+}
+
+// usage
+public static void main(String[] args) {
+    String[] strings = {"jute", "hemp", "nylon"};
+    UnaryFunction<String> sameString = identityFunction();
+    for (String s : strings)
+        System.out.println(sameString.apply(s));
+
+    Number[] numbers = {1, 2.0, 3L};
+    UnaryFunction<Number> sameNumber = identityFunction();
+    for(Number n : numbers)
+        System.out.println(sameNumber.apply(n));
+}
+```
+
+
+### recursive type bound(재귀적 타입 바운드)
+* type parameter가 자신을 포함하는 수식에 의해 한정될 경우
+* natual order를 정의하는 `Comparable`와 가장 많이 사용된다
+* 모든 요소들이 mutually comparable(상호 비교)될 수 있어야 한다
+```java
+public interface Comparable<T> {
+    int compareTo(T o);
+}
+
+// recursive type bound를 사용한 mutually comparable 표현
+// <T extends Comparable<T>> - 자신과 비교될 수 있는 모든 타입을 T라고 정의
+public static <T extends Comparable<T>> T max(List<T> list){
+    Iterator<T> iterator = list.iterator();
+    T result = iterator.next();
+    while (iterator.hasNext()) {
+        T t = iterator.next();
+        if(t.compareTo(result) > 0)
+            result = t;
+    }
+   return result;
+}
+```
+* `recursive type bound와 bound wildcard`를 이해하면 수많은 recursive type bound에 대처할 수 있다
+
+### 정리
+* 가능하면 기존 메소드를 generic method로 만들자 - generification
+   * 기존 코드에 side effect 없이 더욱 쉽게 사용할 수 있다
+   * 메소드 인자와 반환 값을 클라이언트 코드에서 캐스팅할 필요가 없다
+      * type safe 보장
+      * 캐스팅 없이 사용할 수 있다 -> 메소드가 generic 하다
+   * generification할 때 generic method가 type처럼 캐스팅 없이 사용될 수 있는지 반드시 확인
+
+
 
 ## 규칙 28. Use bounded wildcards to increase API flexibility
 
