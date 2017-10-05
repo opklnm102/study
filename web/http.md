@@ -86,3 +86,52 @@ GET http://aaa.com/search/?q=aaa&version=1 HTTP/1.1
 | 500 | Internal Server Error | 서버쪽에서 에러 발생 |
 | 502 | Bad Gateway | Gateway 또는 Proxy 역할을 하는 서버가 그 뒷단의 서버로부터 잘못된 응답을 받을 경우 |
 | 503 | Service Unavailable | 현재 서버에서 서비스를 제공할 수 없을 경우 |
+
+## Header
+
+### Request Header
+| 헤더 필드 | 의미 |
+|:---|:---|
+| Accept | Response시 클라이언트가 허용하는 콘텐츠 유형<br/> ex. Accept: text/html이면 서버는 클라이언트에게 HTML유형의 콘텐츠를 응답 |
+| Accept-Charset | 서버로부터 전달 받고 싶은 문자열 셋 설정<br/> ex. Accept-Charset: utf-8이면 서버는 클라이언트에게 utf8로 응답 |
+| Authorization | 기본 인증 자격을 서버로 전송하는데 사용 |
+| Cookie | 서버가 클라이언트에게 쿠키를 심어 놓았다면 해당 필드로 전송. 여러개면 `;`로 구분<br/> ex. 쿠키가 2개라면 cookie: first_cookie=hello; second_cookie=world |
+| Content-Length | 콘텐츠 길이 |
+| Content-Type | 콘텐츠 유형 설정<br/> ex. x-www-form-urlencoded<br/> multipart/form-data(파일 전송) |
+| Host | 서버의 이름. 포트번호와 함께 사용. 포트번호 생략시 80 포트 사용 |
+| Referer | 페이지 요청시 이전 페이지 주소를 전달하기 위해 사용 |
+| User-Agent | 클라이언트에 대한 설명 정보 |
+| X-Forwarded-For(XFF) | Client의 IP를 식별하기 위한 정보 |
+
+
+### Response Header
+| 헤더 필드 | 의미 |
+|:---|:---|
+| Allow | 클라이언트의 요청방법을 서버에서 지원하고 있음을 의미 |
+| Content-Length | 응답본문의 길이 |
+| Content-Type | 응답 본문의 콘텐츠 타입 |
+| Date | 현재 시간(GMT) |
+| Location | 리다이렉션으로 사용. 클라이언트에게 다음에 요청해야할 URL을 알려준다 |
+| Server | 응답하는 서버의 도메인 이름 |
+| Set-Cookie | 클라이언트에 쿠키를 설정하도록 하여, 같은 응답에 여러 Set-Cookie를 보냄 |
+| WWW-Authenticate | 서버에서 허락하는 인증 체계에 대한 정보 |
+
+## URI
+* 구조
+```
+<schema name> : <계층적인 부분>[? <질의> ][ # <fragment> ]
+
+// example
+http://www.example.com?search=xxx#summary
+```
+
+
+### X-Forwarded-For(XFF)
+* Client의 IP를 식별하기 위한 정보
+* L4(Loca balancers, Proxy server, caching server) 장비가 있을 경우 L4의 IP를 웹 로그에 남기게 된다
+   * Client IP -> L4 -> WAS
+* 이때 header의 `X-Forwarded-For`로 Client IP를 알 수 있다
+* `,`를 구분자로 사용
+   * 1번째 IP로 Client를 식별
+   * X-Forwarded-For: client, proxy1, proxy2
+

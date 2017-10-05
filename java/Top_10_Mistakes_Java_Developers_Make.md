@@ -57,8 +57,33 @@ public static void main(String[] args){
 각 멤버들에게 가능한한 낮은 접근 레벨을 주는 것 -> public 남발하지 말 것
 
 ### 7. ArrayList vs LinkedList
-무작정 ArrayList를 쓰지말 것. 큰 성능 차이를 불러온다
-LinkedList는 Random Access가 별로없고 값의 추가/삭제가 많을 때 사용하는 것이 적당
+* ArrayList<E>
+   * dynamically re-sizing array의 구현체
+   * 최초 정해진 크기로 생성되어 모자랄 때 마다 2배 큰 array를 생성하여 값을 copy하는 방법으로 크기를 조절한다
+   * get(int index) is O(1) <--- `main benefit of ArrayList<E>`
+   * add(E element) is O(1) amortized, but O(n) worst-case since the array must be resized and copied
+   * add(int index, E element) is O(n/2) average
+   * remove(int index) is O(n/2) average
+   * Iterator.remove() is O(n/2) average
+   * ListIterator.add(E element) is O(n/2) average
+* LinkedList<E>
+   * doubly-linked list의 구현체
+   * get(int index) is O(n/4) average
+   * add(E element) is O(1)
+   * add(int index, E element) is O(n/4) average
+      * but O(1) when index = 0 <--- `main benefit of LinkedList<E>`
+   * remove(int index) is O(n/4) average
+   * Iterator.remove() is O(1) <--- `main benefit of LinkedList<E>`
+   * ListIterator.add(E element) is O(1) <--- `main benefit of LinkedList<E>`
+      *  Note: O(n/4) is average, O(1) best case (e.g. index = 0), O(n/2) worst case (middle of list)
+* 무작정 ArrayList를 쓰지말 것. 큰 성능 차이를 불러온다  
+* LinkedList는 `Random Access가 별로 없고` 값의 `추가/삭제가 많을 때` 사용하는 것이 적당
+   * 특정 index까지 link를 타고 가야한다
+   * 순차적인 접근엔 괜찮음
+
+> #### 참고자료
+> * [When to use LinkedList over ArrayList?](https://stackoverflow.com/questions/322715/when-to-use-linkedlist-over-arraylist)
+
 
 ### 8. Mutable vs Immutable
 - Immutable
