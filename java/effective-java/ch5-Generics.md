@@ -914,7 +914,7 @@ public static void main(String[] args) {
    * 1.5에서 generification 되었기 때문
 
 > #### type token
-> * compile, runtime시에 type 정보를 전하기 위해 Class 리터럴이 parameter로 전달될 때
+> * compile, runtime시에 type 정보를 전하기 위해 Class 리터럴이 parameter로 전달될 때 Class 리터럴을 type token이라 한다
 
 ### Favorites.class의 제약
 
@@ -1091,7 +1091,6 @@ static Annotation getAnnotation(AnnotatedElement element, String annotationTypeN
         throw new IllegalArgumentException(e);
     }
     return element.getAnnotation(annotationType);  // <? extends Annotation>이라 compile error
-    
 }
 
 // 개선
