@@ -868,14 +868,241 @@ private static <E> void swapHelper(List<E> list, int i, int j) {
 ## 규칙 29. Consider typesafe heterogeneous containers
 > 타입 안전이 보장되는 heterogeneous 컨테이너의 사용을 고려하자
 
+* generic은 Collection(Set, Map)과 단일 요소 저장 컨테이너에 많이 사용(ThreadLocal, AtomicReference)
+   * 매개변수화 되는 것은 컨테이너
+   * 컨테이너의 특성에 따라 `type parameter의 개수 제한`
+      * Set<T> -> 1개
+      * Map<K, V> -> 2개
+* 제한을 피하기 위해 컨테이너 대신 `key를 매개변수화`
+
+### type safe heterogeneous container pattren
+```java
+public class Favorites {
+
+    // 일반 Map과 다르게 key 별로 서로 다른 type
+    // Class<?>가 가능하게 함
+    private Map<Class<?>, Object> favorites = new HashMap<>();
+
+    public <T> void putFavorite(Class<T> type, T instance) {
+        if (type == null)
+            throw new NullPointerException("Type is null");
+
+        favorites.put(type, instance);  // object로 type을 읽어버리지만 get에서 복구됨
+    }
+
+    public <T> T getFavorite(Class<T> type) {
+        return type.cast(favorites.get(type));  // dynamic casting
+    }
+}
+
+// usage
+public static void main(String[] args) {
+    Favorites f = new Favorites();
+    f.putFavorite(String.class, "Java");
+    f.putFavorite(Integer.class, 0xcafebabe);
+    f.putFavorite(Class.class, Favorites.class);
+
+    String favoriteString = f.getFavorite(String.class);
+    int favoriteInteger = f.getFavorite(Integer.class);
+    Class<?> favoriteClass = f.getFavorite(Class.class);
+    System.out.printf("%s %x %s\n", favoriteString, favoriteInteger, favoriteClass.getName());
+}
+```
+* type safe 보장
+* 각 key별로 다른 type
+* Class가 매개변수화된 key의 역할
+   * 1.5에서 generification 되었기 때문
+
+> #### type token
+> * compile, runtime시에 type 정보를 전하기 위해 Class 리터럴이 parameter로 전달될 때
+
+### Favorites.class의 제약
+
+#### 1. client가 Class 객체를 raw type으로 사용하면 type safe를 훼손시킨다
+* `dynamic casting`으로 runtime시에 type safe 보장
+```java
+public <T> void putFavorite(Class<T> type, T instance) {
+    favorites.put(type, type.cast(instance));
+}
+```
+* Collections의 `checkedSet(), checkedList(), checkedMap()`등이 이와 같은 패턴 사용
+
+```java
+// Collections.checkedMap()
+public static <K, V> Map<K, V> checkedMap(Map<K, V> m,
+                                          Class<K> keyType,
+                                          Class<V> valueType) {
+    return new CheckedMap<>(m, keyType, valueType);
+}
+
+// private static class CheckedMap constructor
+CheckedMap(Map<K, V> m, Class<K> keyType, Class<V> valueType) {
+    this.m = Objects.requireNonNull(m);
+    this.keyType = Objects.requireNonNull(keyType);
+    this.valueType = Objects.requireNonNull(valueType);
+}
+```
+* Collection과 Class 객체를 인자로 받아, compile시 Class 객체와 collection의 타입이 일치하는지 확인
+* Collection을 둘러 싸서 구체화 해주는 일종의 `wrapper method`
 
 
+#### 2. non reifiable type에 사용될 수 없다
+* Favorites객체를 `String, String[]`에 저장할 수 있지만, `List<String>`에는 저장할 수 없다
+* runtime시에 generic 정보가 사라지므로..
+```java
+Favorites f = new Favorites();
+
+String[] stringArray = {"aa", "ff", "cc"};
+f.putFavorite(String[].class, stringArray);
+
+List<String> stringList = new ArrayList<>();
+f.putFavorite(List<String>.class, stringList);  // compile error - List<String>의 Class를 얻을 수 없기 때문
+
+// 같은 key가 되어 덮어써진다
+List<String> stringList = new ArrayList<>(Arrays.asList("aa", "ff", "cc"));
+f.putFavorite(List.class, stringList);
+
+List<Integer> integerList = new ArrayList<>(Arrays.asList(1, 2, 3));
+f.putFavorite(List.class, integerList);
+
+List list = f.getFavorite(List.class);  // [1, 2, 3]
+```
+
+* `super type` token 사용
+* generic class 정의 후 상속 받으면 runtime시에 generic 정보를 가져올 수 있다
+   * `jackson의 TypeReference<T>` 참고
+```java
+class SuperTypeToken<T> {
+}
+
+public class Favorites {
+    private Map<Type, Object> favorites = new HashMap<>();
+
+    public <T> void putFavorite(Type type, T instance) {
+        if (type == null)
+            throw new NullPointerException("Type is null");
+
+        favorites.put(type, instance);
+    }
+
+    public <T> T getFavorite(Type type) {
+        return (T) favorites.get(type);
+    }
+}
+
+// usage
+SuperTypeToken stringListToken = new SuperTypeToken<List<String>>() {};
+SuperTypeToken integerListToken = new SuperTypeToken<List<Integer>>(){};
+
+Type stringListType = ((ParameterizedType)stringListToken.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+Type integerListType = ((ParameterizedType)integerListToken.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+
+Favorites f = new Favorites();
+List<String> stringList = new ArrayList<>(Arrays.asList("aa", "ff", "cc"));
+f.putFavorite(stringListType, stringList);
+
+List<Integer> integerList = new ArrayList<>(Arrays.asList(1, 2, 3));
+f.putFavorite(integerListType, integerList);
+   
+List<String> list = f.getFavorite(stringListType);     
+List<Integer> integerlist = f.getFavorite(integerListType);
 
 
+// refactoring
+public abstract class TypeReference<T> {
+
+    private final Type type;
+
+    public TypeReference() {
+        this.type = ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+    }
+
+    public Type getType() {
+        return type;
+    }
+}
+
+public class Favorites {
+
+    private Map<Type, Object> favorites = new HashMap<>();
+
+    public <T> void putFavorite(TypeReference typeReference, T instance) {
+        if (typeReference == null)
+            throw new NullPointerException("Type is null");
+
+        favorites.put(typeReference.getType(), instance);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T getFavorite(TypeReference typeReference) {
+        Type type = typeReference.getType();
+
+        Class<T> clazz;
+
+        if(type instanceof ParameterizedType) {
+            clazz = (Class<T>)((ParameterizedType)type).getRawType();
+        } else {
+            clazz = (Class<T>) type;
+        }
+
+        return clazz.cast(favorites.get(type));
+    }
+}
+
+// usage
+TypeReference stringListType = new TypeReference<List<String>>() {};
+TypeReference integerListType = new TypeReference<List<Integer>>() {};
+
+Favorites f = new Favorites();
+List<String> stringList = new ArrayList<>(Arrays.asList("aa", "ff", "cc"));
+f.putFavorite(stringListType, stringList);
+        
+List<Integer> integerList = new ArrayList<>(Arrays.asList(1, 2, 3));
+f.putFavorite(integerListType, integerList);
+
+List<String> list = f.getFavorite(stringListType);
+System.out.println(list);
+
+List<Integer> integerlist = f.getFavorite(integerListType);
+System.out.println(integerlist);
+```
 
 
+### Favorites에서 사용하는 type token은 unbounded(제한이 없는) type token
+* 어떤 Class 객체도 인자로 받는다는 의미
+* 때때로 제한할 필요가 있다면 `bounded type token` 사용
+   * `bounded type parameter`, `bounded wildcard type`
+   * Annotation에서 많이 사용
+
+```java        
+// interface AnnotatedElement
+// annotationClass는 bounded type token
+<T extends Annotation> T getAnnotation(Class<T> annotationClass);
+```
+
+#### asSubclass()로 bounded type token으로 안전하게 캐스팅
+* Class<?> 타입의 객체를 getAnnotation()처럼  bounded type token을 필요로 하는 메소드에 전달할 경우 사용
+```java
+static Annotation getAnnotation(AnnotatedElement element, String annotationTypeName) {
+    Class<?> annotationType = null;  // unbounded type token
+    try {
+        annotationType = Class.forName(annotationTypeName);
+    } catch (Exception e) {
+        throw new IllegalArgumentException(e);
+    }
+    return element.getAnnotation(annotationType);  // <? extends Annotation>이라 compile error
+    
+}
+
+// 개선
+return element.getAnnotation(annotationType.asSubclass(Annotation.class));
+```
 
 
-
-
+### 정리
+* container에 generic을 사용하면 type parameter의 숫자가 제한된다
+* container 자체보다 key에 type parameter를 두자
+* 서로 다른 type을 저장할 수 있는 container를 heterogeneous container라 한다
+   * key로 Class 객체 사용 가능
+   * ex. DB의 row를 표현하는 `DatabaseRow`면 key로 `Column<T>` 사용
 
