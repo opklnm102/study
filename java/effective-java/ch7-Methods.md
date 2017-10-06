@@ -2,7 +2,18 @@
 > Effective Java를 읽으며 공부했던 내용을 정리한다  
 > 메소드 설계에 대하여 알아보자
 
-## 규칙 38. Check parameters for validity(인자의 유효성을 검사하라)
+
+* [38. Check parameters for validity](#규칙-38-check-parameters-for-validity)
+* [39. Make defensive copies when needed](#규칙-39-make-defensive-copies-when-needed)
+* [40. Design method signatures carefully](#규칙-40-design-method-signatures-carefully)
+* [41. Use overloading judiciously](#규칙-41-use-overloading-judiciously)
+* [42. Use varargs judiciously](#규칙-42-use-varargs-judiciously)
+* [43. Return empty arrays or collections, not nulls](#규칙-43-return-empty-arrays-or-collections-not-nulls)
+* [44. Write doc comments for all exposed API elements](#규칙-44-write-doc-comments-for-all-exposed-api-elements)
+
+
+## 규칙 38. Check parameters for validity
+> 인자의 유효성을 검사하라
 
 ### 대부분의 메소드와 생성자는 인자로 사용할 수 있는 값을 제한한다
 * ex
@@ -93,7 +104,8 @@ static List<Integer> intArrayAsList(final int[] a){
 
 
 
-## 규칙 39. Make defensive copies when needed(필요하다면 방어적 복사본을 만들라)
+## 규칙 39. Make defensive copies when needed
+> 필요하다면 방어적 복사본을 만들라
 
 ### 클래스의 클라이언트가 불변식을 망가뜨리기 위해 최선을 다할 것이라는 가정하에, 방어적으로 프로그래밍
 ```java
@@ -174,7 +186,8 @@ public Date getEnd(){
 * 방어적 복사가 오버헤드가 너무 크고, 클라이언트가 부적절하게 변경하지 않는다는 보장이 있다면, 문서에 명시하고 넘어갈 수 있다
 
 
-## 규칙 40. Design method signatures carefully(메소드 시그너처는 신중하게 설계하라)
+## 규칙 40. Design method signatures carefully
+> 메소드 시그너처는 신중하게 설계하라
 
 ### 메소드 이름은 신중하게 고르라
 * 모든 이름은 standard naming convention을 따라야 한다
@@ -228,7 +241,9 @@ public Date getEnd(){
 
 
 
-## 규칙 41. Use overloading judiciously(오버로딩할 때는 주의하라)
+## 규칙 41. Use overloading judiciously
+> 오버로딩할 때는 주의하라
+
 ```java
 // Set, List, Unknown Collection을 순서대로 출력하지 않을까..?
 public class CollectionClassifier {
@@ -332,7 +347,9 @@ for (int i = 0; i < 3; i++) {
 
 
 
-## 규칙 42. Use varargs judiciously(varargs는 신중히 사용하라)
+## 규칙 42. Use varargs judiciously
+> varargs는 신중히 사용하라
+
 ### varargs(가변 인자) 메소드
 * 임의 개수의 인자를 처리하는 메소드를 만들어야할 때 효과적
 * `printf()`, `reflection`에서 많이 사용
@@ -400,7 +417,8 @@ public void foo(int a1, int a2, int...remaing){ }
 
 
 
-## 규칙 43. Return empty arrays or collections, not nulls(null 대신 빈 배열이나 컬렉션을 반환하라)
+## 규칙 43. Return empty arrays or collections, not nulls
+> null 대신 빈 배열이나 컬렉션을 반환하라
 
 ### 값이 없을 때 null을 반환하는 경우
 ```java
@@ -451,7 +469,8 @@ public List<Cheese> getCheeseList() {
 
 
 
-## 규칙 44. Write doc comments for all exposed API elements(외부에 제공하는 모든 API 요소에 대해 문서화 주석을 넣자)
+## 규칙 44. Write doc comments for all exposed API elements
+> 외부에 제공하는 모든 API 요소에 대해 문서화 주석을 넣자
 
 ### 사용 가능한 API라면 반드시 문서화
 * 외부에 제공하는 모든 `클래스`, `인터페이스`, `생성자`, `메소드`, `필드`의 선언부 앞에 문서화 주석을 넣어야 한다
@@ -561,7 +580,7 @@ public @interface Override {
 #### thread safety
 * thread safe를 문서화
 
-####serializability
+#### serializability
 * 직렬화 가능하다면, 직렬화 형태 문서화
 
 

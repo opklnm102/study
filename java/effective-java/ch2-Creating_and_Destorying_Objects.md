@@ -3,7 +3,17 @@
 > 언제 어떻게 생성해야 하는지, 언제 어떻게 생성을 피해야 하는지 등...
 
 
-## 규칙 1. Consider static factory methods instead of constrictors(생성자 대신 factory 메소드 사용을 고려하라)
+* [1. Consider static factory methods instead of constrictors](#규칙-1-consider-static-factory-methods-instead-of-constrictors)
+* [2. Consider a builder when faced with many constructor](#규칙-2-consider-a-builder-when-faced-with-many-constructor)
+* [3. Enforce the singleton property with private constructor or an enum type](#규칙-3-enforce-the-singleton-property-with-private-constructor-or-an-enum-type)
+* [4. Enforce noninstantiability with a private constructor](#규칙-4-enforce-noninstantiability-with-a-private-constructor)
+* [5. Avoid creating unnecessary objects](#규칙-5-avoid-creating-unnecessary-objects)
+* [6. Eliminate obsolete object references](#규칙-6-eliminate-obsolete-object-references)
+* [7. Avoid finalizers](#규칙-7-avoid-finalizers)
+
+
+## 규칙 1. Consider static factory methods instead of constrictors
+> 생성자 대신 factory 메소드 사용을 고려하라
 
 ### 생성자를 제공하기 전에 인스턴스 하나를 생성하여 반환하는 public static factory 메소드의 사용을 고려
 ```java
@@ -175,7 +185,9 @@ Map<String, List<String>> m = HashMap.newInstance();
  
 </br>
 
-## 규칙 2. Consider a builder when faced with many constructor(생성자의 매개변수가 많을 때는 builder를 고려하자)
+## 규칙 2. Consider a builder when faced with many constructor
+> 생성자의 매개변수가 많을 때는 builder를 고려하자
+
 * `static factory 메소드`와 `생성자`는 `선택 가능한 parameter가 많아질 경우 신축성있게 처리하지 못한다는` 공통적인 제약이 존재
 
 ### 대안 1. telescoping constructor 패턴
@@ -368,7 +380,9 @@ Tree buildTree(Builder<? extends Node> nodeBuilder) { ... }
 
 
 
-## 규칙 3. Enforce the singleton property with private constructor or an enum type(private 생성자나 enum 타입을 사용해서 싱글톤의 특성을 유지하자)
+## 규칙 3. Enforce the singleton property with private constructor or an enum type
+> private 생성자나 enum 타입을 사용해서 싱글톤의 특성을 유지하자
+
 * singleton은 정확히 `하나의 인스턴스만 생성`되는 클래스
 * 본질적으로 `유일한 시스템 컴포넌트`를 나타낸다
 
@@ -439,7 +453,8 @@ public enum Elvis {
 
 
 
-## 규칙 4. Enforce noninstantiability with a private constructor(private 생성자를 사용해서 인스턴스 생성을 못하게 하자)
+## 규칙 4. Enforce noninstantiability with a private constructor
+> private 생성자를 사용해서 인스턴스 생성을 못하게 하자
 
 ### static 메소드, static 필드만 모아놓은 클래스의 적합한 용도
 1. java.lang.Math, java.util.Arrays 처럼 `산술 연산에 필요한 기본형 값`이나 `배열에 관련된 메소드들을 모아 놓는데` 사용
@@ -474,7 +489,9 @@ public class UtilityClass {
 
 
 
-## 규칙 5. Avoid creating unnecessary objects(불필요한 객체의 생성을 피하자)
+## 규칙 5. Avoid creating unnecessary objects
+> 불필요한 객체의 생성을 피하자
+
 * 기능적으로 동일한 객체를, 필요할 때마다 매번 새로 생성하기보다는 하나의 객체를 재사용하는 것이 좋을 때가 많다
 
 ### 재사용의 이점
@@ -580,7 +597,9 @@ public static void main(String[] args) {
 
 
 
-## 규칙 6. Eliminate obsolete object references(쓸모없는 객체 참조를 줄이자)
+## 규칙 6. Eliminate obsolete object references
+> 쓸모없는 객체 참조를 줄이자
+
 * 메모리 관리에도 신경을 써야한다
 
 ### Memory Leak
@@ -673,7 +692,9 @@ public Object pop() {
 
 
 
-## 규칙 7. Avoid finalizers(finalizer의 사용을 피하자)
+## 규칙 7. Avoid finalizers
+> finalizer의 사용을 피하자
+
 * finalizer는 예측불가하고, 위험하고, 일반적으로는 불필요
 * C++의 destructor과는 다르다
    * Java에서는 destructor 용도로 `try-finally`를 사용

@@ -2,7 +2,19 @@
 > Effective Java를 읽으며 공부했던 내용을 정리한다  
 > Java 1.5에서 추가된 enum과 annotation을 활용하는 최선책을 정리해보자
 
-## 규칙 30. Use enums insted of int constants(int 상수대신 enum을 사용하라)
+
+* [30. Use enums insted of int constants](#규칙-30-use-enums-insted-of-int-constants)
+* [31. Use instance fields insted of ordinals](#규칙-31-use-instance-fields-insted-of-ordinals)
+* [32. Use EnumSet instead of bit fields](#규칙-32-use-enumset-instead-of-bit-fields)
+* [33. Use EnumMap instead of ordinal indexing](#규칙-33-use-enummap-instead-of-ordinal-indexing)
+* [34. Emulate extensible enums with interfaces](#규칙-34-emulate-extensible-enums-with-interfaces)
+* [35. Prefer annotations to naming patterns](#규칙-35-prefer-annotations-to-naming-patterns)
+* [36. Consistently use the Override annotation](#규칙-36-consistently-use-the-override-annotation)
+* [37. Use maker interfaces to define types](#규칙-37-use-maker-interfaces-to-define-types)
+
+
+## 규칙 30. Use enums insted of int constants
+> int 상수대신 enum을 사용하라
 
 * int enum 패턴
 ```java
@@ -358,7 +370,8 @@ public static Operation inverse(Operation op) {
    * 정책 enum 패턴 사용 고려
 
 
-## 규칙 31. Use instance fields insted of ordinals(ordinal 대신 객체 필드를 사용하라)
+## 규칙 31. Use instance fields insted of ordinals
+> ordinal 대신 객체 필드를 사용하라
 
 * enum 상수는 자연스레 int값 하나에 대응
 
@@ -397,7 +410,8 @@ public enum Ensemble {
 > ordinal()은 EnumSet, EnumMap처럼 일반적인 용도의 enum기반 자료구조를 만들 경우 사용
 
 
-## 규칙 32. Use EnumSet instead of bit fields(bit field 대신 EnumSet을 사용하라)
+## 규칙 32. Use EnumSet instead of bit fields
+> bit field 대신 EnumSet을 사용하라
 
 ### 열거 자료형 원소들이 주로 집합에 사용될 경우
 #### int enum 패턴 사용
@@ -453,7 +467,9 @@ text.applyStyles(EnumSet.of(Text.Style.BOLD, Text.Style.ITALIC));
 * EnumSet을 활용하자
 
 
-## 규칙 33. Use EnumMap instead of ordinal indexing(ordinal을 배열 첨자로 사용하는 대신 EnumMap을 이용하라)
+## 규칙 33. Use EnumMap instead of ordinal indexing
+> ordinal을 배열 첨자로 사용하는 대신 EnumMap을 이용하라
+
 ```java
 // 요리용 허브를 표현하는 클래스
 public class Herb {
@@ -600,7 +616,9 @@ public enum Phase {
 
 
 
-## 규칙 34. Emulate extensible enums with interfaces(확장 가능한 enum을 만들어야 한다면 인터페이스를 이용하라)
+## 규칙 34. Emulate extensible enums with interfaces
+> 확장 가능한 enum을 만들어야 한다면 인터페이스를 이용하라
+
 * enum 자료형은 final 이라서 상속할 수 없다
    * 상속 가능해도, 상수들이 상속되는 것은 바람직하지 않다
 * enum 자료형을 확장하면 좋을 경우
@@ -700,7 +718,8 @@ private static void test(Collection<? extends Operation> opSet, double x, double
 
 
 
-## 규칙 35. Prefer annotations to naming patterns(작명 패턴 대신 Annotation을 사용하라)
+## 규칙 35. Prefer annotations to naming patterns
+> 작명 패턴 대신 Annotation을 사용하라
 
 ### 작명 패턴
 * 도구나 프레임워크가 특별히 취급하는 것을 구별하기 위해 사용
@@ -877,7 +896,8 @@ public class RunTests {
 
 
 
-## 규칙 36. Consistently use the Override annotation(@Override는 일관되게 사용하라)
+## 규칙 36. Consistently use the Override annotation
+> @Override는 일관되게 사용하라
 
 ### @Override
 * 메소드 선언부에만 사용 가능
@@ -925,7 +945,8 @@ public class Bigram {
 
 
 
-## 규칙 37. Use maker interfaces to define types(자료형을 정의할 때 표식 인터페이스를 사용하라)
+## 규칙 37. Use maker interfaces to define types
+> 자료형을 정의할 때 표식 인터페이스를 사용하라
 
 ### Marker Interface(표식 인터페이스)
 * 아무 메소드도 선언하지 않는 인터페이스

@@ -3,7 +3,21 @@
 > 클래스와 인터페이스는 Java의 핵심이며 추상화의 기본 단위  
 > 클래스와 인터페이스가 쓸모 있고 강력하며, 유연성 있도록하기 위한 요소들을 최상으로 사용하는데 도움을 주는 지침을 정리  
 
-## 규칙 13. Minimize the accessibility of classes and members(클래스와 그 멤버의 접근성을 최소화하자)
+
+* [13. Minimize the accessibility of classes and members](#규칙-13-minimize-the-accessibility-of-classes-and-members)
+* [14. In public classes, use accessor methods, not public fields](#규칙-14-in-public-classes-use-accessor-methods-not-public-fields)
+* [15. Minimize mutablility](#규칙-15-minimize-mutablility)
+* [16. Favor composition over inheritance](#규칙-16-favor-composition-over-inheritance)
+* [17. Design and document for inheritance or else prohibit it](#규칙-17-design-and-document-for-inheritance-or-else-prohibit-it)
+* [18. Prefer interfaces to abstract classes](#규칙-18-prefer-interfaces-to-abstract-classes)
+* [19. Use interfaces only to define types](#규칙-19-use-interfaces-only-to-define-types)
+* [20. Prefer class hierachies to tagged classes](#규칙-20-prefer-class-hierachies-to-tagged-classes)
+* [21. Use function objects to represent strategies](#규칙-21-use-function-objects-to-represent-strategies)
+* [22. Favor static member classes over nonstatic](#규칙-22-favor-static-member-classes-over-nonstatic)
+
+
+## 규칙 13. Minimize the accessibility of classes and members
+> 클래스와 그 멤버의 접근성을 최소화하자
 
 ### 잘 설계된 모듈과 그렇지 않은 것을 구분 짓는 가장 중요한 잣대
 * 모듈 자신의 내부 데이터 및 구현 부분을 다른 모듈로부터 `어느 정도로 숨기느냐`
@@ -86,7 +100,8 @@ public static final Thing[] values() {
 
 
 
-## 규칙 14. In public classes, use accessor methods, not public fields(public 클래스에서는 public 필드가 아닌 접근자 메소드를 사용하자)
+## 규칙 14. In public classes, use accessor methods, not public fields
+> public 클래스에서는 public 필드가 아닌 접근자 메소드를 사용하자
 
 ```java
 // 이렇게 사용 X
@@ -161,7 +176,8 @@ public final class Time {
 
 
 
-## 규칙 15. Minimize mutablility(가변성을 최소화 하자)
+## 규칙 15. Minimize mutablility
+> 가변성을 최소화 하자
 
 ### immutable 클래스
 * 인스턴스가 갖는 값을 변경할 수 없는 클래스
@@ -365,7 +381,9 @@ public static BigInteger safeInstance(BigInteger val) {
 
 
 
-## 규칙 16. Favor composition over inheritance(가급적 상속보다는 컴포지션을 사용하자)
+## 규칙 16. Favor composition over inheritance
+> 가급적 상속보다는 컴포지션을 사용하자
+
 * 상속은 코드를 재사용하는 강력한 방법이지만 일을 하는데 가장 좋은 도구는 아니다
 * 잘못 사용하면 부실한 SW를 초래
 * 안전한 상속
@@ -525,7 +543,8 @@ static void walk(Set<Dog> dogs) {
 
 
 
-## 규칙 17. Design and document for inheritance or else prohibit it(상속을 위한 설계와 문서화를 하자. 그렇지 않다면 상속을 금지 시킨다)
+## 규칙 17. Design and document for inheritance or else prohibit it
+> 상속을 위한 설계와 문서화를 하자. 그렇지 않다면 상속을 금지 시킨다
 
 * 메소드 오버라이딩으로 인한 `파급 효과를 문서화`
 * 오버라이딩 가능한 메소드가 같은 클래스의 다른 메소드를 호출하는지에 대해
@@ -616,7 +635,8 @@ yyyy.MM.dd...
 
 
 
-## 규칙 18. Prefer interfaces to abstract classes(추상 클래스보다는 인터페이스를 사용하자)
+## 규칙 18. Prefer interfaces to abstract classes
+> 추상 클래스보다는 인터페이스를 사용하자
 
 ### interface와 abstract class의 차이
 * abstract class는 구현된 메소드를 포함할 수 있는 반면 interface는 그렇지 못하다
@@ -758,7 +778,9 @@ public abstract class AbstractMapEntry<K, V> implements Map.Entry<K, V> {
 
 
 
-## 규칙 19. Use interfaces only to define types(타입을 정의할 때만 인터페이스를 사용하자)
+## 규칙 19. Use interfaces only to define types
+> 타입을 정의할 때만 인터페이스를 사용하자
+
 * interface는 클래스의 인스턴스를 참조하는데 사용될 수 있는 `type` 역할
 * 클래스의 인스턴스로 `할 수 있는 일`을 나타내야 한다
 
@@ -801,7 +823,8 @@ PhysicalConstants.AVOGADROS_NUMBER;
 
 
 
-## 규칙 20. Prefer class hierachies to tagged classes(tagged 클래스 보다는 클래스 계층을 사용하자)
+## 규칙 20. Prefer class hierachies to tagged classes
+> tagged 클래스 보다는 클래스 계층을 사용하자
 
 ### 특성을 나타내는 tag 필드를 갖는 클래스
 * 인스턴스들이 2개 이상의 특성으로 분류
@@ -908,7 +931,9 @@ class Square extends Rectangle {
 
 
 
-## 규칙 21. Use function objects to represent strategies(전략을 표현할 때 함수 객체를 사용하자)
+## 규칙 21. Use function objects to represent strategies
+> 전략을 표현할 때 함수 객체를 사용하자
+
 * function pointer, delegate, lambda expression 등으로 특정 `함수의 호출을 저장하거나 전달` 할 수 있다
 * 어떤 함수를 호출할 때 호출된 함수에서 사용할 부속 함수를 전달하여 함수 호출자가 자신의 행동을 특화 시킬 수 있도록 하기 위해 사용
    * ex. C언어의 qsort()
@@ -991,7 +1016,8 @@ class Host {
 
 
 
-## 규칙 22. Favor static member classes over nonstatic(static 멤버 클래스를 많이 사용하자)
+## 규칙 22. Favor static member classes over nonstatic
+> static 멤버 클래스를 많이 사용하자
 
 ### nested class
 * 다른 클래스 `내부에 정의된 클래스`

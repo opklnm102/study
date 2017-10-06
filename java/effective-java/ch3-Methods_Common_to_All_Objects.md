@@ -5,7 +5,16 @@
 > final이 아닌 Objet의 메소드를 언제 어떻게 오버라이드하는지 알아보자
 
 
-## 규칙 8. Obey the general contract when overriding equals(equals 메소드를 오버라이딩 할 때는 보편적 계약을 따르자)
+* [8. Obey the general contract when overriding equals](#규칙-8-obey-the-general-contract-when-overriding-equals)
+* [9. Always override hasCode when you override equals](#규칙-9-always-override-hascode-when-you-override-equals)
+* [10. Always override toString](#규칙-10-always-override-tostring)
+* [11. Override clone judiciously](#규칙-11-override-clone-judiciously)
+* [12. Consider implementing Comparable](#규칙-12-consider-implementing-comparable)
+
+
+## 규칙 8. Obey the general contract when overriding equals
+> equals 메소드를 오버라이딩 할 때는 보편적 계약을 따르자
+
 * 인스턴스의 동일 여부를 판정하는 `equals()`
 
 
@@ -290,7 +299,8 @@ public final class PhoneNumber {
 
 
 
-## 규칙 9. Always override hasCode when you override equals(equals()를 오버라이드 할 때는 hashCode()도 항상 같이 오버라이드 하자)
+## 규칙 9. Always override hasCode when you override equals
+> equals()를 오버라이드 할 때는 hashCode()도 항상 같이 오버라이드 하자
 
 * equals()를 오버라이드하는 모든 클래스는 반드시 hashCode()도 오버라이드해야 한다
 * HashMap, HashSet, HashTable 등의 hash기반 Collection을 사용할 때 올바르게 동작하지 않는다
@@ -411,7 +421,8 @@ public int hashCode() {
 
 
 
-## 규칙 10. Always override toString(toString()은 항상 오버라이드 하자)
+## 규칙 10. Always override toString
+> toString()은 항상 오버라이드 하자
 
 ### toString()
 * 반환되는 문자열은 `간결하며 읽기 쉬워야 한다`
@@ -463,7 +474,8 @@ public String toString() {
 
 
 
-## 규칙 11. Override clone judiciously(clone()는 신중하게 오버라이드 하자)
+## 규칙 11. Override clone judiciously
+> clone()는 신중하게 오버라이드 하자
 
 ### Cloneable 인터페이스
 * 복제를 허용하는 객체라는 것을 알리는 목적으로 사용하는 `mixin interface`
@@ -674,7 +686,8 @@ public static Yum newInstance(Yum yum);
 
 
 
-## 규칙 12. Consider implementing Comparable(Comparable 인터페이스의 구현을 고려하자)
+## 규칙 12. Consider implementing Comparable
+> Comparable 인터페이스의 구현을 고려하자
 ### compareTo()
 * Comparable 인터페이스 유일하게 존재하는 메소드
 * Object.equals()와 유사하지만 순서 비교, 제네릭 타입 지원 특성이 더 있다
