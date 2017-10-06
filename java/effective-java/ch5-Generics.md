@@ -4,7 +4,17 @@
 > 장점이 있는 만큼 복잡함도 증가
 
 
-## 규칙 23. Don't use raw types in new code(새로 작성하는 코드에서는 raw 타입을 사용하지 말자)
+* [23. Don't use raw types in new code](#규칙-23-dont-use-raw-types-in-new-code)
+* [24. Eliminate unchecked warnings](#규칙-24-eliminate-unchecked-warnings)
+* [25. Prefer lists to arrays](#규칙-25-prefer-lists-to-arrays)
+* [26. Favor generic types](#규칙-26-favor-generic-types)
+* [27. Favor generic methods](#규칙-27-favor-generic-methods)
+* [28. Use bounded wildcards to increase API flexibility](#규칙-28-use-bounded-wildcards-to-increase-api-flexibility)
+* [29. Consider typesafe heterogeneous containers](#규칙-29-consider-typesafe-heterogeneous-containers)
+
+
+## 규칙 23. Don't use raw types in new code
+> 새로 작성하는 코드에서는 raw 타입을 사용하지 말자
 
 ### generic type
 * generic class, generic interface
@@ -136,30 +146,31 @@ if(o instanceof Set) {  // raw type
 * raw type을 사용하면 runtime error가 발생할 수 있으므로 사용하지 말자
    * raw type은 generic이 없던 때와의 호환성을 위해 제공된 것
 
-|  | `Set<Object>` | `Set<?>` | `Set` | 
-|:----:|:----:|:----:|:----:|
-| 의미 | 매개변수화 타입<br/> 어떤 type도 포함할 수 있는 Set | unbounded wildcard type<br/> 미지정 type의 객체만을 포함할 수 있는 Set| raw type<br/> generic을 사용하지 않는다 |
-| type safe | O | O | X | 
+|           |            `Set<Object>`            |                 `Set<?>`                 |              `Set`              |
+| :-------: | :---------------------------------: | :--------------------------------------: | :-----------------------------: |
+|    의미     | 매개변수화 타입<br/> 어떤 type도 포함할 수 있는 Set | unbounded wildcard type<br/> 미지정 type의 객체만을 포함할 수 있는 Set | raw type<br/> generic을 사용하지 않는다 |
+| type safe |                  O                  |                    O                     |                X                |
 
 * 용어 정리
 
-| 용어 | 사용 예 | 관련 규칙 | 
-|:----|:----|:----|
-| parameterized type(매개변수화 타입) | `List<String>` | 23 |
-| actual type parameter(실 타입 매개변수) | `String` | 23 |
-| generic type | `List<E>` | 23, 26 |
-| formal type parameter(형식 타입 매개변수) | `E` | 23 |
-| unbounded wildcard type(언바운드 와일드 카드 타입) | `List<?>` | 23 |
-| raw type(원천 타입) | `List` | 23 |
-| bounded type paremeter(바운드 타입 매개변수) | `<E extends Number>` | 26 |
-| recursive type type(재귀적 타입 바운드) | `<T extends Comparable<T>>` | 27 |
-| bounded wildcard type(바운드 와일드카드 타입) | `List<? extends Number>` | 28 |
-| generic method | `static <E> List<E> asList(E[] a)` | 27 |
-| type token | `String.class` | 29 |
+| 용어                                      | 사용 예                               | 관련 규칙  |
+| :-------------------------------------- | :--------------------------------- | :----- |
+| parameterized type(매개변수화 타입)            | `List<String>`                     | 23     |
+| actual type parameter(실 타입 매개변수)        | `String`                           | 23     |
+| generic type                            | `List<E>`                          | 23, 26 |
+| formal type parameter(형식 타입 매개변수)       | `E`                                | 23     |
+| unbounded wildcard type(언바운드 와일드 카드 타입) | `List<?>`                          | 23     |
+| raw type(원천 타입)                         | `List`                             | 23     |
+| bounded type paremeter(바운드 타입 매개변수)     | `<E extends Number>`               | 26     |
+| recursive type type(재귀적 타입 바운드)         | `<T extends Comparable<T>>`        | 27     |
+| bounded wildcard type(바운드 와일드카드 타입)     | `List<? extends Number>`           | 28     |
+| generic method                          | `static <E> List<E> asList(E[] a)` | 27     |
+| type token                              | `String.class`                     | 29     |
 
 
 
-## 규칙 24. Eliminate unchecked warnings(컴파일 경고 메시지가 없게 하자)
+## 규칙 24. Eliminate unchecked warnings
+> 컴파일 경고 메시지가 없게 하자
 * generic을 사용하면 unchecked cast, unchecked method call, unchecked generic array generate, unchecked conversion warning 등 발생
 
 ### 가능한 unchecked warning message를 없애자
@@ -217,7 +228,8 @@ public <T> T[] toArray(T[] a) {
 
 
 
-## 규칙 25. Prefer lists to arrays(Array보다는 List를 사용하자)
+## 규칙 25. Prefer lists to arrays
+> Array보다는 List를 사용하자
 
 ### Array가 generic과 다른 점
 
@@ -352,7 +364,8 @@ static <E> E reduce(List<E> list, Function<E> f, E initVal) {
 
 
 
-## 규칙 26. Favor generic types(제네릭 타입을 애용하자)
+## 규칙 26. Favor generic types
+> 제네릭 타입을 애용하자
 * JDK에서 제공하는 generic을 이용하는 것뿐만 아니라 직접 만드는 법도 알면 좋다
 
 ### generification(제네릭화)
@@ -499,7 +512,9 @@ class DelayQueue<E extends Delayed> implements BlockingQueue<E>;
 
 
 
-## 규칙 27. Favor generic methods(제네릭 메소드를 애용하자)
+## 규칙 27. Favor generic methods
+> 제네릭 메소드를 애용하자
+
 * 메소드 또한 generification하면 이득
 * `static util method`는 generification의 좋은 후보
 * Collection의 알고리즘 메소드(binaraySearch, sort 등)는 generification
@@ -539,7 +554,7 @@ public static void main(String[] args) {
 * generic constructor 호출시 반드시 명시적으로 parameter type 지정해야 하지만 `generic method 호출시에는 지정할 필요가 없다`
    * `type inference(타입 추론)` 때문
    * Java 7부터 `<>`로 인해 generic constructor도 지정할 필요 없어짐
-   
+
 > #### type inference
 > * compiler가 method parameter의 type을 조사하여 값을 찾는 것
 
@@ -634,7 +649,8 @@ public static <T extends Comparable<T>> T max(List<T> list){
 
 
 
-## 규칙 28. Use bounded wildcards to increase API flexibility(바운드 와일드 카드를 사용해서 API의 유연성을 높이자)
+## 규칙 28. Use bounded wildcards to increase API flexibility
+> 바운드 와일드 카드를 사용해서 API의 유연성을 높이자
 
 ### bounded wildcard type
 ```java
@@ -850,4 +866,16 @@ private static <E> void swapHelper(List<E> list, int i, int j) {
 
 
 ## 규칙 29. Consider typesafe heterogeneous containers
+> 타입 안전이 보장되는 heterogeneous 컨테이너의 사용을 고려하자
+
+
+
+
+
+
+
+
+
+
+
 
