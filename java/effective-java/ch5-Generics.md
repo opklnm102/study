@@ -634,6 +634,220 @@ public static <T extends Comparable<T>> T max(List<T> list){
 
 
 
-## 규칙 28. Use bounded wildcards to increase API flexibility
+## 규칙 28. Use bounded wildcards to increase API flexibility(바운드 와일드 카드를 사용해서 API의 유연성을 높이자)
+
+### bounded wildcard type
+```java
+Iterable<? extends E>
+```
+* parameterized tpye은 invariant(불변)
+   * `List<String>`과 `List<Object>`은 다르다
+* 불변 타입이 제공하는 것보다 유연성이 필요할 경우 사용
+
+#### pushAll()
+```java
+public class Stack<E> {
+    public Stack();
+    public void push(E e);
+    public E pop();
+    public boolean isEmpty();
+
+    // wildcard type 사용하지 않는 pushAll()
+    public void pushAll(Iterable<E> src) {
+        for(E e : src)
+            push(e);
+    }
+}
+
+// usage
+Stack<Number> numberStack = new Stack<>();
+Iterable<Integer> integers = ..;
+numberStack.pushAll(integers);  // error - parameterized type은 invariant기 때문
+```
+
+* bounded wildcard type 사용
+```java
+// Iterable<? extends E> -> E의 어떤 서브타입의 Iterable다
+public void pushAll(Iterable<? extends E> src) {
+    for(E e : src) 
+        push(e);
+}
+```
+
+#### popAll()
+```java
+public void popAll(Collection<E> dest) {
+    while(!isEmpty())
+        dest.add(pop());
+}
+
+// usage
+Stack<Number> numberStack = new Stack<>();
+Collection<Object> objects = ..;
+numberStack.popAll(objects);  // error
+```
+
+* bounded wildcard type 사용
+```java
+// Collection<? super E> -> E의 어떤 수퍼타입을 저장하는 Collection이다
+public void popAll(Collection<? super E> dest) {
+    while(!isEmpty())
+        dest.add(pop());
+}
+```
+
+### 유연성을 극대화 하려면 `method parameter에 wildcard type`을 사용
+* parameter가 producer, consumer 모두에 해당하면 wildcard type은 좋지 않다
+* 정확한 type 일치가 필요하므로 wildcard가 필요 없다
+
+### PECS
+* 어떤 wildcard를 선택할지 결정하는데 사용
+* PE -> `producer(생산자) - extends`
+   * parameter type이 T 생산자를 나타낼 경우 - `<? extends T>` 사용
+* CS -> `consumer(소비자) - super`
+   * parameter type이 T 소비자를 나타낼 경우 - `<? super T>` 사용
+
+```java
+// src는 stack에서 사용될 인스턴스를 생성 -> producer
+public void pushAll(Iterable<? extends E> src)
+
+// dest는 stack으로 부터 인스턴스를 소비 -> consumer
+public void popAll(Collection<? super E> dest)
+```
+
+#### reduce()의 경우
+* before
+```java
+static <E> E reduce(List<E> list, Function<E> f, E initVal)
+
+// usage
+interface Function<T> {
+    T apply(T arg1, T arg2);
+}
+
+Function<Number> numberFunction = new Function<Number>() {
+    @Override
+    public Number apply(Number arg1, Number arg2) {
+        return arg1.intValue() + arg2.intValue();
+    }
+};
+
+List<Integer> numList = Arrays.asList(1, 2, 3);
+Number result = reduce(numList, numberFunction, 0);  // compile error
+```
+
+* after
+```java
+// list는 reduce의 결과를 생산하는데 사용 - producer로 사용
+// f는 producer, consumer로 사용 - wildcard 사용 X
+static <E> E reduce(List<? extends E> list, Function<E> f, E initVal)
+```
+
+
+#### union()의 경우
+* before
+```java
+public static <E> Set<E> union(Set<E> s1, Set<E> s2) {
+    Set<E> result = new HashSet<>(s1);
+    result.addAll(s2);
+    return result;
+}
+```
+
+* after
+```java
+// s1, s2는 union의 결과를 생산하는데 사용 - producer로 사용
+// return type은 Set<E>
+public static <E> Set<E> union(Set<? extends E> s1, Set<? extends E> s2) {
+    Set<E> result = new HashSet<>(s1);
+    result.addAll(s2);
+    return result;
+}
+
+// usage
+Set<Integer> integers = new HashSet<>(Arrays.asList(1, 2, 3));
+Set<Double> doubles = new HashSet<>(Arrays.asList(1.2, 2.3, 3.4));
+
+// explicit type parameter
+Set<Number> numbers = Union.<Number>union(integers, doubles);  
+
+// Java7 부터는 explicit type parameter 필요 없다
+Set<Number> numbers = Union.union(integers, doubles);  
+```
+* `return type에는 wildcard type을 사용하지 말자`
+   * client에서 wildcard type을 사용해야 하는 문제가 생기기 때문
+   * clinet는 wildcard type을 알 수 없도록 해야하다
+* wildcard type은 `반드시 받아야하는 parameter와 거부해야할 parameter를 구분`해준다
+* client가 `wildcard type 때문에 고민해야 한다면 해당 API에 문제`가 있는 것
+
+
+```java
+public static <T extends Comparable<T>> T max(List<T> list){
+    Iterator<? extends T> iterator = list.iterator();
+    T result = iterator.next();
+    while (iterator.hasNext()) {
+        T t = iterator.next();
+        if(t.compareTo(result) > 0)
+            result = t;
+    }
+    return result;
+}
+
+// list는 max()의 결과를 생산하는데 사용 - producer
+// Comparable<T>는 T 인스턴스를 소비 - consumer
+// Comparable은 항상 소비자 - 항상 Comparable<? super T> 사용
+public static <T extends Comparable<? super T>> T max(List<? extends T> list){
+    Iterator<? extends T> iterator = list.iterator();
+    T result = iterator.next();
+    while (iterator.hasNext()) {
+        T t = iterator.next();
+        if(t.compareTo(result) > 0)
+            result = t;
+    }
+    return result;
+}
+```
+
+
+### generic type VS wildcard type
+* 둘 중 더 좋은 것은?
+```java
+// generic type
+public static <E> void swap(List<E> list, int i, int j) {
+    list.set(i, list.set(j, list.get(i)));
+}
+
+// unbounded wildcard type
+public static void swap(List<?> list, int i, int j) {
+    list.set(i, list.set(j, list.get(i)));  // compile error - list가 List<?>라서 null을 제외한 어떤 값도 추가할 수 없다
+}
+```
+* public API 관점에서는 wildcard type이 더 간단
+   * type parameter를 고민할 필요없이 전달만 하면 List의 요소로 저장한다
+* `method 선언부에 type parameter가 1번만 나타나면` wildcard로 바꾸면 된다
+   * type parameter가 unbounded면 unbounded wildcard, bounded면 bounded wildcard로 변경
+
+* unbounded wildcard type compile error 개선 - 
+```java
+public static void swap(List<?> list, int i, int j) {
+    swapHelper(list, i, j);
+}
+
+// wildcard type을 잡아내기 위한 helper method
+// list는 List<E>, 요소가 E인 것을 안다. 어떤 E를 추가해도 compile error가 없다
+private static <E> void swapHelper(List<E> list, int i, int j) {
+    list.set(i, list.set(j, list.get(i)));
+}
+```
+
+### 정리
+* method API에 wildcard type을 사용하면 유연한 API를 만들 수 있다
+* 라이브러리를 작성한다면 wildcard type을 올바르게 사용해야 한다
+* PECS를 기억
+   * `Producer - extends`, `Consumer - super`
+   * `Comparable`, `Comparator`는 consumer
+
+
 
 ## 규칙 29. Consider typesafe heterogeneous containers
+
