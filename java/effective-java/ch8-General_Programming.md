@@ -94,6 +94,91 @@ for(int i=0, n=expensiveComputation(); i<n; i++) {
 
 
 ## 규칙 46. Prefer for-each loops to traditional for loops
+> for() 보다는 for-each를 사용하자
+
+* iterator와 index 변수는 혼란스럽고, 에러날 가능성이 있다
+```java
+// collection
+for(Iterator iter = collection.iterator(); iter.hasNext();) {
+    doSomething((Element) iter.next());
+}
+
+// array
+for(int i=0; i<arr.length; i++) {
+    doSomething(arr[i]);
+}
+```
+
+* for-each로 iterator, index 변수를 감춘다
+   * index의 한계값을 1번만 계산하므로 약간의 성능 향상
+```java
+for(Element e : elements) {
+    doSomething(e);
+}
+```
+
+
+### 중첩 loop 처리시 for()보다 for-each가 훨씬 좋다
+
+#### 중첩 loop 처리시 흔히 범하는 오류
+```java
+enum Suit { CLUB, DIAMOND, HEART, SPADE }
+enum Rank { ACE, DEUCE, THREE, FOUR, ... , KING}
+
+Collection<Suit> suits = Arrays.asList(Suit.values());
+Collection<Rank> ranks = Arrays.asList(Rank.values());
+
+List<Card> deck = new ArrayList<>();
+for(Iterator<Suit> i = suits.iterator(); i.hasNext(); ) 
+    for(Iterator<Rank> j = ranks.iterator(); j.hasNext(); )
+        deck.add(new Card(i.next(), j.next()));  // i.next()가 너무 많이 호출
+```
+
+#### 개선1. 지역 변수 선언
+```java
+for(Iterator<Suit> i = suits.iterator(); i.hasNext(); ) {
+    Suit suit = i.next();
+    for(Iterator<Rank> j = ranks.iterator(); j.hasNext(); ) 
+        deck.add(new Card(suit, j.next()));
+}
+```
+
+#### 개선2. for-each 사용
+* `collection`, `array`, `Iterator를 구현하는 어떤 객체`에 대해서도 반복 처리 가능
+```java
+for(Suit suit : suits) 
+    for(Rank rank : ranks)
+        deck.add(new Card(suit, rank));
+```
+
+> ### Iterable
+> ```java
+> public interface Iterable<E> {
+>     // 객체의 요소에 대한 iterator 반환
+>     iterable Iterator<E> iterator();
+> }
+> ```
+> * element 그룹을 나타내는 타입을 구현한다면, Iterable 인터페이스를 구현하자
+> * for-each를 통해서 반복 처리가 가능해진다
+
+### for-each를 사용할 수 없는 경우
+
+#### 1. Filtering(필터링)
+* 선택된 element를 삭제할 경우
+* `명시적 iterator`를 사용해서 remove()를 호출해야 하기 때문
+
+#### 2. Transforming(변환)
+* index에 기반하여 일부 element의 값을 변경할 필요가 있을 경우
+
+#### 3. Parallel iteration(병행 반복 처리) 
+* 병행으로 element를 처리할 경우
+* index를 명시적으로 제어할 필요가 있다
+
+
+### 정리
+* for-each는 for()에 비해 성능저하가 없고, 명료하며, 버그를 방지해준다
+
+
 
 ## 규칙 47. Know and use the libraries
 
