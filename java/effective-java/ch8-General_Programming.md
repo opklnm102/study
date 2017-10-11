@@ -228,6 +228,69 @@ static int random(int n) {
 
 
 ## 규칙 48. Avoid float and double if exact answers are required
+> 정확한 계산에는 float, double을 사용하지 말자
+
+### 부동소수점 연산
+* 넓은 범위의 수에 대해 `정확한 근사치를 빨리 산출`하기 위해 설계
+* 정확한 결과를 제공하지 않는다
+* 돈 계산에 부적절
+```java
+double funds = 1.00;
+int itemsBought = 0;
+for(double price = .10; funds >= price; price += .10) {
+    funds -= price;
+    itemsBought++;
+}
+System.out.println(itemsBought + " items bought");  // 3
+System.out.println("Change: $" + funds);  // 0.3999999999
+```
+
+### 돈 계산시 BigDecimal, int, long 사용
+```java
+final BigDecimal TEN_CENTS = new BigDecimal(".10");
+
+int itemsBought = 0;
+BigDecimal funds = new BigDecimal("1.00");
+for(BigDecimal price = TEN_CENTS; funds.compareTo(price) >=0; price = price.add(TEN_CENTS)) {
+    itemsBought++;
+    funds = funds.subtract(price);
+}
+System.out.println(itemsBought + " items bought");  // 4
+System.out.println("Change: $" + funds);  // 0
+```
+
+### BigDecimal 사용의 단점
+* 기본형 데이터 타입을 사용할 때보다 불편
+* 실행 속도가 느려진다
+
+#### 대안 - int, long을 사용하면서 소수점을 직접 계산하고 유지
+```java
+int itemsBought = 0;
+int funds = 100;
+for(int price=10; funds>=price; price+=10) {
+    itemsBought++;
+    funds -= price;
+}
+System.out.println(itemsBought + " items bought");
+System.out.println("Change: $" + funds + "cents"); 
+```
+
+### 정리
+* 근사치가 아닌 정확한 값의 계산에는 float, double을 사용하지 않는다
+* `BigDecimal`을 사용하면 좋은 경우
+   * 8가지 반올림 모드를 이용하고 싶다
+   * 소수점의 정확한 계산이 필요하다
+   * 사용성이 약간 떨어져도 괜찮다
+   * 오토 박싱, 언박싱으로 인한 성능 저하가 괜찮다
+* `int, long`을 사용하면 좋은 경우
+   * 성능이 중요하다
+   * 소수점을 직접 계산할 수 있다
+   * 너무 큰수를 다루지 않는다
+* 십진수 9자리 이하 - `int`
+* 십진수 18자리 이하 - `long`
+* 십진수 18자리 초과  - `BigDecimal`
+   
+
 
 ## 규칙 49. Prefer primitive types to boxed primitives
 
