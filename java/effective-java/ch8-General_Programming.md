@@ -293,6 +293,101 @@ System.out.println("Change: $" + funds + "cents");
 
 
 ## 규칙 49. Prefer primitive types to boxed primitives
+> boxed primitive type보다는 primitive type을 사용하자
+
+* primitive type - int, double, boolean
+* reference type - String, List
+* boxed primitive type - Integer, Double, Boolean
+> Java 1.5에서 auto boxing, auto unboxing 추가
+
+### primitive와 boxed primitive의 차이
+1. primitive는 `값만` 가지지만, boxed primitive는 `값과 identity`를 가진다
+2개의 boxed primitive 인스턴스는 값은 같지만 identity는 다를 수 있다
+2. primitive는 `완전한 기능 값만` 가지지만, boxed primitive는 추가로 `비 기능값인 null`을 가진다
+3. primitive는 boxed primitive보다 `실행 시간과 메모리 사용 효율이 좋다`
+
+### boxed primitive를 비교할 경우
+```java
+// 문제가 있는 Comparator
+Comparator<Integer> naturalOrder = new Comparator<>() {
+    public int compare(Integer first, Integer second) {
+        return first < second ? -1 : (first == second ? 0 : 1);
+    }
+};
+
+// usage
+naturalOrder.compare(new Integer(42), new Integer(42));  // 1 - error
+// first == second에서 reference 비교가 이루어지므로
+```
+* `==`을 boxed primitive에 적용하면 `reference 비교`가 이루어진다
+
+#### 개선
+* primitive 사용
+```java
+Comparator<Integer> naturalOrder = new Comparator<>() {
+    public int compare(Integer first, Integer second) {
+        int f = first;  // auto unboxing
+        int s = second;
+        return f < s ? -1 : (f == s ? 0 : 1);
+    }
+};
+```
+
+### primitive와 boxed primitive를 하나의 연산에서 사용할 경우
+```java
+public class Unbelievable {
+    static Integer i;
+    
+    public static void main(String[] args) {
+        if(i == 42)  // auto unboxing이 되면서 NPE 발생
+            System.out.println("Unbelievable");
+    }
+}
+```
+* primitive와 boxed primitive를 하나의 연산에 사용하면, boxed primitive는 `auto unboxing`된다
+
+#### 개선
+```java
+public class Unbelievable {
+    static int i;  // primitive로 수정
+    ...
+}
+```
+
+### 잘못된 auto unboxing 사용
+```java
+public static void main(String[] args) {
+    Long sum = 0L;
+    for(long i=0; i<Integer.MAX_VALUE; i++) {
+        sum += i;  // primitive와의 연산시 잦은 auto unboxing으로 인해 성능 저하
+    }
+    System.out.println(sum);
+}
+```
+
+#### 개선
+```java
+public static void main(String[] args) {
+    long sum = 0L;  // primitive로 수정
+    ...
+}
+```
+
+### boxed primitive를 사용하면 좋은 경우
+* Collection의 element, key, value로 사용
+* 매개변수화 타입의 타입 매개 변수로 사용
+   * `ThreadLocal<Integer>`
+* reflection으로 재귀적인 메소드를 호출할 경우
+
+### 정리
+* boxed primitive보다는 primitive를 사용
+   * 더 간단하고 속도가 빠르다
+* boxed primitive를 사용할 경우
+   * `==`은 값이 아닌 `레퍼런스를 비교`
+   * 초기화 하지 않았을 경우, primitive와 같이 사용하면 auto unboxing으로 NPE 발생
+* primitive가 auto boxing될 때는 불필요한 객체가 생성되고, 비용도 많이 발생한다
+
+
 
 ## 규칙 50. Avoid strings where other types are more appropriate
 
