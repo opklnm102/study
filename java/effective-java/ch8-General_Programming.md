@@ -390,6 +390,98 @@ public static void main(String[] args) {
 
 
 ## 규칙 50. Avoid strings where other types are more appropriate
+> 다른 타입을 쓸 수 있는 곳에서는 String 사용을 피하자
+
+### 1. String으로 다른 값 타입을 대체하지 말자
+* `int, float, BigInteger, boolean` 등 적절한 타입으로 변환
+
+
+### 2. String으로 enum을 대체하지 말자
+* enum은 String보다 훨씬 더 좋은 열거형 상수를 만든다
+
+### 3. String으로 aggregate type을 대체하지 말자
+* entity가 여러 개의 컴포넌트를 갖는 경우, 하나의 String으로 표현하지 말자
+```java
+// String으로 aggregate type으로 사용한 부적절한 예
+Stirng compoundKey = className + "#" + i.next();
+```
+
+#### 문제
+* 필드를 구분하는 문자가 값으로 오면 문제 발생
+   * 여기선 `#`
+* 각 필드 사용시 String을 분석해야 하므로 속도가 느리고, 코드가 길어지며, 에러가 생기기 쉬움
+* 다른 종류의 데이터가 섞여 `equals(), toString(), compareTo()`를 오버라이딩하기 어렵다
+
+#### 개선
+* aggregate type을 나타내는 클래스 구현
+   * 주로 private static member class로 구현
+
+
+### 4. String으로 capabilities(역량)를 대체하지 말자
+* 어떤 기능에 `접근하는 권한을 부여`하는데 String을 사용하는 경우
+   * key가 `Thread 지역 변수를 식별`하는데 사용됨
+```java
+public class ThreadLocal() {
+    private ThreadLocal(){}
+
+    public static void set(String key, Object value);
+
+    public static Object get(String key);
+}
+```
+
+#### 문제
+* Thread 지역 변수의 `key가 여러 Thread 간에 전역적으로 공유`된다
+* 제대로 동작하려면, 클라이언트가 제공한 문자열 key가 중복되지 않아야 한다
+
+#### 개선 1 - 유일하고 위조 불가능한 키를 생성
+* 문자열 기반의 문제점을 모두 해결하진 않는다
+```java
+public class ThreadLocal() {
+    private ThreadLocal(){}
+
+    public static class Key {  // capability
+        Key() {}
+    }
+
+    // 유일하고 위조 불가능한 키를 생성
+    public static Key getKey() {
+        return new Key();
+    }
+
+    public static void set(String key, Object value);
+
+    public static Object get(String key);
+}
+```
+
+#### 개선 2 - Thread 지역 변수가 key가 된다
+```java
+public final class ThreadLocal {
+    public ThreadLocal() {}
+    public void set(Object value);
+    public Object get();
+}
+```
+
+#### 개선 3 - type safe하게 수정
+* String 기반 문제점 해결
+* key기반보다 빠르고 좋다
+```java
+// java.lang.ThreadLocal
+public final class ThreadLocal<T> {
+    public ThreadLocal() {}
+    public void set(T value);
+    public T get();
+}
+```
+
+
+### 정리
+* 더 좋은 데이터 타입이 있거나, 구현할 수 있다면, String으로 표현하지 말자
+* 다른 타입에 비해 번거롭고, 유연성이 떨어지며, 속도도 느리고, 에러 가능성이 있다
+
+
 
 ## 규칙 51. Beware the performance of string concatenation
 
