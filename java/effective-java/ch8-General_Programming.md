@@ -484,6 +484,41 @@ public final class ThreadLocal<T> {
 
 
 ## 규칙 51. Beware the performance of string concatenation
+> 문자열 결합의 성능 저하를 주의하자
+
+`+`는 문자열을 결합하는 편리한 방법
+출력 내용을 1줄로 만들거나, 작고 고정된 크기의 객체를 String으로 만들 때 사용
+크기 조정 X
+`+`를 반복적으로 사용하면 n^2에 비례하는 시간이 걸린다 O(n^2)
+String은 immutable
+결합될 때 복사되어 하나의 String 생성
+```java
+// 항목 수에 n^2의 시간 소요
+public String statement() {
+    String result = "";
+    for(int i=0; i<numItems(); i++) 
+        result += lineForItem(i);
+    return result;
+}
+```
+
+### 개선 - StringBuilder 사용
+* StringBuilder - StringBuffer의 비동기화 버전
+* 항목 수에 비례하는(n) 시간 소요
+```java
+// 
+public String statement() {
+    StringBuilder b = new StringBuilder(numItems() * LINE_WIDTH);
+        b.append(lineForItem(i));
+    return b.toString();
+}
+```
+
+### 정리
+* 결합할 문자열이 많다면 `+` 대신 `StringBuilder.append()` 사용
+* 또는 `문자 배열`을 사용하거나, 결합하지 말고 `하나씩 처리`
+
+
 
 ## 규칙 52. Refer to objects by their interfaces
 
