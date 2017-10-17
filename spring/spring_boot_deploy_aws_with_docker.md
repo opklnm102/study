@@ -1,4 +1,4 @@
-# Spring Boot Deploy AWS with Docker
+# [SpringBoot + Docker] Spring Boot Deploy AWS with Docker
 > spring boot 기반의 application을 docker image로 build하여 aws에 배포하는 방법을 정리
 
 ## Require
@@ -87,6 +87,9 @@ $ docker pull <image name>
 ```
 
 ## 컨테이너 생성 및 실행
+* 도커 이미지 빌드하고 push하려면 docker hub에 로그인 필요!!
+   * `$ docker login`
+   * group - 도커 사용자 이름이 된다
 ```sh
 # docker run -p <host port>:<container port> -t <image name>
 $ docker run -p 8080:8080 -t <image name>
