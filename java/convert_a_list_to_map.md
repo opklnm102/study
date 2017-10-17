@@ -258,3 +258,5 @@ System.out.printf("%-50s during time : %d ms\n", "[stream duplicate id, Function
 > #### 참고자료 
 > * [Java 8 – Convert List to Map](https://www.mkyong.com/java8/java-8-convert-list-to-map/)
 > * [Java 8 Streams API – Convert a List to Map](http://codecramp.com/java-8-streams-api-convert-list-map/)
+> * [doc](http://docs.oracle.com/javase/8/docs/api/java/util/stream/Collectors.html#toMap-java.util.function.Function-java.util.function.Function-)
+
