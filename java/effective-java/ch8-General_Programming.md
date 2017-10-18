@@ -521,6 +521,57 @@ public String statement() {
 
 
 ## 규칙 52. Refer to objects by their interfaces
+> 객체 참조는 그 객체의 interface로 하자
+
+
+### 객체를 참조할 때는 클래스보다는 interface를 사용
+* 적합한 interface가 있다면, `매개변수, 반환 값, 변수, 필드`에 interface를 사용
+* 유일하게 필요 없는 경우 - `객체 생성시`
+```java
+// good
+List<Subscriber> Subscribers = new Vector<>();
+
+// bad
+Vector<Subscriber> Subscribers = new Vector<>();
+```
+
+
+### 구현체 변경에 대응하기 쉽다
+```java
+// before
+List<Subscriber> Subscribers = new Vector<>();
+
+// after
+List<Subscriber> Subscribers = new ArrayList<>();
+```
+* `객체 생성부를 제외`하고는 변경이 없다
+* 기존 구현체가 interface 구현과 무관한 기능에 의존하고 있다면, 새로운 구현체에서도 동일한 기능 제공해야 한다
+   * `Vector의 동기화`에 의존 -> ArrayList로 대체 불가
+   * 구현체의 특별한 속성에 의존한다면 문서화
+* interface의 구현체를 변경하고자 하는 이유
+   * 새로 변경한 구현체가 더 좋은 성능을 제공하거나 추가 기능을 제공하기 때문
+* ThreadLocal
+   * Thread의 값을 ThreadLocal 인스턴스와 연관시키기 위해 Map 사용
+      * 1.3 - HashMap
+      * 1.4 - IdentityHashMap
+   * Map interface를 사용했기 때문에 1라인의 변경으로 작업이 완료되었다
+
+
+### 만일 적합한 interface가 없다면, 객체를 참조하는 타입을 interface 대신 클래스로 하는 수밖에 없다
+1. value class - String, BigInteger
+   * 매개변수, 변수, 필드, 반환 타입에 사용하면 좋다
+2. 프레임워크에 속한 객체들의 `기본 타입이 인터페이스가 아닌 클래스`
+   * base class(super면서 abstract clas)를 사용 - TimerTask
+3. interface를 구현하는 클래스가 `interface에 없는 메소드를 추가로 지원`할 경우
+   * LinkedHashMap
+
+
+### 정리
+* 적합한 interface를 갖고 있느냐의 여부가 분명해야 한다
+* 갖고 있다면 `interface를 사용`함으로써 훨씬 유연해진다
+* 없다면 super class 중 가장 `general한 클래스를 사용`
+
+
 
 ## 규칙 53. Prefer interfaces to reflection
 
