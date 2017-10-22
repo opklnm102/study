@@ -669,6 +669,37 @@ public static void main(String[] args) {
 
 
 ## 규칙 54. Use native methods judiciously
+> 네이티브 메소드를 분별력 있게 사용하자
+
+* `JNI(Java Native Interface)`는 Java Application에서 `native method를 호출`할 수 있게 해준다
+
+> #### native method
+> * C, C++ 같은 native 언어로 작성한 메소드
+> * native 언어로 연산 후 결과 반환
+
+### native method의 용도
+1. registry와 file lock과 같은 `특정 플랫폼 관리시스템의 접근` 제공
+   * Java에서 제공하는 기능이 증가하고 있다
+   * 1.4 java.util.prefs - 레지스트리 기능 제공
+   * 1.6 java.awt.SystemTray - 휴지통 역역 접근 제공
+2. legacy data를 제공할 수 있는 `legacy 코드로 된 라이브러리의 접근` 제공
+3. `성능 향상`을 위해 성능이 중요한 애플리케이션의 일부를 네이티브 언어로 작성하는데 사용
+   * 권장 X
+   * JVM의 성능 향상으로 native에 의존하지 않더라도 비등해졌다
+
+### native method의 단점
+* 메모리 손상 에러로부터 안전하지 않다
+* 플랫폼에 종속되므로, 이식성 저하
+* 결함을 찾기도 어렵다
+* Java 코드에서 native 코드로 진입과 빠져 나올 때 고정 비용(시간, 자원)이 든다
+   * 적은 양의 일만을 처리할 경우 오히려 성능 저하
+* 알아보기 어렵고, 작성하기 번거로운 glue 코드 필요
+
+### 정리
+* native method를 사용하기 전에 다시 한번 생각하자
+* 저주순의 자원, legacy 라이브러리 사용을 위해 native method를 사용해야 한다면, 적의 양의 코드를 사용하고 테스트하자
+
+
 
 ## 규칙 55. Optimize judiciously
 
