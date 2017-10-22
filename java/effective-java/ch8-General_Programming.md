@@ -574,6 +574,99 @@ List<Subscriber> Subscribers = new ArrayList<>();
 
 
 ## 규칙 53. Prefer interfaces to reflection
+> reflection보다는 interface를 사용하자
+
+
+### java.lang.reflect
+* core reflection facility(리플렉션 핵심 관리 체계)
+* `메모리에 로드된 클래스`들에 관한 정보를 사용할 수 있게 해준다
+* Constructor, Method, Field 인스턴스를 얻을 수 있다
+   * 생성자, 메소드, 필드를 `재귀적`으로 조작할 수 있다
+   * `Method.invoke()`로 어떤 메소드건 호출 가능
+* reflection은 하나의 클래스가 다른 클래스를 사용하도록 도와준다
+* `compile time에 쓸 수 없는 클래스`를 이용할 수 있다
+* `컴포넌트 기반의 애플리케이션` 개발 도구용으로 설계되었다
+* 필요시 클래스를 로드하고, 클래스의 메소드, 생성자가 어떤 것들이 있는지 찾기 위해 reflection 사용
+* reflection은 `design time(설계 시점)`에만 사용
+* runtime시의 객체는 reflection을 이용해 `재귀적으로 사용하면 안된다`
+   * 예외 - 클래스 브라우저, 객체 조사기, 코드 분석 도구, RPC(stub 컴파일러의 필요성 배제를 위해) 등
+
+
+### reflection의 대가
+* compile time에 가능한 `타입 확인을 할 수 없다`
+   * 예외 검사 포함
+   * runtime에 존재하지 않거나, 접근 불가능한 메소드 호출시 실패
+* 재귀적인 접근을 필요로 하는 경우 `가독성 하락`
+* 재귀적인 메소드 호출은 일반 메소드 호출보다 `느리다`
+
+
+
+### reflection을 제한된 형태로만 사용
+* 제한된 사용으로 `비용이 거의 수반되지 않도록` 한다면 많은 장점을 얻을 수 있다
+* `compile time에 쓸 수 없는 클래스`를 사용해야 하는 경우
+   * 클래스를 참조하는 `interface, super class가 compile time에 존재`하므로 그 클래스의 인스턴스를 재귀적으로 생성한 후 `interface, super class`를 통해서 그 인스턴스를 보통 때처럼 사용할 수 있다
+   * 적합한 생성자, 매개변수가 없다면 `Class.newInstance()`를 사용
+
+#### reflection을 사용하는데 필요한 핵심이 담겨있는 example
+```java
+// reflection으로 인스턴스 생성 후 interface를 통해 사용
+public static void main(String[] args) {
+    // 클래스 이름을 Class 객체로 변환
+    Class<?> cl = null;
+
+    try {
+        cl = Class.forName(args[0])
+    } catch(ClassNotFoundException e) {
+        System.err.pringln("Class not found");
+        System.exit(1);
+    }
+
+    // 클래스 인스턴스를 생성
+    Set<String> s = null;
+    try {
+        s = (Set<String>) cl.newInstance();
+    } catch(IllegalAccessException e) {
+        System.err.pringln("Class not accessible");
+        System.exit(1);
+    } catch(InstantiationException e) {
+        System.err.pringln("Class not instantiable");
+        System.exit(1);
+    }
+
+    s.addAll(Arrays.asList(args).subList(1, args.length));
+    System.out.println(s);
+}
+```
+* 제네릭 Set 테스트용으로 쉽게 변환될 수 있을 것
+   * Set의 인스턴스를 생성하고 조작하면서 Set에서 지켜야할 계약에 따르는지 검사할 수 있다
+* 제네릭 Set 성능 분석도구로도 변환될 수 있다
+* 이 기법은 `service provider framework`를 구현할 만큼 강력
+* 2가지 단점
+   1. 3개의 runtime error를 발생시키는데, reflection을 이용한 인스턴스 생성이 아니였다면, compile error로 검출되었을 것
+   2. `new`로 인스턴스를 생성하면 깜끔하지만, 20라인의 긴 코드가 작성되었다
+      * 객체를 생성하는 코드에만 국한
+      * 객체가 생성되면 영향받지 않는다
+
+> #### System.exit()
+> * JVM 전체를 중단시키는 메소드
+> * 적합한 사용처는 거의 없지만, 명령행에서 `바로 실행되는` 유틸 프로그램이 `비정상적으로 끝날 때` 사용하는것은 적합
+
+
+### 드물게 reflection을 잘 사용하는 경우
+* `runtime시에 없을 수도 있는` 클래스, 메소드, 필드에 대한 특정 클래스의 의존도 관리
+* 여러 버전으로 된 다른 패키지에 맞추어 실행되어야 하는 패키지를 작성할 때 유용
+* 지원에 필요한 `최소 환경(최소 버전)에 맞추어 패키지를 컴파일` 한 후 새로운(버전이 올라간) 클래스나 메소드는 reflection을 이용해서 사용하게 하는 것 
+   * 사용하고자 하는 새버전의 클래스, 메소드가 runtime시에 없을 경우 대처 필요
+   * 같은 목표를 달성하기 위한 대안을 사용하거나, 기능을 줄여서 동작하도록 하는 등의 적절한 조치
+
+
+### 정리
+* reflection은 강력한 관리 시스템
+* 단점도 많다
+* compile time에 존재하지 않는 클래스를 사용 해야할 경우, runtime에 reflection을 사용하여 객체를 생성
+* 객체를 사용할 때는 compile time에 존재하는 interface나 super class를 이용
+
+
 
 ## 규칙 54. Use native methods judiciously
 
