@@ -1,4 +1,4 @@
-# Docker 기초
+# [Docker] Docker 기초
 
 ## [컨테이너란?](https://www.docker.com/what-container)
 가상화보다 훨씬 가벼운 기술
@@ -171,6 +171,11 @@ $ sudo yum install docker-io
 $ sudo yum install docker
 ```
 > AWS EC2 - Amazon Linux, EPEL를 설치하지 않아도 됨  
+
+* mac, brew 사용
+```sh
+$ brew cask install docker
+```
 
 #### Docker 서비스 실행하기
 ```sh
