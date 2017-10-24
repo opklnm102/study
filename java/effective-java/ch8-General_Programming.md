@@ -769,4 +769,97 @@ public static void main(String[] args) {
 
 
 ## 규칙 56. Adhere to generally accepted naming conventions
+> 보편화된 작명 규칙을 따르자
+
+* 안정된 naming convention 존재
+* JLS(Java Language Specification) 6.8에 포함
+* 글자 규칙과 문법 규칙으로 분류
+
+### 글자 규칙
+* package, class, interface, method, 필드, 타입 매개변수에 대한 작명 규칙 포함
+* 어기면 혼란과 에러를 유발하는 잘못된 추측을 초래
+
+#### package 이름
+* 컴포넌트 이름을 `마침표로 구분 및 연결`하여 `계층적인 형태`로 구성
+* 컴포넌트 이름은 `영문 소문자와 숫자(드물게)`로 구성
+* 어떤 조직의 외부에서 사용될 패키지의 이름은 도메인의 이름을 반대로
+   * com.sun
+* Java 표준 라이브러리는 `java, javax`로 시작
+* 나머지 부분은 패키지가 무엇인지를 나타내는지 하나이상의 컴포넌트 이름으로 구성
+* 8자 이내의 짦은 약어
+   * utilities -> util
+   * Abstract Window Toolkit -> awt
+* 컴포넌트의 규모가 큰 경우 분류하여 계층화된 이름을 사용
+   * javax.swing는 javax.swing.plaf.metal의 상위 패키지
+
+#### enum, annotation을 포함한 class, interface 이름
+하나 이상의 단어로 구성하되 `첫 글자는 영문 대문자`
+   Timer, FutureTask 등
+
+#### method, 필드 이름
+* class, interface와 동일한 규칙을 따르되 `첫글자는 영문 소문자`
+* 상수는 `대문자와 _`를 사용
+   * MAX_VALUE
+
+#### 타입 매개변수
+* `단일 문자`로 구성
+* 임의 타입 - T, U, V, T1, T2...
+* 컬렉션 요소 타입 - E
+* Map의 key와 value는 - K, V
+* 예외 타입 - X
+
+| 식별자 타입 | usage |
+|:----:|:---:|
+| 패키지 | com.google.inject, org.joda.time.format |
+| class, interface | Timer, FutureTask, HttpServlet |
+| 메소드, 필드 | remove, getCrc |
+| 상수 | MAX_VALUE |
+| 지역 변수 | i, xref |
+| 타입 매개변수 | T, E, K, V, X |
+
+
+
+### 문법 작명 규칙
+
+#### package
+* 문법 작명 규칙이 없다
+
+#### class
+* 단일 명사나 명사구로 구성
+   * Timer, BufferedWriter
+
+#### interface
+* 클래스 이름과 유사하거나 형용사인 `able, ible`를 붙인다
+   * Collection, comparator
+   * Runnable, Iterable, Accessible
+
+
+#### annotation
+* 모든 품사가 고루 사용, 명사, 동사, 전치사, 형용사
+   * Inject, ImplementedBy, Singleton
+
+#### 메소드
+* 동사나 동사구로 구성
+   * append, drawImage
+* boolean을 반환하는 메소드는 대게 `is, has(드물게)`로 시작하며, 뒤로 명사, 명사구나 아무 단어가 따라 나온다
+   * isDigit, isProbablePrime, isEmpty, isEnabled, hasSiblings
+* 함수나 속성으 반환하는 메소드는 명사, 명사구, 또는 get으로 시작하는 동사구로 구성
+   * size, hashCode, getTime
+* 객체의 타입을 변환하는 메소드는 `toType`의 형태
+   * toString, toArray
+* 인자로 받은 객체와 다른 타입의 뷰를 반환하는 메소드는 `asType`
+   * asList
+* 메소드가 호출된 객체와 같은 값을 갖는 기본형 값을 반환하는 메소드는 `typeValue`
+   * intValue
+* static factory 메소드의 이름으로는 `valueOf, of, getInstance, newInstance, getType, newType`
+
+
+#### 필드
+* 클래스, 인터페이스, 메소드 이름보다 덜 중요
+* boolean 필드는 is를 뺀것과 유사한 이름
+   * initialized, composite
+
+
+### 정리
+naming convention을 내것으로 만들고 사용법을 배우자
 
