@@ -1,34 +1,36 @@
-# python 개발 환경 구축하기 - ubuntu16.04
+# [Python] 개발 환경 구축하기
 
 ## pyenv
 * `Simple Python Version Management: pyenv`, 다양한 파이썬 버전을 설치하고 사용, 버전에 대한 의존성을 해결할 수 있다
 
 ### 설치하기
-
-1. 의존성 패키지 설치
+1. install
 ```sh
+# ubuntu 16.04
+# 의존성 패키지 설치
 $ sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev \
 libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils
-```
 
-2. installer로 설치
-```sh
+# installer로 설치
 $ curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
+
+# osx - brew
+$ brew install pyenv
 ```
 
-3. path 등록
+2. path 등록
 ```sh
 # ~/.bash_profile에 다음 내용 추가 -> ubuntu는 ~/.profile
 $ echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
 $ echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
 ```
 
-4. pyenv init
+3. pyenv init
 ```sh
 $ echo 'eval "$(pyenv init -)"' >> ~/.bashrc
 ```
 
-5. 바뀐 path가 적용된 shell을 재시작
+4. 바뀐 path가 적용된 shell을 재시작
 ```sh
 # .bashrc에 넣었을 경우 유효
 $ exec $SHELL
@@ -106,7 +108,13 @@ $ python -version  # version 확인
 * `Virtual Python Environment builder` , 가상환경을 구축해 다양한 파이썬 개발환경을 설정할 수 있다
 
 ### 설치
-* `pyenv installer`로 설치했으면 자동으로 `pyenv-virtualenv`설치 완료. init 설정 추가
+* `pyenv installer`로 설치했으면 자동으로 `pyenv-virtualenv`설치 완료
+```sh
+# osx - brew
+$ brew install pyenv-virtualenv
+```
+
+* init 설정 추가
 ```sh
 $ echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
 $ exec $SHELL
@@ -156,11 +164,16 @@ $ pyenv uninstall <virtualenv name>
 * 프로젝트 디렉토리에서 프로젝트 환경을 자동으로 셋팅할 수 있다.
 
 ### 설치하기
-* brew, pip를 사용할 수 있는게 아니므로 git을 사용!
+* pip를 사용할 수 있는게 아니므로 git을 사용!
 ```sh
+# ubuntu 16.04
 $ git clone git://github.com/kennethreitz/autoenv.git ~/.autoenv
 # bashrc 세션마다 autoenv실행
 $ echo 'source ~/.autoenv/activate.sh' >> ~/.bashrc
+
+# osx
+$ brew install autoenv
+$ echo 'source /usr/local/opt/autoenv/activate.sh' >> ~/.bashrc
 ```
 
 ### 사용하기
