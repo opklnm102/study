@@ -90,6 +90,57 @@ try {
 
 
 ## 규칙 58. Use checked exceptions for recoverable conditions and runtime exceptions for programming errors
+> 복구 가능한 상황에서는 checked exception을 사용하고 runtime exception은 프로그램 에러를 사용하자
+
+### Java의 throwable exception
+* checked exception
+* unchecked exception
+   * runtime exception
+   * error
+
+### checked, unchecked exception 중 어떤 것을 사용할지 결정하는 기본 규칙
+
+#### checked exception
+* 메소드 호출자가 예외 복구를 할 수 있는 상황에서는 `checked exception` 사용
+   * checked exception를 던지면, 메소드 호출자가 예외를 처리하거나, 외부로 던져야 한다
+* 메소드 선언부에 throws로 선언한 checked exception은 메소드 호출 시 exception과 연관된 상황이 생길 수 있다는 강력한 암시를 API 사용자에게 주는 것
+   * API 사용자가 checked exception과 만났다는 것은, 그런 상황을 복구하라는 지시를 API 설계자로부터 받은 것
+   * catch하여 무시할 수 있지만 좋은 생각은 아니다
+
+#### unchecked exception
+* exception을 catch할 필요가 없고, catch해서도 안된다
+* 복구가 불가능하고 계속 실행해봐야 더 해롭기만한 상황을 의미
+* catch하지 않으면 현재 thread가 중단된다
+
+
+### runtime exception을 사용해서 프로그래밍 에러를 나타내자
+* 대부분의 runtime exception은 사전조건 위반을 나타낸다
+   * 사전조건 위반 - API 클라이언트가 API 명세에 설정된 계약을 지키지 않은 것
+* ex. array index는 0 ~ size - 1까지다 -> 위반시 ArrayIndexOutOfBoundsException 발생
+* 우리가 구현하는 모든 unchecked exception은 `RuntimeException의 서브 클래스`여야 한다
+
+
+#### error
+* JVM에서 사용하며, 자원 부족, 불편 규칙 위반에 따른 실패, `JVM이 실행을 계속할 수 없는` 상황 등을 나타낸다
+* 이런 내용에 의거하여 `Error의 서브 클래스는 만들지 않는게` 가장 좋다
+
+
+### Exception이나 RuntimeException 또는 Error의 서브 클래스가 아닌 exception을 정의할 수 있다
+* checked exception과 동일하다고 묵시적으로 기술
+* checked exception에 비해 아무런 이점이 없다
+* API 사용자를 혼란스럽게할 수 있다
+* 그래서 사용하지 않는다
+
+
+### 정리
+* 복구 가능한 상황에는 checked exception을 사용하고, 프로그래밍 에러에는 runtime exception을 사용하자
+* exception을 가지는 메소드
+   * exception이 발생된 상황에 관련된 추가 정보를 갖는 exception을 catch하는 코드를 제공
+   * exception이 없었다면 추가 정보를 찾기 위해 예외를 표현하는 문자열을 분석해야 했을 것
+* checked exception은 복구 가능한 상황을 나타내므로 복구하는데 도움이 될 수 있는 정보를 제공하는 메소드를 갖는게 중요하다
+   * ex. 잔액이 부족해서 실패할 경우, 부족액이 얼마인지 조회할 수 있는 메소드를 제공
+
+
 
 ## 규칙 59. Avoid unnecessary use of checked exceptions
 
