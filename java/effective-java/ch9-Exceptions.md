@@ -190,6 +190,36 @@ obj.action(args);
 
 
 ## 규칙 60. Favor the use of standard exceptions
+> 표준 예외를 사용하자
+
+* 고도로 숙련된 프로그래머는 높은 수준의 코드 재사용을 위해 끊임 없이 노력하여 성취
+* exception 역시 코드 재사용이 좋다는 총칙에서 벗어날 수 없다
+* Java에선 기본적인 unchecked exception 제공
+    * 대부분의 API에서 필요로 하는 예외 메커니즘의 많은 부분을 담당
+
+### 기존 예외 재사용의 장점
+1. 프로그래머들이 익숙해진 내용과 일치하기 때문에 API를 `배우고 사용하기 쉽게` 해준다
+2. API에서 생소한 예외를 사용하지 않으므로 코드를 `이해하기 쉽다`
+3. 적은 수의 예외 클래스를 사용하므로, `메모리 사용도 적고` 클래스를 `메모리로 로딩하는 시간도 줄어든다`
+
+
+#### 흔히 재사용되는 예외
+| exception | usage |
+|:----:|:---:|
+| IllegalArgumentException | null이 아닌 매개변수 값이 부적합할 때 |
+| IllegalStateException | 객체가 메소드 호출이 가능한 상태가 아닐 때 |
+| NullPointerException | 매개변수 값이 null일 때 |
+| IndexOutOfBoundsException | 인덱스 매개변수 값이 범위를 벗어날 때 |
+| ConcurrentModificationException | 동시적인 수정이 금지된 객체가 변경되었을 때 |
+| UnsupportedOperationException | 해당 객체에서 메소드를 지원하지 않을 때 |
+
+
+* 요구에 맞는 예외가 있다면 주저 없이 사용
+* 예외를 던져야 하는 상황이 그 예외의 문서화된 내용과 일치할 때만 사용
+* 재사용할 때는 이름만이 아닌 내용적인 의미를 기반으로 해야 한다
+* 더 많은 정보를 추가하고 싶으면, 기존 예외 클래스의 서브 클래스를 만들어 사용
+
+
 
 ## 규칙 61. Throw exceptions appropiate to the abstarction
 
