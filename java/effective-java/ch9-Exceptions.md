@@ -143,6 +143,51 @@ try {
 
 
 ## 규칙 59. Avoid unnecessary use of checked exceptions
+> checked 예외의 불필요한 사용을 피하자
+
+
+### Checked Exception
+* 에러 코드를 반환하는 방식과는 다르게, `처리하지 않을 수 없도록` 한다
+* 과용은 API 사용을 불편하게 만들 수 있다
+* API를 올바르게 사용해도 `예외 상황을 피할 수 없고`, 예외를 만나더라도 API 사용자가 조치를 취해야 한다면 사용자로선 부담스럽다
+   * try-catch 사용으로 번거롭다
+   * 2가지 상황을 모두 만족시키지 못한다면 `unchecked exception`을 사용하는 것이 더 적합
+   * 오직 하나의 checked exception을 발생시킨다면 checked exception을 피하는 방법이 없는지 고려
+
+#### ex. CloneNotSupportedException
+* Cloneable을 구현하는 객체에게만 호출되는 Object.clone()에서 발생시킨다
+* clone()가 호출된 객체의 클래스에서 Cloneable을 구현하지 않은 것에 대한 assertion 실패 외에는 특별히 처리하는 내용이 없다
+* 이런 exception을 checked exception으로 사용하면 프로그램이 복잡해진다
+
+
+### checked exception을 unchecked exception으로 바꾸는 방법
+* exception을 발생시키는 메소드를 쪼갠다
+* 예외 발생을 나타내는 상태 검사 메소드(boolean 반환) 사용
+```java
+// before - checked exception을 사용한 메소드 호출
+try {
+    obj.action(args);
+} catch(TheCheckedException e) {
+    // 예외 처리
+}
+
+// after - 상태 검사 메소드와 unchecked exception을 사용한 메소드 호출
+if (obj.actionPermitted(args)) {
+    obj.action(args);
+} else {
+    // 예외 처리
+}
+```
+* 깔끔하진 않지만 만들어진 API는 유연성이 더 좋다
+* 메소드 호출이 성공할거라는 것을 사용자는 알고 있거나, 실패할 경우 해당 쓰레드를 종료시킬 경우에 상태-검사 메소드 호출 없이 간단하게 호출할 수 있다
+```java
+obj.action(args);
+```
+* 만일 이런 간단한 호출이 정상이라고 느껴지면, 상태 검사 메소드를 사용한 API가 적합할 수 있다
+* 동시적으로 사용하거나, 외부에서 객체의 상태를 변경하는 경우에는 부적절
+   * 상태 검사 메소드 호출 후 상태가 변경될 수 있기 때문
+
+
 
 ## 규칙 60. Favor the use of standard exceptions
 
