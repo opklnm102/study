@@ -222,6 +222,86 @@ obj.action(args);
 
 
 ## 규칙 61. Throw exceptions appropiate to the abstarction
+> 하위 계층의 예외처리를 신중하게 하자
+
+### Exception Translation(예외 변환)
+* 어떤 메소드가 자신이 수행하는 작업과 뚜렷한 관계가 없는 예외를 발생시킨다면 혼란스러울 것
+* 저수준의 추상체에서 발생한 예외를 메소드가 전파할 때 종종 생긴다
+   * 저수준의 추상체 -> 네트웍, DB 등과 같은 외부와의 인터페이스를 담당하는 하위 계층
+* 상위 계층의 API에서 세부적인 구현 내역이 노출된다
+* 만일 상위 계층의 구현 내역이 차후 배포판에서 변경되면, 거기에서 발생시키는 예외도 변경될 것이고, 클라이언트에도 영향을 준다
+* 상위 계층에서 `하위 계층의 예외를 반드시 catch`하여 catch한 예외 대신 상위 계층의 추상체가 알 수 있는 예외로 `바꿔 던져야`한다 -> `Exception Translation`
+```java
+// exception translation
+try {
+    // 하위 계층의 추상체를 사용하는 코드
+} catch(LowerLevelException e) {
+    throw new HigherLevelException(...);
+}
+```
+
+#### example
+```java
+// AbstractSequentialList의 exception translation
+public E get(int index) {
+    ListIterator<E> i = listIterator(index);
+    try {
+        return i.next();
+    } catch(NoSuchElementException e) {
+        throw new IndexOutOfBoundsException("index: " + index);
+    }
+}
+```
+
+
+### Exception Chaining(예외 연쇄)
+* 고수준(상위 계층) 예외를 유발시킨 저수준(하위 계층) 예외가 문제점을 디버깅하는 사람에게 도움이 될 수 있는 경우에 적합
+* 예외의 근원인 `저수준 예외가 고수준 예외로 전달`되는 것
+   * 고수준 예외에서는 저수준 예외의 getter 제공
+
+```java
+// exception chaining
+try {
+    // 저수준의 추상체를 사용하는 코드
+} catch(LowerLevelException cause) {
+    throw new HigherLevelException(cause);
+}
+```
+* 고수준 예외의 생성자에서는 예외 연쇄를 알 수 있는 수퍼 클래스의 생성자를 다시 호출하면서 `생성자의 인자로 저수준 예외를 전달`
+```java
+// exception chaining을 사용하는 고수준 exception class
+class HigherLevelException extends Exception {
+    HigherLevelException(Throwable cause) {
+        super(cause);
+    }
+}
+```
+* 대부분의 표준 예외들은 예외 연쇄를 알고 있는 생성자를 갖고 있다
+   * 없는 경우 `Throwable.initCause()`를 사용해 근원(저수준) 예외를 설정
+* `근원 예외를 사용`할 수 있고, `stack trace를 고수준 예외와 통합`할 수 있다
+* 하위 계층에서 발생한 예외를 분별 없이 전파하는 것보다는 exception translation을 사용하는 것이 좋지만, exception translation 역시 남용해서는 안된다
+
+
+### 하위 계층에서 예외 처리
+* 가장 좋은 방법
+   * 하위 계층의 메소드가 성공적으로 실행되도록 하여 예외가 생기지 않도록 하는 것
+   * 상위 계층 메소드의 매개변수를 `하위 계층으로 전달하기 전`에 적합성을 철저히 판단
+* 하위 계층에서 발생하는 예외를 막을 수 없을 때
+   * 상위 계층에서 하위 계층 메소드의 예외를 조용히 처리하여 상위 계층 메소드의 호출자가 `하위 계층 메소드의 문제를 모르도록` 하는 것
+   * 예외를 적절히 로깅 처리
+      * 클라이언트와 최종 사용자는 문제에서 격리되거, 시스템 관리자는 문제를 조사할 수 있다
+
+
+### 정리
+* `exception translation`
+   * 하위 계층에서 발생한 예외를 `막거나`, 그 자체에서 `처리할 수 없을` 경우
+   * 하위 계층에서 발생되는 예외가 상위 계층의 예외와 `대응되지 않을` 경우 적합
+* `exception chaining`
+    * 모든 경우에서 가장 좋은 방법 제공
+    * 하위 계층의 예외가 발생할 때 `적합한 상위 계층 예외를 던질 수` 있다
+    * 근원 예외의 정보를 기록하여 `시스템 장애 분석`에 사용할 수 있다
+
+
 
 ## 규칙 62. Document all exceptions thrown by each method
 
