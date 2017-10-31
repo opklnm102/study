@@ -343,6 +343,38 @@ class HigherLevelException extends Exception {
 
 
 ## 규칙 63. Include failure-capture information in detail messages
+> 실패 상황 정보를 상세 메시지에 포함하자
+
+* catch 하지 않은 예외로 실행이 실패하면, 시스템에서 자동으로 stack trace를 출력
+* stack trace
+   * 예외를 나타내는 문자열
+   * `예외 클래스 이름 + 상세 메시지`로 구성
+* 향후 분석을 위해 상세 메시지에는 `실패 원인과 관련된 정보`가 있어야 한다
+* 실패 상황 정보를 잡으려면, 예외 발생에 기여한 `모든 매개변수와 필드의 값`이 예외의 상세 메시지에 포함되어야 한다
+   * IndexOutOfBoundException -> index 범위, 실패 상황의 index 값
+* 장황한 설명은 필요 X
+   * 소스 파일과 연계하여 분석을 위한 용도
+   * 사용자 수준의 에러 메시지와 다르게, 프로그래머에게 도움이 되어야 하는 것
+
+
+### 추천 방법
+* 문자열을 받는 대신 필요한 정보를 받는다
+* 특정 예외에 대한 상세 메시지를 만드는 코드를 예외 클래스에서 관리
+* 클래스 사용자가 상세 메시지를 중복해서 만들 필요가 없다
+```java
+public IndexOutOfBoundsException(int lowerBound, int upperBound, int index) {
+    // 실패 상황정보를 담은 상세 메시지를 만든다
+    super("Lower bound: " + lowerBound + ", Upper bound: " + upperBound + ", Index: " + index);
+
+    // 프로그램에서 사용하기 위해 상황 정보를 보존
+    this.lowerBound = lowerBound;
+    this.upperBound = upperBound;
+    this.indxe = index;
+}
+```
+* getter를 제공해 실패 상황에 따른 장애 복구에 도움이 되도록 한다
+
+
 
 ## 규칙 64. Strive for failure atomicity
 
