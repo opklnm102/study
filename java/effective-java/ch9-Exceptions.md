@@ -304,6 +304,43 @@ class HigherLevelException extends Exception {
 
 
 ## 규칙 62. Document all exceptions thrown by each method
+> 메소드가 던지는 모든 예외를 문서화하자
+
+* 충분한 시간을 가지고 메소드에서 던지는 모든 예외를 문서화
+
+### @throws 태그를 사용해 항상 checked exception은 별도로 선언하고, 각 예외가 발생하는 상황을 정확하게 문서화
+* 메소드가 던지는 예외가 많다고 해서, 공통의 수퍼 클래스로 함축해서 나타내면 안된다
+   * throws Exception
+* 메소드가 던질 수 있는 예외를 사용자가 제대로 알 수 없어서 메소드 사용을 방해하게 된다
+
+### unchecked exception을 사용자가 검사할 필요는 없지만, checked exception만큼은 신중하게 문서화
+* unchecked exception은 에러를 나타내므로, 문서화하면 에러를 피할 수 있게 도와준다
+메소드가 성공적으로 실행되기 위한 precondition(사전조건)을 효과적으로 나타낸다
+
+#### 인터페이스에 정의된 메소드의 경우
+* 자신이 던질 수 있는 unchecked exception을 문서화하는 것이 중요
+* 인터페이스의 general contract 중 일부가 되며, 구현체들의 공통적인 행동을 나타내기 때문
+
+### @throw 태그를 사용해 unchecked exception을 문서화, 메소드 선언부에는 throws로 unchecked exception은 넣지 말자
+* checked exception과 `구분`하기 위함
+
+
+### 문서화의 어려움
+* 모든 unchecked exception을 문서화한다는 것은 현실적으로 어렵다
+* 하위 계층에 추가된 unchecked exception이 외부로 전파될 수 있기 때문
+   * 상위 계층 클래스의 문서화에는 누락되고 만다
+
+### 같은 클래스의 여러 메소드에서 동일한 이유로 1가지 예외를 던질 경우
+* 클래스의 문서화 주석에 추가하는 것이 좋다
+   * NullPointerException - null이 메소드의 매개변수로 전달될 경우 이 클래스의 모든 메소드에서는 NullPointerException을 던진다
+
+### 정리
+* 각 메소드에서 던질 수 있는 모든 exception을 문서화하자
+   * checked exception, unchecked exception
+* 메소드 선언부의 `throws`에는 checked exception는 넣되, unchecked exception은 넣지 말자
+* 문서화에 실패하면 다른 사용자가 클래스를 사용하기 어려울 것이다
+
+
 
 ## 규칙 63. Include failure-capture information in detail messages
 
