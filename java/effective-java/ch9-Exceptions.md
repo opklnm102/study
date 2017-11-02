@@ -377,6 +377,58 @@ public IndexOutOfBoundsException(int lowerBound, int upperBound, int index) {
 
 
 ## 규칙 64. Strive for failure atomicity
+> 실패 원자성을 갖도록 노력하자
+
+
+### failure atomic(실패 원자성)
+* 호출된 메소드가 실행에 실패하더라도 객체의 상태는 `메소드 호출 전과 같아야` 한다
+   * 특히 호출자가 복구해야하는 checked exception
+* 항상 성취할 수 있는 것은 아니다
+   * 동기화를 하지 않는 2개의 thread가 동일한 객체를 동시에 변경하려 한다면, 일관성이 없는 상태로 남아 있을 수 있다
+      * ConcurrentModificationException을 catch한 후에 이전 상태일거라는 보장 X
+   * error는 대체로 복구 불가능
+      * failure atomic을 유지하기 위한 시도를 할 필요가 없다
+* 항상 바람직하진 않다
+   * 일부 연상의 경우 비용, 복잡도를 증가시키므로
+* failure atomic을 API 문서에 기술하자
+
+
+### failure atomic을 갖는 방법
+
+#### 1. immutable로 설계
+* immutable이면 실패 원자성과는 `무관`하다
+* 실행에 실패하면 새로운 객체의 생성은 막아야할 수 있지만, 기존 객체의 상태가 변하지는 않는다
+* immutable의 상태는 `생성 이후로는 변경될 수 없기` 때문
+
+
+#### 2. 연산 수행 전에 parameter의 유효성 검사
+* 가변 객체를 처리하는 메소드의 경우 가장 보편적인 방법
+* 객체의 변경이 시작되기 전에 미리 예외를 던질 수 있다
+* 객체를 변경하는 코드에 앞서 `실패할 수 있는 코드가 실행되도록 연산 순서를 조정`
+```java
+// 사전 검사(size check)가 없다면 size가 변경되어 failure atomic을 갖지 못한다 
+public Object pop() {
+    if(size == 0)
+        throw new EmptyStackException();
+    Object result = elements[--size];
+    elements[size] = null;  // 쓸모 없는 참조 제거
+    return result;
+}
+```
+
+#### 3. 연산 도중 발생하는 실패를 가로채는 복구 코드 작성
+* exception을 catch하여 복구 코드로 객체를 연산이 수행되기 전 상태로 되돌린다
+* 영속성을 갖는 데이터 구조에 사용
+
+#### 4. 객체의 임시 복사본을 만들어 연산을 수행
+* 연산 완료시 객체의 상태를 `임시 복사본의 상태로 변경`
+* 임시 데이터 구조에 저장되면 연산 효율이 좋을 때 사용
+   * Collections.sort()
+      * List의 요소 정렬시 배열에 저장하여 정렬한다
+      * 배열에 저장하여 요소 접근 비용 감소
+      * 정렬 실패시 원본 List에 영향 X
+
+
 
 ## 규칙 65. Don't ignore exceptions
 
