@@ -356,6 +356,51 @@ private void notifyElementAdded(E element) {
 
 
 ## 규칙 68. Prefer executors and tasks to threads
+> 스레드에 대해서는 executor와 tasks를 사용하자
+
+* 기본적인 추상 개념은 thread(일의 단위 + 실행하는 메커니즘)가 아니라 `task와 executor service`
+* task의 종류
+   * `Runnable` - 값 반환 X
+   * `Callable` - 값 반환 O
+* task를 실행하는 메커니즘이 `executor service`
+
+
+### 작업 큐
+```java
+// 작업 큐 생성
+ExecutorService executor = Executors.newSingleThreadExecutor();
+
+// runnable 실행
+executor.execute(runnable);
+
+// 종료
+executor.shutdown();
+```
+* `invokeAny()`, `invokeAll()`
+   * 특정 작업이 완료되기를 대기할 수 있다
+* `awaitTermination()`
+   * ExecutorService의 종료가 완료되기를 기다릴 수 있다
+* `ExecutorCompletionService`
+   * 작업이 하나씩 끝나는대로 결과를 받을 수 있다
+    
+
+### 멀티 스레드 작업 큐
+* `Executors`의 ThreadPool을 생성하는 static 메소드 이용
+* `Executors.newCachedThreadPool()`
+   * 작은 규모의 가벼운(실행되는 thread의 수가 적은) 경우 선택
+   * 별도 구성 없이 무난하게 실행된다
+   * 작업이 큐로 관리되지 않고 thread로 넘겨져 실행
+   * 가용할 thread가 없으면 새로운 thread 생성
+      * 순간 부하가 올 경우 thread를 계속 생성하게 됨...
+      * newFixedThreadPool()는 생성되는 thread 수를 제한할 수 있다
+* `Executors.newFixedThreadPool()`
+   * 실행되는 thread의 수가 많은 경우 선택
+   * 정해진 수의 thread를 가지는 pool을 제공
+* `Executors.newScheduledThreadPool()`
+   * java.util.Timer를 대체
+   * Timer보다 유연성이 더 좋다
+
+
 
 ## 규칙 69. Prefer concurrency utilities to wait and notify
 
