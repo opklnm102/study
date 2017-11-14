@@ -403,6 +403,156 @@ executor.shutdown();
 
 
 ## 규칙 69. Prefer concurrency utilities to wait and notify
+> wait와 notify 대신 동시성 유틸리티를 사용하자
+
+* wait, notify를 올바르게 사용하기 어렵다면, 고수준 동시성 유틸리티를 사용해야 한다
+
+### java.util.concurrnet의 구성
+* Executor Framework
+* 동시적 컬렉션
+* synchronizer
+
+
+### 동시적 컬렉션
+* List, Queue, Map 등 표준 컬렉션 인터페이스를 고성능의 동시적 구현체로 제공
+* 내부적으로 동기화
+* 동시적 컬렉션으로부터 동시성 관련 활동을 제외하는 것은 불가능하므로, 컬렉션이 갖게 될 lock은 효과가 없고, 프로그램만 느리게 한다
+* 기본 연산을 단일의 원자 연산으로 결합하는 state dependent modify operation으로 확장
+   * `ConcurrentMap.putIfAbsent(key, valule)`
+* 특별한 이유가 없는 한, `외부적으로 동기화되는 컬렉션보다 동시적 컬렉션을 사용`하자
+   * 성능이 놀랄만큼 향상된다
+   * Collections.synchronizedMap, Hashtable -> `ConcurrentHashMap`
+
+#### ConcurrentMap으로 thread safe한 Map 구현
+```java
+// ConcurrentMap 기반의 동시적 정규 Map
+private static final ConcurrentMap<String, String> map = new ConcurrentHashMap<>();
+
+public static String intern(String s) {
+    String previousValue = map.putIfAbsent(s, s);
+    return previousValue == null ? s : previousValue;
+}
+```
+
+#### 개선
+* ConcurrentHashMap은 get()과 같은 검색 연산에 최적화
+* 필요할 때만 `putIfAbsent()` 호출
+```java
+public static String intern(String s) {
+    String result = map.get(s);
+    if(result == null) {
+        result = map.putIfAbsent(s, s);
+        if(result == null)
+            result = s;
+    }
+    return result;
+}
+```
+
+
+### blocking operation
+* 성공적으로 수행될 수 있을 때까지 대기하는 방식
+* 컬렉션 인터페이스 중 일부는 blocking operation으로 확장
+   
+#### BlockingQueue
+* Queue를 확장하여 `take()` 등을 추가
+   * `take()` - 큐의 맨 위 요소를 꺼내어 반환, 큐가 비어 있다면 대기
+* `producer-consumer queue`라고도 알려진 `work queue`(작업 큐)로 사용
+* producer-consumer queue
+   * 하나 이상의 소비자 thread는 큐로부터 요소를 꺼내어, 작업이 가능할 때 처리하고, 그렇지 않으면 대기
+* ThreadPoolExecutor 등의 ExecutorService 구현체들이 사용
+
+
+### Synchronizer
+thread가 다른 thread를 대기시킬 수 있게 해주는 객체
+thread 간의 활동을 조정할 수 있게 해준다
+`CountDownLatch, Semaphore` - 가장 많이 사용
+`CyclicBarrier, Exchanger` - 가장 적게 사용
+
+
+#### CountDownLatch
+* 하나 이상의 therad가 하나 이상의 다른 thraed(일을 하고 있는)를 대기시킬 수 있게 해준다
+* 생성자에서는 대기 중인 thread가 작업을 진행할 수 있기 전까지 countDown()을 몇번 호출해야하는지를 인자로 받는다
+```java
+/**
+ * Constructs a {@code CountDownLatch} initialized with the given count.
+ *
+ * @param count the number of times {@link #countDown} must be invoked
+ *        before threads can pass through {@link #await}
+ * @throws IllegalArgumentException if {@code count} is negative
+ */
+public CountDownLatch(int count) {
+    if (count < 0) throw new IllegalArgumentException("count < 0");
+    this.sync = new Sync(count);
+}
+```
+
+* wait(), notify()를 기반으로 구현하면 번거로운 일을 간단하게 해결
+```java
+// 동시적 실행의 시간을 재는 메소드
+// executor - thread starvation deadlock을 피하기 위해 concurrency만큼 therad를 생성해줘야 한다
+public static long time(Executor executor, int concurrency, final Runnalbe action) throws InterruptedException {
+    final CountDownLatch ready = new CountDownLatch(concurrency);
+    final CountDownLatch start = new CountDownLatch(1);
+    final CountDownLatch done = new CountDownLatch(concurrency);
+    for(int i=0; i<concurrency; i++) {
+        executor.execute(new Runnable() {
+            public void run() {
+                ready.countDown();  // 준비 OK를 타이머에게 알림
+                try {
+                    start.await();  // 준비 완료를 기다린다
+                    action.run();
+                } catch(InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    done.countDown();  // 끝났음을 타이머에게 알림
+                }
+            }
+        });
+    }
+    ready.await();  // 모든 worker thread가 준비될 때까지 기다린다
+    long startNanos = System.nanoTime();
+    start.countDown();  // 동작 시킨다
+    done.await();  // 모든 worker thread가 끝날 때까지 기다린다
+    return System.nanoTime() - startNanos;
+}
+```
+
+> #### System.nanoTime()
+> * 시간 간격을 잴 때는 System.currentTimeMillis() 대신 `System.nanoTime()` 사용
+> * 더 정확하고 정밀하다
+> * 시스템의 리얼타임 클럭을 조정해도 영향을 받지 않는다
+
+
+
+### wait(), notify()를 사용할 경우
+
+#### wait()
+```java
+// wait() 사용을 위한 표준 이디엄
+synchronized(obj) {
+    while(<대기 상태를 벗어날 조건을 만족하지 않으면>)  // wait() 호출 전에 notify()가 호출될 경우를 대비하여 필요 -> 없다면 항상 깨어난다는 보장이 없다
+        obj.wait();  // 객체의 lock을 해제하고, 깨어주기를 기다린다
+
+    ...
+}
+```
+* 특정 상황에서 thread가 대기하도록 하는데 사용
+* 동기화된 영역 내부에서 호출
+* 항상 wait loop 이디엄을 사용해서 wait()를 호출
+   * 절대 loop 밖에서 호출하지 않는다
+   * loop는 대기 전과 후의 조건을 검사하는데 사용
+
+
+
+### 정리
+* wait(), notify()를 직접 사용하는 것은 java.util.concurrent에서 제공하는 것에 비해 `동시성 어셈블리 언어`로 코딩하는 것과 같다
+   * 새로 작성하는 코드에는 가급적 사용하지 말자
+* 사용해야한다면 wait loop 표준 이디엄을 사용
+* notify()보다는 notifyAll() 사용
+   * notify()를 사용한다면 thread 활동성이 보장되도록 주의할 것
+
+
 
 ## 규칙 70. Document thread safety
 
