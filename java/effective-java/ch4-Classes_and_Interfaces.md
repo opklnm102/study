@@ -274,9 +274,9 @@ public final class Complex {
 * 피연산자를 변경하지 않고 함수를 적용한 결과를 리턴 -> functional 방법
 * immutablility 유지
 
-### immutable은 thread safty므로 자유롭게 공유 가능
-* immutable은 본질적으로 thread safty하여 동기화가 필요 없다
-* immutable 사용은 thread safty를 위한 가장 쉬운 방법
+### immutable은 thread safety므로 자유롭게 공유 가능
+* immutable은 본질적으로 thread safety하여 동기화가 필요 없다
+* immutable 사용은 thread safety를 위한 가장 쉬운 방법
 * 기존 인스턴스를 재사용하도록 하여 장점을 최대한 이용
 
 #### 1. 자주 사용되는 값을 상수로 제공
