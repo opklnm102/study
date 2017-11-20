@@ -653,7 +653,7 @@ public XXX clone() {
 }
 ```
 
-### Thread Safty
+### Thread Safety
 * 구현하는 clone()은 다른 메소드처럼 동기화 처리 필요
 
 ### 객체를 복제하는 다른 방법을 제공하거나, 또는 복제할 수 없도록 하는 것이 좋다
