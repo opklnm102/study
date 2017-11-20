@@ -555,6 +555,85 @@ synchronized(obj) {
 
 
 ## 규칙 70. Document thread safety
+> 스레드 안전을 문서화 하자
+
+* 자신의 인스턴스나 static method를 동시적으로 사용해야 하는 클래스의 경우 문서화를 하지 않으면 `불충분한 동기화`, `과도한 동기화`를 하게되어 심각한 에러를 유발
+* javadoc는 `synchronized`를 문서화하지 않는다
+   * 상세 구현부분이지 외부로 제공되는 API는 아니다
+   * thread에 안전하다는 것을 나타내는 것도 아니다
+* concurrency를 안전하게 하려면, 해당 클래스가 어떤 수준의 thread safe를 지원하는지 명확하제 문서화해야 한다
+
+### thread 안전 수준
+* immutable
+   * 클래스의 인스턴스는 `상수`
+   * `외부 동기화가 필요 없다`
+   * String, Long, BigInteger 등
+* unconditionally thread-safe
+   * 클래스의 인스턴스는 `가변적`
+   * `외부 동기화 없이 동시적으로 사용`할 수 있을만큼 내부 동기화를 하고 있다
+   * Random, ConcurrentHashMap 등
+* conditionally thread-safe
+   * unconditionally thread-safe와 같으나, 안전한 동시성을 위해 `일부 메소드에서 외부 동기화를 필요`로 한다
+   * Collections.synchronized wrapper 메소드들이 반환하는 컬렉션들이 해당
+* not thread-safe
+   * 클래스의 인스턴스는 `가변적`
+   * 메소드 호출시 `외부 동기화 필요`
+   * 범용 Collection(ArrayList, HashMap) 등 
+* thread hostile
+   * 외부 동기화를 하더라도 `동시성에 대해 안전하지 않다`
+   * 동기화하지 않고 static 데이터를 변경하면 thread hostile 초래
+
+
+#### conditionally thread-safe에 대해 문서화할 경우
+* 메소드 호출을 `어떤 순서로 할 때 외부 동기화가 필요`하고, 그런 순서로 메소드를 실행할 때 `어떤 lock을 획득해야 하는지` 나타내야 한다
+* 일반적으로는 인스턴스 자신의 lock이지만 예외적인 경우 존재
+   * 어떤 객체가 다른 객체의 view를 나타낸다면, view를 지원하는 객체를 동기화
+
+```java
+// Collections.synchronizedMap
+Map<K, V> m = Collections.synchronizedMap(new HashMap<>());
+...
+Set<K> s = m.keySet();  // synchronized 블록에서는 필요 없다
+...
+synchronized(m) {  // view 객체인 m을 동기화
+    for(K key : s)
+        key.f();
+}
+```
+
+
+### private lock object
+```java
+private final Object lock = new Object();  // 부주의한 변경을 위한 final
+
+public void foo() {
+    synchronized(lock) {
+        ...
+    }
+}
+```
+* public lock을 사용하는 클래스에서는 클라이언트가 순차적인 메소드 호출을 자동으로 실행할 수 있게 해줄 수 있지만 비용이 따른다
+   * ConcurrentCollection(ConcurrentHashMap, ConcurrentLinkedQueue...)들이 사용하는 고성능 내부 동시성 제어와 호환 X
+   * 클라이언트가 lock을 오랜 기간 동안 잡고 있으면 denial of service attack 가능
+   * 방지하기 위해 `private lock object` 사용
+`unconditionally thread-safe`에서만 사용
+`conditionally thread-safe`에서는 사용할 수 없다
+   * 메소드 호출시 어떤 lock을 획득해야 하는지 문서화 필요하므로
+* 상속을 위한 클래스에 적절
+   * 자신의 인스턴스를 lock으로 사용하면 서로 방해할 수 있기 때문
+
+
+### 정리
+* 모든 클래스는 thread safe를 문서화
+* conditionally thread-safe
+   * 메소드 호출 순서에 따른 동기화 문서화
+   * 그에 따른 lock 획득도 문서화
+* unconditionally thread-safe
+   * 동기화된 메소드 대신 private lock object 사용 고려
+   * 외부에서 동기화를 방해할 수 없다
+   * 향후 동시성 제어를 위한 방법 선택에 있어 유연성 확보
+
+
 
 ## 규칙 71. Use lazy initialization judiciously
 
