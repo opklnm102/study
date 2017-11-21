@@ -738,6 +738,83 @@ private FieldType getField() {
 
 
 ## 규칙 72. Don't depend on the thread scheduler
+> 스레드 스케쥴러에 의존하지 말자
+
+* 많은 thread가 runnable 상태일 때는 어떤 thread를 실행시킬 것인지, 얼마동안 실행시킬 것인지를 `thread scheduler`가 결정
+* 정확성이나 성능을 thread scheduler에 의존하면 이식성 저하
+
+
+### 강력하고, 응답성이 좋고, 이식성이 있는 프로그램을 작성하는 가장 좋은 방법
+* `runnable thread < process`
+* runnable(대기가 아닌) 상태의 평균 thread 개수가 프로세서의 개수보다 그리 크지 않게 하는 것
+* thread scheduler는 여지 없이 runnable 상태의 thread들을 그냥 실행시킬 것
+
+
+### runnable 상태의 therad 개수를 줄이는 주된 방법
+* thread가 `일을 한 후 더 오래 대기`하도록 하는 것
+* thread가 유용한 일을 하고 있지 않다면 실행하지 않도록 해야 한다
+* Executor Framework 관점에서 보자면...
+   * thread pool을 적합하게 만드는 것
+   * thread가 수행하는 작업이 작으면서 독립적으로 유지
+      * 너무 작으면 context switching에 따른 부담으로 성능 저하
+
+
+### thread는 busy-wait 상태에 빠지면 안된다
+* busy-wait
+   * 공유되는 객체에 변동사항이 없는지 `반복적으로 확인하면서 기다리는 상태`
+* application thread scheduler에 영향을 받고
+* 프로세서의 부하 증가
+* 다른 thread가 할 수 있는 유용한 일의 양 감소
+```java
+// busy-wait가 끊임 없이 이어진다
+public class SlowCountDownLatch {
+
+    private int count;
+    
+    public SlowCountDownLatch(int count) {
+        if(count < 0) {
+            throw new IllegalArgumentException(count + " < 0");
+        }
+        this.count = count;
+    }
+
+    public void await() {
+        while(true) {
+            synchronized(this) {
+                if(count == 0) return;
+            }
+        }
+    }
+
+    public synchronized void countDown() {
+        if(count != 0)
+            count--;
+    }
+}
+```
+
+
+### 일부 thread가 다른 thread에 비해 상대적으로 충분한 CPU 시간을 얻지 못하는 경우
+* `Thread.yield()`로 해결하려고 하면 안된다
+   * JVM마다 성능 향상, 저하를 일으킬 수 있다
+* `동시적으로 실행 가능한 thread 개수를 줄이도록` application을 재구성하는게 더 좋은 방법
+* thread priority 조정
+    * 가장 이식성이 떨어지는 것 중 하나
+
+
+### 동시성 테스트를 할 경우
+* `Thread.sleep(1)` 사용
+* `Thread.sleep(0)` -> 제어권이 곧바로 돌아오므로 사용 X
+
+
+### 정리
+* appication의 정확성을 thread scheduler에 의존하지 말자
+   * 이식성이 떨어진다
+* `Thread.yield()`나 `thread priority`에 의존하지 말자
+* `thread priority`은 이미 동작 중인 application의 서비스 질을 높이는데 사용
+   * 동작하지 않는 application을 고치기 위해 사용 X
+
+
 
 ## 규칙 73. Avoid thread groups
 
