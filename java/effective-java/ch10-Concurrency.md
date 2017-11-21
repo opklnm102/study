@@ -636,6 +636,106 @@ public void foo() {
 
 
 ## 규칙 71. Use lazy initialization judiciously
+> 늦 초기화를 분별력 있게 사용하자
+
+### lazy initialzation
+* 필드의 값이 필요하게 될 때까지 `초기화를 늦추는 것`
+* 값이 필요 없다면 초기화되지 않는다
+* `필요하지 않으면 하지 말자`
+   * 양날의 검
+   * 클래스 초기화, 인스턴스 생성 비용은 감소되지만, 늦게 초기화되는 필드의 접근 비용을 증가
+   * 다른 최적화처럼 성능을 저하시킬 수 있다
+* 어떤 필드가 인스턴스의 일부로만 사용되고, 초기화 비용이 많이 든다면 좋을 수 있다
+   * 전후의 성능을 측정하자
+
+
+### multi thread의 lazy initialzation
+* lazy initialzation되는 필드를 공유한다면 `동기화`가 중요
+* 대부분의 상황에서는 정상적인 초기화가 lazy initialzation보다 좋다
+```java
+// 정상적인 초기화
+private final FieldType field = computeFieldValue();
+```
+
+* 초기화 순환성을 막기 위해 lazy initialzation 사용한다면, `synchronized` 사용
+```java
+private FieldType field;
+
+synchronized FieldType getField() {
+    if(field == null) {
+        field = computeFieldValue();
+    }
+    return field;
+}
+```
+
+
+### lazy initialization holder class idiom
+* `static 필드의 성능을 고려`해 lazy initialization를 사용할 때 사용하는 idiom
+* initializeondemand holder class idiom라고도 함
+* `사용되는 시점에 초기화`
+```java
+private static class FieldHolder {
+    static final FieldType field = computeFieldValue();
+}
+
+// getter를 동기화하지 않아 필드 접근 비용밖에 없다
+static FieldType getField() {  
+    return FieldHolder.field;
+}
+```
+
+### double check idiom
+* 인스턴스 필드의 성능을 고려할 경우 사용
+* 초기화된 후 사용될 `lock 비용 발생`을 막는다
+```java
+// 필드가 초기화되었다면 lock을 걸지 않으므로 volatile 선언 중요
+private volatile FieldType field;  
+
+FieldType getField() {
+    FieldType result = field;  // 필드가 초기화되었을 경우 1번만 읽게 해주는 용도
+    if(result == null) {  // 1번째 검사(lock X)
+        synchronized(this) {
+            result = field;
+            if(result == null) {  // 2번째 검사(lock O)
+                field = result = computeFieldValue();
+            }
+        }
+    }
+    return result;
+}
+```
+* static 필드에도 적용할 수 있지만 `lazy initialization holder class`가 더 좋은 선택
+
+### single check idiom
+* 반복적인 초기화를 해도 괜찮은 인스턴스 필드를 lazy initialization
+```java
+private volatile FieldType field;
+
+private FieldType getField() {
+    FieldType result = field;
+    if(result == null) {
+        field = result = computeFieldValue();
+    }
+    return result;
+}
+```
+
+### racy single check idiom
+* 초기화하려는 필드가 long, double일 경우 `single check` idiom에서  volatile을 제거한 것
+* 일부 아키텍처에서 필드 접근 속도를 빠르게 한다
+   * 대신 추가적인(필드에 접근하는 thread당 1번까지) 초기화 필요
+* String이 `hashCode를 캐싱`할 때 사용
+
+
+### 정리
+* 대부분의 필드는 정상적인 초기화
+* 원하는 수준의 성능 향상을 위해 lazy initialization한다면 적합한 방법을 사용하자
+   * 인스턴스 필드 - `double check`
+   * static 필드 - `lazy initialization holder`
+   * 반복 초기화해도 괜찮은 인스턴스 필드 - `single check`
+
+
 
 ## 규칙 72. Don't depend on the thread scheduler
 
