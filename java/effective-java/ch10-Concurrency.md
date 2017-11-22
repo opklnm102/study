@@ -817,5 +817,32 @@ public class SlowCountDownLatch {
 
 
 ## 규칙 73. Avoid thread groups
+> 스레드 그룹을 사용하지 말자
 
+### thread group
+* thread, lock, monitor에 더하여 thread 시스템에서 제공하는 기본 추상체
+* 보안을 목적으로 애플릿을 격리시키는 메커니즘으로 구상
+* 보안의 중요성이 쇠약해짐
+* Thread 클래스의 기본 메소드들을 `여러 thread가 포함된 그룹에 일괄로 적용`할 수 있게 해준다
+   * 상당수는 사용 금지되었고, 남은 메소드도 사용되는 경우가 드물다
+
+
+### 쓸모 없는 ThreadGroup
+* 메소드가 스레드 안전 관점에서 빈약
+* `activeCount()`
+   * 하나의 thread group에 속해 활동중인 thread의 수 반환
+* `enumerate()`
+   * thread group에 속해 활동중인 thread 리스트 반환
+   * 모든 활동중인 thread를 담을 만큼 큰 배열을 매개변수로 받는다
+   * 배열의 크기가 부족하면 남은 만큼만 thread 리스트를 채워넣고 나머지는 무시한다
+      * 수정에 대한 요구사항이 없어 수정되지 않은 버그
+* `ThreadGroup.uncaughtException()`
+   * 어떤 thread가 catch되지 않은 exception을 던질 때 제어를 얻는 유일한 수단
+   * stacktrace를 볼 때 유용
+   * `Thread.setUncaughtExceptionHandler()`가 동일한 기능 제공
+
+
+### 정리
+* ThreadGroup은 유용한 기능이 별로 없으며, 결함이 있다
+* thread를 논리적으로 묶어서 처리하는 클래스를 설계한다면 `ThreadPoolExecutor`를 사용하자
 
