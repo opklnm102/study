@@ -179,10 +179,170 @@ public class Foo extends AbstractFoo implements Serializable {
 * 상속을 위한 클래스는 특별히 주의 필요
    * 서브 클래스에서 직렬화 가능하게, 불가능하게 하는 것을 절충한 설계 관점 필요
    * 접근 가능한 default 생성자를 제공 -> 서브 클래스에서 Serialiable 구현 가능
+   * 서브 클래스를 직렬화-역직렬화시 상위의 수퍼 클래스부터 차례로 default 생성자 호출(서브 클래스를 완벽하게 초기화하기 위함)
 
 
 
 ## 규칙 75. Consider using a custom serialized form
+> 독자적인 직렬화 형태의 사용을 고려하자
+
+* 시간의 압박을 받으면서 클래스를 만들 경우 `API를 가장 좋게 설계`하는데 집중
+* `일정 기간 쓰다 버릴` 구현체가 Serializable를 구현하고 `기본 직렬화 형태`를 사용한다면 버릴 수 없고 형태를 유지해야 한다
+* `유연성`, `성능`, `정확성` 관점에 타당할 경우 기본 직렬화 형태 수용
+* 객체의 기본 직렬화 형태
+   * 그 객체를 뿌리로 하는 객체 그래프를 물리적으로 표현한 효율적인 인코딩
+   * 객체가 닿을 수 있는 모든 객체에 포함된 데이터
+* 이상적인 객체 직렬화
+   * 객체가 표현하는 `논리적 데이터만` 포함(물리적 표현과는 독립)
+
+
+### 객체의 물리적 표현이 논리적 표현과 동일한 경우
+* 기본 직렬화 형태에 적합
+* 기본 직렬화 형태가 적합하더라도 `불변 규칙의 준수와 보안을 위해 readObject()` 제공
+* private 필드가 직렬화로 인해 `public API에 속하므로 문서화` 필수
+```java
+// 기본 직렬화에 적합한 클래스 - 사람의 이름을 표현
+public class Name implements Serialiable {
+
+    /**
+     * 성, non null
+     * @serial 
+     */
+    private final String lastName;
+
+    /**
+     * 이름, non null
+     * @serial 
+     */
+    private final String firstName;
+
+    /**
+     * 중간 이름 nullable
+     * @serial 
+     */
+    private final String middleName;
+}
+```
+
+
+### 물리적 표현이 논리적 데이터와 다른 경우
+```java
+// 엄청난 정보를 직렬화
+// 문자열 순차, 물리적으로는 이중 링크 리스트로 순차를 나타낸다
+public final class StringList implements Serialiable {
+    private int size = 0;
+    private Entry head = null;
+
+    private static class Entry implements Serialiable {
+        String data;
+        Entry next;
+        Entry previous;
+    }
+}
+```
+
+#### 단점
+* 외부 API가 현재의 내부 구현에 영원히 얽매이게 된다
+   * StringList class는 영훤히 링크 리스트 형태로 처리해야 한다
+* 과도한 저장 공간을 차지할 수 있다
+   * 불필요한 링크 리스트 구조를 직렬화에 포함
+* 시간이 오래 걸린다
+   * 모든 객체 그래프를 훓어야 하므로
+* stack overflow 발생
+   * 모든 객체 그래프를 순환하므로
+
+```java
+// 독자적인 직렬화 사용 -> writeObject(), readObject()로 논리적인 직렬화 구현
+public final class StringList implements Serialiable {
+    // transient -> 기본 직렬화에서 제외
+    private transient int size = 0;
+    private transient Entry head = null;
+
+    // 물리적인 표현은 직렬화 X
+    private static class Entry {
+        String data;
+        Entry next;
+        Entry previous;
+    }
+
+    public final void add(String s) {}
+
+    /**
+     * 인스턴스를 직렬화
+     * @serialData 리스트의 크기는 ({@code int})로 나오며,
+     * 그 다음에 리스트의 모든 요소들이 (각각 {@code String} 타입) 순서대로 나온다 
+     */
+    private void writeObject(ObjectOutputStream s) throws IOException {
+        s.defaultWriteObject();
+        s.writeInt(size);
+
+        // 모든 요소를 byte stream으로 출력하여 직렬화
+        for(Entry e = head; e != null; e = e.next) {
+            s.writeObject(e.data);
+        }
+    }
+
+    private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+        s.defaultReadObject();
+        int numElements = s.readInt();
+
+        // 직렬화된 모든 요소를 읽어 리스트에 추가
+        for(int i=0; i<numElements; i++) {
+            add((String) s.readObject());
+        }
+    }
+    ...
+}
+```
+* 모든 인스턴스 필드가 transient일 경우, defaultReadObject(), defaultWriteObject() 사용 
+   * 직렬화 형태에 영향을 주어 유연성이 좋아진다
+   * 상위 버전에서 직렬화 -> 하위 버전에서 역직렬화시 
+      * 상위 버전에서 추가된 필드 무시
+* `writeObject()`는 직렬화된 public API를 정의하므로 문서화
+* 직렬화, 역직렬화 과정에서 불변 규칙이 완전한 복사본이 만들어지므로 정확
+
+
+### 객체의 불변 규칙이 내부 구현에 얽매이는 경우
+* hash table
+   * 물리적인 표현 -> key, value를 포함하는 hash bucket의 sequence
+   * 각 항목이 들어있는 bucket은 key의 hashCode로 결정, JVM에 따라 달라진다
+   * 직렬화, 역직렬화시 불변 규칙 손상
+
+
+### transient   
+* transient가 지정되지 않은 필드는 `defaultWriteObject()` 호출시 직렬화
+   * 역직렬화시 default value로 초기화
+   * `readObject()`에서 `defaultReadObject()를 호출하고, 초기화`하거나 `lazy initialization`
+* transient로 해야할 필드는 transient로 반드시 지정
+   * caching된 hash 값처럼 주 데이터 필드들로부터 계산될 수 있는 필드 등
+* 필드의 값이 논리적인 상태인지 확인
+
+
+### 객체 전체를 읽는 메소드는 직렬화에 따른 동기화 필요
+```java
+// 모든 메소드를 동기화하는 thread safe 객체가 있고, 기본 직렬화를 사용한다면 사용
+private synchronized void writeObject(ObjectOutputStream s) throws IOException {
+    s.defaultWriteObject();
+}
+```
+* 동기화 가능한 class에는 명시적 serialVersionUID 선언
+   * 버전간의 `비호환성 제거`
+   * 런타임시 생성하지 않아 `성능상 이점`
+   * 구버전과 호환되지 않는 버전을 만들 경우 UID를 수정
+      * 직렬화시 InvalidClassException 발생
+
+
+### 정리
+* 어떤 직렬화 형태를 사용해야 하는지 신중하게 결정
+* 기본 직렬화 사용
+   * 물리적 표현이 논리적 데이터와 같을 경우
+* 독자적 직렬화 사용
+   * 물리적 표현이 논리적 데이터와 다른 경우
+* 직렬화 형태는 시간을 들여 설계
+   * 호환성 유지를 위해 쉽게 제거할 수 없다
+   * 잘못 선택하면, class 복잡도와 성능에 영구적으로 영향을 끼친다
+
+
 
 ## 규칙 76. Write readObject methods defensively
 
