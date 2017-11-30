@@ -345,6 +345,172 @@ private synchronized void writeObject(ObjectOutputStream s) throws IOException {
 
 
 ## 규칙 76. Write readObject methods defensively
+> 방어 가능한 readObject()를 작성하자
+
+```java
+// 불변성을 위해 생성자와 getter에서 Date를 defensive copy
+public class Period {
+
+    private final Date start;
+    private final Date end;
+
+    /**
+     * @param start 시작일
+     * @param end 종료일(시작일보다 작다)
+     * @throws IllegalArgumentException 시작일이 종료일보다 늦으면 발생
+     * @throws NullPointerException 시작일이나 종료일이 null이면 발생
+     */
+    public Period(Date start, Date end) {
+        this.start = new Date(start.getTime());
+        this.end = new Date(end.getTime());
+        if(start.compareTo(end) > 0){
+            throw new IllegalArgumentException(start + " after " + end);
+        }
+    }
+
+    public Date getStart() {
+        return new Date(start.getTime());
+    }
+
+    public Date getEnd() {
+        return new Date(end.getTime());
+    }
+
+    @Override
+    public String toString() {
+        return start + " - " + end;
+    }
+}
+```
+* 물리적인 표현이 논리적인 데이터 내용과 일치 -> 기본 직렬화 형태 사용
+* implements Serialiable을 추가하는 순간 불변성 보장 X
+* `readObject()`는 또 다른 public 생성자
+   * 유효성 검사 필요
+   * defensive copy 필요
+   * 정상적으로 만들어진 인스턴스를 직렬화하여 생성된 `Byte Stream`을 인자로 받는 생성자
+
+
+### 잘못된 byte stream을 역직렬화 방지
+```java
+public class BogusPeriod {
+    // 잘못된 byte stream
+    private static final byte[] serializedForm = new byte[] {
+        ...
+    };
+
+    public static void main(String[] args) {
+        Period p = (Period) deserialize(serializedForm);
+        System.out.println(p);
+    }
+
+    // 지정된 직렬화 객체 반환 - 유효성 검사가 없어 잘못된 객체 역직렬화
+    private static Object deserialize(byte[] sf) {
+        try {
+            InputStream is = new ByteArrayInputStream(sf);
+            ObjectInputStream ois = new ObjectInputStream(is);
+            return ois.readObject();
+        } catch(Exception e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+}
+
+// after - 유효성 검사 추가
+private void readObject(ObjectInputStream s) throw IOException, ClassNotFoundException {
+    s.defaultReadObject();
+
+    // 불변 규칙 검사
+    if(start.compareTo(end) > 0)
+        throw new InvalidObjectException(start + " after " + end);
+}
+```
+
+### byte stream을 날조한 객체 생성 방지
+```java
+public class MutablePeriod {
+
+    public final Period period;
+
+    public final Date start;
+
+    public final Date end;
+
+    public MutablePeriod() {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+
+            // 적법한 Period 인스턴스 직렬화
+            oos.writeObject(new Period(new Date(), new Date()));
+
+            byte[] ref = {0x71, 0, 0x7e, 0, 5};
+            bos.write(ref);  // 시작일자 필드
+            ref[4] = 4;
+            bos.write(ref);  //  종료일자 필드
+
+            // Period 인스턴스 역직렬화 후 Date 참조를 가져온다
+            ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray()));
+            period = (Period) ois.readObject();
+            start = (Date) ois.readObject();
+            end = (Date) ois.readObject();
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    // 공격 코드
+    public static void main(String[] args) {
+        MutablePeriod mp = new MutablePeriod();
+        Period p = mp.period;
+        Date pEnd = mp.end;
+
+        // 임의의 년도 조절 가능
+        pEnd.setYear(78);
+        System.out.println(p);
+    }
+}
+```
+* 불변 규칙을 지키면서 생성되었지만, 내부 컴포넌트를 마음대로 변경 가능
+   * readObject()가 defensive copy를 하지 않아서
+
+
+#### 개선
+* 객체 역직렬화 시, 클라이언트가 소유하면 안되는 객체 참조를 포함하는 `모든 필드를 defensive copy`하자
+```java
+private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
+    s.defaultReadObject();
+
+    // defensive copy -> final은 불가능
+    start = new Date(start.getTime());
+    end = new Date(start.getTime());
+
+    if(start.compareTo(end) > 0)
+        throw new InvalidObjectException(start + " after " + end);
+}
+```
+
+
+### readObject()가 적합한지 검증하는 리트머스 테스트
+* 인자를 받는 public 생성자 존재, 인자에 대한 검증을 하지 않고, transient가 아닌 필드에 그대로 저장해도 아무런 문제가 없는가?
+* 있다면?
+   * `readObject()`를 제공해 모든 유효성 검사 수행 및 defensive copy
+   * `serialization proxy pattern` 사용
+
+
+### 정리
+* `readObject()` 구현시 public 생성자(byte stream으로 적법한 인스턴스를 생성하는)를 만든다고 생각
+* 역직렬화시 주어지는 byte stream이 올바르다고 생각하지 말자
+* `readObject()` 작성 지침
+   * 외부에 공개되지 않아야 하는 객체 참조 필드를 갖는 클래스의 경우
+      * 객체 참조 필드를 `defensive copy`
+      * 불변 클래스에 포함된 가변 컴포넌트가 해당
+   * defensive copy 전에 불변 규칙을 모두 검사
+      * 검사 실패시 InvalidObjectException 던지자
+   * 역직렬화 후 객체의 전체 객체 그래프를 검사해야 한다면 `ObjectInputValidation` 사용
+   * 직,간접적으로 오버라이딩 가능한 메소드 호출 X
+      * 역직렬화 전에 오버라이딩한 메소드가 호출되어 프로그램 실행이 실패된다
+
+
 
 ## 규칙 77. For instance control, perfer enum types to readResolve
 
