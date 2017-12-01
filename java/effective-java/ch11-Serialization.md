@@ -513,6 +513,125 @@ private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundEx
 
 
 ## 규칙 77. For instance control, perfer enum types to readResolve
+> 인스턴스 제어에는 readResolve()보다 enum을 사용하자
+
+### Singleton 직렬화
+```java
+// Singleton
+public class Elvis {
+    public static final Elvis INSTANCE = new Elvis();
+    private Elvis() {}
+
+    public void leaveTheBuilding() {}
+
+    // 인스턴스 제어
+    private Object readResolve() {
+        // 진짜 객체 반환, 가짜는 GC에게..
+        return INSTANCE;
+    }
+}
+```
+* `implements Serializable` 시 더이상 Singleton이 아니다
+* `readObject()`는 항상 새로운 인스턴스를 반환
+   * 클래스 초기화시 생성된 인스턴스와는 다르다
+* `readResolve()`
+   * readObject()에서 생성한 인스턴스를 다른 인스턴스로 바꾼다
+   * 역직렬화된 후 새롭게 생성된 객체에 대해 자동 호출되어 메소드가 반환하는 객체가 새로운 객체 대신 반환된다
+   * 역직렬화된 객체의 참조는 유지되지 않으므로 GC 대상이 된다 
+   
+
+### 모든 인스턴스 필드는 transient로 선언
+* `readResolve()`에서 `역직렬화된 객체를 무시`하므로 직렬화된 형태는 실제 데이터가 포함될 필요가 없다
+* `readResolve()` 호출 전 객체 참조를 훔칠 수 있다
+   * `transient`가 아닌 객체 참조 필드를 포함 -> readResolve()가 호출되기 전 필드 역직렬화
+   * 역질력화되는 시점에 역직렬화된 원래의 싱글톤 참조를 정교하게 만든 스트림이 `훔칠` 수 있다
+
+```java
+// 문제있는 Singleton - transient가 아닌 객체 참조 필드 존재
+public class Elvis implements Serializable {
+    public static final Elvis INSTANCE = new Elvis();
+    private Elvis() {}
+
+    private String[] favoriteSonds = {"Hound Dog", "Heartbreak Hotel"};
+    
+    public void printFavorites() {
+        System.out.println(Arrays.toString(favoriteSongs));
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return INSTANCE;
+    }
+}
+
+// stealer class
+public class ElvisStealer implements Serializable {
+    static Elvis impersonator;
+    private Elvis payload;
+
+    private Object readResolve() {
+        // unresolved Elvis 인스턴스에 참조를 저장
+        impersonator = payload;
+
+        // 해당 필드에 적합한 타입의 객체 반환
+        return new String[] {"A Fool Such as I"};
+    }
+    private static final long serialVersionUID = 0;
+}
+
+// Singleton에서 다른 인스턴스가 생성됨을 증명하는 클래스
+public class ElvisImpersonator {
+    // 조작된 byte stream
+    private static final byte[] serializedForm = new byte[] {
+        ...
+    };
+
+    public static void main(String[] args) {
+        // ElvisStealer.impersonator를 초기화, 진짜 Elvis 반환
+        Elvis elvis = (Elvis)deserialize(serializedForm);
+        Elvis impersonator = ElvisStealer.impersonator;
+
+        elvis.printFavorites();  // [Hound Dog, Heartbreak Hotel]
+        impersonator.printFavorites();  // [A Fool Such as I]
+    }
+}
+```
+* 필드를 `transient`로 선언하여 해결할 수 있다
+   * `Enum Singleton`이 더 좋은 방법
+
+
+### Enum Singleton
+* Java 1.5 기준으로 직렬화 가능한 모든 인스턴스 제어 클래스에 `readResolve()` 사용
+   * 허술하고 많은 주의 필요 
+* enum으로 선언하면, `enum 상수 외에 어떤 인스턴스도 생성될 수 없음`이 확실히 보장
+   * JVM이 보장하므로 의존할 수 있다
+   * 사용자 입장에서도 특별히 주의할 것이 없다
+
+```java
+// Enum Singleton
+public enum Elvis {
+    INSTANCE;
+
+    private String[] favoriteSonds = {"Hound Dog", "Heartbreak Hotel"};
+    
+    public void printFavorites() {
+        System.out.println(Arrays.toString(favoriteSongs));
+    }
+}
+```
+* 컴파일 시점에 알려지지 않은 클래스는 `enum`을 사용할 수 없으므로 `readResolve()` 제공
+
+### readResolve()의 접근성 중요
+* final class에 둘 때는 반드시 private
+* 아니라면 신중하게 고려하여 선택
+* protected 또는 public 이면서 서브 클래스가 오버라이딩 하지 않는다면 역직렬화시 `ClassCastException` 발생시킬 수 있는 수퍼 클래스 인스턴스를 생성한다
+
+
+### 정리
+* 인스턴스 제어에 관련된 불변 규칙이 있으면 `enum` 사용
+* enum을 사용할 수 없고, 직렬화 가능하면서 인스턴스 제어도 필요하다면 `readResolve()` 제공
+   * 객체 참조 필드는 `transient`로 선언
+
+
 
 ## 규칙 78. Consider serialization proxies instead of serialized instances
 
