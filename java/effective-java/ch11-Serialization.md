@@ -1,7 +1,7 @@
 # Ch11. Serialization
 > Effective Java를 읽으며 공부했던 내용을 정리한다  
 > 직렬화 API는 직렬화(객체를 바이트 스트림으로 encoding)하고, 역직렬화(encoding된 바이트 스트림으로부터 객체를 복원)하는 프레임워크를 제공한다  
-> 직렬화는 원격 통신을 위한 표준 영속 데이터 포맷 제공하며, `serialization proxy pattren`은 객체 직렬화의 많은 함정을 피하게 해준다  
+> 직렬화는 원격 통신을 위한 표준 영속 데이터 포맷 제공하며, `serialization proxy pattern`은 객체 직렬화의 많은 함정을 피하게 해준다  
 
 
 * [74. Implement Serializable judiciously](#규칙-74-implement-serializable-judiciously)
@@ -634,4 +634,135 @@ public enum Elvis {
 
 
 ## 규칙 78. Consider serialization proxies instead of serialized instances
+> 직렬화된 인스턴스 대신 직렬화 프록시의 사용을 고려하자
+
+* Serialiable interface 구현시 결함과 보안 문제 발생 가능성이 크다
+* 언어 영역 밖의 메커니즘을 사용해서 인스턴스가 생성되기 때문
+* `serialization proxy pattern`을 사용하여 위험을 현저하게 줄일 수 있다
+
+
+### serialization proxy pattern
+* 직렬화 가능한 클래스의 private static nested class(enclosing class의 내부 상태를 나타내는) 설계 -> `serialization proxy`
+* enclosing class를 매개변수로 하는 `단일 생성자` 존재
+   * 인자로부터 데이터만 복사
+   * 일관성 검사, defensive copy X
+* 기본 직렬화 형태 -> enclosing class의 완벽한 직렬화 형태
+* enclosing class, serialization proxy 모두 `implements Serialiable`을 선언
+
+```java
+public class Period {
+
+    private final Date start;
+    private final Date end;
+
+    /**
+     * @param start 시작일
+     * @param end   종료일(시작일보다 작다)
+     * @throws IllegalArgumentException 시작일이 종료일보다 늦으면 발생
+     * @throws NullPointerException     시작일이나 종료일이 null이면 발생
+     */
+    public Period(Date start, Date end) {
+        this.start = new Date(start.getTime());
+        this.end = new Date(end.getTime());
+        if (start.compareTo(end) > 0) {
+            throw new IllegalArgumentException(start + " after " + end);
+        }
+    }
+
+    public Date getStart() {
+        return new Date(start.getTime());
+    }
+
+    public Date getEnd() {
+        return new Date(end.getTime());
+    }
+
+    @Override
+    public String toString() {
+        return start + " - " + end;
+    }
+
+    // Period class의 serialization proxy
+    private static class SerializationProxy implements Serializable {
+
+        private static final long serialVersionUID = -7810344396436087362L;
+
+        private final Date start;
+
+        private final Date end;
+
+        SerializationProxy(Period p) {
+            this.start = p.start;
+            this.end = p.end;
+        }
+    }
+
+    private Object writeReplace() {
+        return new SerializationProxy(this);
+    }
+
+    private Object readObject() throws InvalidObjectException {
+//        throw new InvalidObjectException("Proxy required");
+        return new Period(start, end);  // public 생성자 사용
+    }
+}
+```
+* `writeReplace()`
+   * 직렬화에 앞서, `enclosing class -> serialization proxy` 변환
+   * 직렬화 메커니즘에 의해 SerializationProxy를 직렬화
+      * enclosing class를 생성하지 않는다
+* `readObject()`
+   * 역직렬화시, `serialization proxy -> enclosing class` 변환
+   * `enclosing class의 생성자`를 사용해 인스턴스 생성
+      * 직렬화시 언어 영역 밖의 특성 배제(장점)
+      * 생성자가 불변 규칙을 확립하면 직렬화에도 유지
+      * byte stream 위조(규칙 76의 BogusPeriod), 내부 필드 훔치기(규칙 76의 MutablePeriod)를 즉각 퇴치
+      * enclosing class의 필드 final 가능
+
+
+### EnumSet의 serialization proxy
+* `serialization proxy pattern`이 defensive copy보다 더욱 강력하게 되는 방법
+* 역직렬화된 인스턴스가 원래 직렬화된 인스턴스의 클래스와 다른 클래스를 가질 수 있다
+* ex. EnumSet
+   * public 생성자가 없고, static factory method만 존재
+   * 기반이 되는 enum type의 크기에 따라 둘 중 하나의 서브 클래스 반환
+      * 64개 이하면 RegularEnumSet, 아니면 JumboEnumSet 반환
+   * 60개의 요소를 갖는 enum을 직렬화 후 5개를 추가하고 역직렬화 한다면?
+      * RegularEnumSet(역직렬화 전) -> JumboEnumSet(역직렬화 후)
+
+```java
+// EnumSet의 serialization proxy
+private static class SerializationProxy<E extends Enum<E>> implements Serializable {
+
+    private static final long serialVersionUID = -9114127096552720951L;
+    
+    private final Class<E> elementType;
+
+    private final Enum[] elements;
+
+    SerializationProxy(EnumSet<E> set) {
+        elementType = set.elementType;
+        elements = set.toArray(EMPTY_ENUM_ARRAY);
+    }
+
+    private Object readResolve() {
+        EnumSet<E> result = EnumSet.noneOf(elementType);
+        for (Enum e : elements) {
+            result.add((E) e);
+        }
+        return result;
+    }
+}
+```
+
+### serialization proxy pattern의 2가지 제약
+* `client가 서브 클래스를 만들 수 있는 클래스`와는 호환 X
+* 자신의 객체 그래프가 `순환 관계를 맺는 클래스` 호환 X
+   * serialization proxy의 readResolve()에서 그 객체의 메소드 호출시 ClassCastException 발생
+   * serialization proxy만 생겼을 뿐 객체는 생성되지 않아서
+
+
+### 정리
+* client가 서브 클래스를 만들 수 없는 클래스에 readObject(), writeObject()를 작성해야 할 경우 `serialization proxy pattern` 사용 고려
+* 까다로운 불변 규칙을 갖는 객체를 `직렬화 하는 가장 쉬운 방법`이다
 
