@@ -73,6 +73,8 @@ public @interface RestController {
 | @RestController | @Controller + @ResponseBody |
 
 
+</br>
+
 > #### 참고
-* [Difference between @Component, @Service, @Controller, and @Repository in Spring
+> * [Difference between @Component, @Service, @Controller, and @Repository in Spring
 ](https://www.javacodegeeks.com/2017/11/difference-component-service-controller-repository-spring.html)
