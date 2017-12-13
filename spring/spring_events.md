@@ -211,3 +211,5 @@ public void handleOrderCreatedEvent(OrderCreatedEvent createdEvent) {
 > #### 참고
 > * [Better application events in Spring Framework 4.2](https://spring.io/blog/2015/02/11/better-application-events-in-spring-framework-4-2)
 > * [Spring Events](http://www.baeldung.com/spring-events)
+> * [스프링 ApplicationEventPublisher, @EventListener, @TransactionalEventListener를 이용한 도메인 이벤트 처리
+](http://javacan.tistory.com/entry/Handle-DomainEvent-with-Spring-ApplicationEventPublisher-EventListener-TransactionalEventListener)
