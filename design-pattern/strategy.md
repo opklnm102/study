@@ -404,7 +404,7 @@ public interface Strategy {
     void performTask();
 }
 ```
-* 위와 같은 Strategy가 있을 떄 Lambda Expression을 사용했을 때와 아닐 때의 코드를 아래에서 살펴보자
+* 위와 같은 Strategy가 있을 때 Lambda Expression을 사용했을 때와 아닐 때의 코드를 아래에서 살펴보자
 
 
 ### Before - without lambda expression
