@@ -1,4 +1,23 @@
 # [Java] Lambda Expressions and Functional Interfaces: Tips and Best Practices
+> Lambda Expression을 사용하면서 더 좋게 작성하는 법을 보고 정리
+
+> #### 람다식이란??
+> [Java Lambda Expressions](http://tutorials.jenkov.com/java/lambda-expressions.html)를 읽어보고 오자
+
+
+## Lambda Expression 사용시 고려할 점
+* Size
+   * code block이 커질수록 이해하기 어렵다
+* Repetition
+   * 반복되는 logic을 위해 method를 만드는 것이 좋다
+   * 단순한 lambda를 반복해도 괜찮다
+* Naming
+   * 적절한 이름을 생각해 낼 수 없다면 code를 사용하는게 더 명확
+   * ex. priceIsOver100보단 `x -> x.price > 100`
+* Nesting
+   * 중첩된 lambda는 정말 읽기 어렵다
+
+---
 
 ## Tips
 
