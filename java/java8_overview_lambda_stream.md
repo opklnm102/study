@@ -88,6 +88,24 @@ Collections.sort(products, new Comparator<Product>() {
 ArrayList<Product> products = new ArrayList<>();
 Collections.sort(products, 
     (o1, o2) -> Integer.compare(o1.getPrice(), o2.getPrice()));
+
+// basic sort with method reference
+humans.sort(Comparator.comparing(Human::getName));
+
+// reverse sort
+humans.sort(Comparator.comparing(Human::getName).reversed());
+
+// sort with multiple conditions
+humans.sort((h1, h2) -> {
+  if (h1.getName().equals(h2.getName())) {
+    return h1.getAge() - h2.getAge();
+  } else {
+    return h1.getName().compareTo(h2.getName());
+  }
+});
+
+// sort with multiple conditions - composition
+humans.sort(Comparator.comparing(Human::getName).thenComparing(Human::getAge));
 ```
 
 ## Method Reference 사용
