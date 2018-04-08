@@ -27,6 +27,7 @@ Error Code: 1055. Expression #2 of SELECT list is not in GROUP BY clause and con
    * GROUP BY에 사용된 column
    * SUM(), COUNT()와 같은 Aggregation Function
 * SELECT 할 수 없는 column이 존재하여 sql_mode의 `ONLY_FULL_GROUP_BY` 때문에 잘못된 GROUP BY가 실행되지 않은 것
+   * `ONLY_FULL_GROUP_BY`는 GROUP BY에 ANSI SQL 규칙이 적용된다는 뜻
 ```sql
 SELECT @@sql_mode;
 -- SELECT @@GLOBAL.sql_mode;
@@ -38,10 +39,22 @@ ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DI
 
 ## 해결
 * sql_mode의 `ONLY_FULL_GROUP_BY`을 제거한다
+```sql
+SET GLOBAL sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY', ''));
+```
 * SELECT에 aggregation function과 GROUP BY 대상 column만 사용한다
+   * SUM(), MAX(), MIN()...
+* `ANY_VALUE()` 사용
+```sql
+SELECT first_name, ANY_VALUE(age) FROM account
+GROUP BY first_name;
+```
 
 
 > #### 참고
 > * [MySQL GROUP BY 사용 시 주의점](http://jason-heo.github.io/mysql/2014/03/05/char13-mysql-group-by-usage.html)
 > * [MySQL 5.7 Reference Manual - 5.1.8 Server SQL Modes](https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html)
 > * [한글매뉴얼 5.1 - 5.2.6. SQL 모드](http://www.mysqlkorea.com/sub.html?mcode=manual&scode=01_1&m_no=22283&cat1=752&cat2=790&cat3=868&lang=k)
+> * [SELECT list is not in GROUP BY clause and contains nonaggregated column … incompatible with sql_mode=only_full_group_by](https://stackoverflow.com/a/46825159)
+> * [Group by contains nonaggregated column](https://stackoverflow.com/a/40445903)
+> * [MySQL 5.7 Reference Manual - 12.19.3 MySQL Handling of GROUP BY](https://dev.mysql.com/doc/refman/5.7/en/group-by-handling.html)
