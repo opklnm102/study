@@ -70,7 +70,10 @@ location = /favicon.ico {
    * logo 개념
 * 브라우저마다 요청하는 시점이 다르다
    * Mozilla Firefox는 페이지가 요청되는 동일한 시점에 요청
-   * Internet Explorer는 page가 bookmark로 설정된 경우에만 요청
+   * Internet Explorer
+      * IE8~10 - page 첫 방문에 바로 favicon 표시
+      * IE7 - page 첫 방문 무시, 재방문시 favicon 표시
+      * IE6 - bookmark 후 브라우저 재시작시 표시, 브라우저 캐시 삭제시 favicon 삭제, 다시 bookmark 되는 등으로 favicon이 다시 로드 될때까지 표시되지 않는다
 * 일반적으로 ico 파일 형태로 domain의 root directory에 위치
    * `website.com/favicon.ico`
    * cross browsing 염두한다면 어떠한 HTML 코드도 작성하지 않고, 웹계정 root에 16x16 size의 favicon.ico를 둔다
@@ -79,6 +82,40 @@ location = /favicon.ico {
    * 유효한 favicon.ico 파일이 브라우저에 전달되면 아이콘이 표시
    * 위치에 파일이 없으면 HTTP 404로 오며, 아이콘이 표시되지 않는다
    * favicon이 없어도 웹페이지에 영향은 없다
+
+| 크기 | 파일명 | 용도 |
+|:--|:--|:--|
+| 16x16, 32x32| favicon.ico |  IE를 위해 필요한 기본 |
+| 152x152 | favicon-152.png | 일반적으로 IOS, Android에서 사용, 기기에 따라 자동으로 크기 조정(조금 느려저도 괜찮다면 모바일을 고려한다면 준비) |
+| 32x32 | favicon-32.png | 너무 오래된 Chrome은 ICO를 제대로 처리하지 못하므로 준비 |
+| 57x57 | favicon-57.png | 표준 IOS 홈스크린 |
+| 72x72 | favicon-72.png | iPad 홈스크린 아이콘 |
+| 96x96 | favicon-96.png | 구글TV 아이콘 |
+| 120x120 | favicon-120.png | iPhone 레티나 터치 아이콘 |
+| 128x128 | favicon-128.png | Chrome 웹스토어 아이콘 |
+| 144x144 | favicon-144.png | 고정된 IE10 매트로 타일 |
+| 152x152 | favicon-152.png | iPad 레티나 터치 아이콘 |
+| 195x195 | favicon-195.png | Opera 스피드 다이얼 아이콘 |
+| 228x228 | favicon-228.png | Opera Coast 아이콘 |
+ㅍ
+
+> #### favicon 강제 새로고침
+> * 개발 중 새로고침으로 favicon이 표시되지 않을 때 시도
+> * 브라우저 캐시 삭제(ctrl + F5, Ctrl + Shift + R)
+> * IE면 브라우저 재시작
+> * 새로운 tab 열기 or [How do I Force a favicon refresh](https://stackoverflow.com/questions/2208933/how-do-i-force-a-favicon-refresh) 참고
+> * 임시로 명시적인 HTML tag를 추가하고 query string 추가. 확인 후 제거
+> ```html
+> <link rel="shortcut icon" href="http://www.mysite.com/favicon.ico?v=2">
+> <link rel="icon" sizes="16x16 32x32" href="/favicon.ico?v=2">
+> ```
+
+
+> #### 도움이 되는 도구 
+> * [OptiPNG](http://optipng.sourceforge.net/) - icon 파일안에 넣을 png 파일 최적화
+> * [x-icon editor](http://www.xiconeditor.com/) - ico 파일을 만들 수 있는 web
+> * [Favicon & App Icon Generator](https://www.favicon-generator.org/) - png favicon을 다양하게 생성
+
 
 
 > #### 참고
