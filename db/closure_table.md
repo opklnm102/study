@@ -16,7 +16,7 @@
 ## Sample
 * MySQL 5.7 기준
 
-todo: 사진 추가
+<img src="https://github.com/opklnm102/study/blob/master/db/images/closure_table_example.png" alt="Container" width="350" height="350"/> 
 
 ### table schema
 ```sql
