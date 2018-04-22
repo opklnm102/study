@@ -21,10 +21,10 @@
 9. 브라우저에게 응답
 
 
-#### Request가 어떻게 Filter와 Interceptor로 진입할까?
+### Request가 어떻게 Filter와 Interceptor로 진입할까?
+* `ApplicationFilterChain`로 Filter 호출
 ```java
 // StandardWrapperValve - L199
-// ApplicationFilterChain로 Filter 호출
 public final void invoke(Request request, Response response)
         throws IOException, ServletException {
     
@@ -42,12 +42,16 @@ public void doFilter(ServletRequest request, ServletResponse response) throws IO
     ...
     internalDoFilter(request,response);
 }
+```
 
+* `ApplicationFilterChain.internalDoFilter()`에서 filter를 순회
+* `마지막 Filter에서 호출한 internalDoFilter()`에서 dispatcher servlet 호출
+```java
 // ApplicationFilterChain - L170
 private void internalDoFilter(ServletRequest request, ServletResponse response) throws IOException, ServletException {
 
     // Call the next filter if there is one
-    if (pos < n) {  // filterChain의 마지막 filter면 통과하여 dispatcher servlet 호출
+    if (pos < n) {  // filterChain의 마지막 filter에서 호출한 internalDoFilter()면 통과하여 아래에서 dispatcher servlet 호출
         ...
         ApplicationFilterConfig filterConfig = filters[pos++];
 
@@ -75,7 +79,10 @@ public class TestFilter implements Filter {
 
     }
 }
+```
 
+* `DispatcherServlet.doDispatch()`에서 handler(controller) 로직 호출 전후에 `HandlerExecutionChain`으로 interceptor의 method 호출
+```java
 // DispatcherServlet - L924
 protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
     HandlerExecutionChain mappedHandler = null;
@@ -152,6 +159,8 @@ public class HandlerExecutionChain {
     }
 }
 ```
+
+#### 정리
 * ApplicationFilterChain에서 Filter를 순회
 * 각 Filter에서 callback 방식으로 `Filter.doFilter()` 호출하며 call stack를 쌓아간다
 * 마지막 Filter에서 호출된 `ApplicationFilterChain.doFilter()`에서 dispatcherServlet을 호출
