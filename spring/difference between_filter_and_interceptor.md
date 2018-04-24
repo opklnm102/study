@@ -185,15 +185,15 @@ public interface HandlerInterceptor {
 
     // controller(handler) 실행 직전
 	boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception;
-	
+
     // controller(handler) 실행 직후
+    // exception 발생하면 호출 안됨
 	void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception;
     
-    // view를 실행한 이후(응답 직전)
+    // preHandle()에서 true 리턴 후 view를 실행한 이후(응답 직전) or exception 발생시 호출
     void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception;
 }
 ```
-
 
 > * Spring Interceptor Interface 계층 구조
 > ```sh
@@ -250,7 +250,9 @@ public class InterceptorConfiguration extends WebMvcConfigurerAdapter {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(authInterceptor);
+        registry.addInterceptor(authInterceptor)
+                .addPathPatterns("/products")  // url pattern matching 가능
+                .excludePathPatterns("/test/**");
     }
 }
 ```
