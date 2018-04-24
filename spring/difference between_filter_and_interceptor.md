@@ -264,6 +264,183 @@ public class InterceptorConfiguration extends WebMvcConfigurerAdapter {
 </mvc:interceptors>
 ```
 
+### interceptor 적용 순서
+* `InterceptorRegistry`에 등록한 순서대로 동작한다
+```java
+@Slf4j
+public class PreTestInterceptor extends HandlerInterceptorAdapter {
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        log.info("PreTestInterceptor");
+        return true;
+    }
+}
+
+@Slf4j
+public class PostTestInterceptor extends HandlerInterceptorAdapter {
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        log.info("PostTestInterceptor");
+        return true;
+    }
+}
+
+@Slf4j
+public class TestWebRequestInterceptor implements WebRequestInterceptor {
+
+    @Override
+    public void preHandle(WebRequest request) throws Exception {
+        log.info("TestWebRequestInterceptor");
+    }
+
+    @Override
+    public void postHandle(WebRequest request, ModelMap model) throws Exception {
+    }
+
+    @Override
+    public void afterCompletion(WebRequest request, Exception ex) throws Exception {
+    }
+}
+
+@Configuration
+public class InterceptorConfiguration extends WebMvcConfigurerAdapter {
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new PreTestInterceptor())
+                .addPathPatterns("/test/**");
+        registry.addInterceptor(new PostTestInterceptor());
+        registry.addWebRequestInterceptor(new TestWebRequestInterceptor());
+    }
+}
+
+// GET /test
+2018-04-24 14:56:16.718  INFO 3104 --- [nio-8060-exec-1] k.c.m.feedgetapi.PreTestInterceptor      : PreTestInterceptor
+2018-04-24 14:56:16.719  INFO 3104 --- [nio-8060-exec-1] k.c.m.feedgetapi.PostTestInterceptor     : PostTestInterceptor
+2018-04-24 14:56:16.719  INFO 3104 --- [nio-8060-exec-1] k.c.m.f.TestWebRequestInterceptor        : TestWebRequestInterceptor
+
+// GET /aaa
+2018-04-24 14:56:16.719  INFO 3104 --- [nio-8060-exec-1] k.c.m.feedgetapi.PostTestInterceptor     : PostTestInterceptor
+2018-04-24 14:56:16.719  INFO 3104 --- [nio-8060-exec-1] k.c.m.f.TestWebRequestInterceptor        : TestWebRequestInterceptor
+```
+* `InterceptorRegistry`에 등록한 순서대로 동작함을 알 수 있다
+
+#### 왜 등록한 순서대로 동작할까?
+* `InterceptorRegistry` 내부에서 List로 관리되고 있기 때문
+```java
+public class InterceptorRegistry {
+
+	private final List<InterceptorRegistration> registrations = new ArrayList<InterceptorRegistration>();
+
+	public InterceptorRegistration addInterceptor(HandlerInterceptor interceptor) {
+		InterceptorRegistration registration = new InterceptorRegistration(interceptor);
+		this.registrations.add(registration);
+		return registration;
+	}
+
+	public InterceptorRegistration addWebRequestInterceptor(WebRequestInterceptor interceptor) {
+		WebRequestHandlerInterceptorAdapter adapted = new WebRequestHandlerInterceptorAdapter(interceptor);
+		InterceptorRegistration registration = new InterceptorRegistration(adapted);
+		this.registrations.add(registration);
+		return registration;
+	}
+
+    // WebMvcConfigurationSupport.getInterceptors()에서 호출한다
+	protected List<Object> getInterceptors() {
+		List<Object> interceptors = new ArrayList<Object>(this.registrations.size());
+		for (InterceptorRegistration registration : this.registrations) {
+			interceptors.add(registration.getInterceptor());
+		}
+		return interceptors ;
+	}
+}
+
+public class WebMvcConfigurationSupport {
+
+    // WebMvcConfigurationSupport.requestMappingHandlerMapping(), viewControllerHandlerMapping(), beanNameHandlerMapping()에서 호출
+	protected final Object[] getInterceptors() {
+		if (this.interceptors == null) {
+			InterceptorRegistry registry = new InterceptorRegistry();
+			addInterceptors(registry);  // 여기
+			registry.addInterceptor(new ConversionServiceExposingInterceptor(mvcConversionService()));
+			registry.addInterceptor(new ResourceUrlProviderExposingInterceptor(mvcResourceUrlProvider()));
+			this.interceptors = registry.getInterceptors();
+		}
+		return this.interceptors.toArray();
+	}
+}
+
+public class WebMvcConfigurationSupport {
+	@Bean
+	public RequestMappingHandlerMapping requestMappingHandlerMapping() {
+		RequestMappingHandlerMapping mapping = createRequestMappingHandlerMapping();
+		mapping.setOrder(0);
+		mapping.setInterceptors(getInterceptors());  // 여기
+		mapping.setContentNegotiationManager(mvcContentNegotiationManager());
+		mapping.setCorsConfigurations(getCorsConfigurations());
+
+		PathMatchConfigurer configurer = getPathMatchConfigurer();
+		if (configurer.isUseSuffixPatternMatch() != null) {
+			mapping.setUseSuffixPatternMatch(configurer.isUseSuffixPatternMatch());
+		}
+		if (configurer.isUseRegisteredSuffixPatternMatch() != null) {
+			mapping.setUseRegisteredSuffixPatternMatch(configurer.isUseRegisteredSuffixPatternMatch());
+		}
+		if (configurer.isUseTrailingSlashMatch() != null) {
+			mapping.setUseTrailingSlashMatch(configurer.isUseTrailingSlashMatch());
+		}
+		UrlPathHelper pathHelper = configurer.getUrlPathHelper();
+		if (pathHelper != null) {
+			mapping.setUrlPathHelper(pathHelper);
+		}
+		PathMatcher pathMatcher = configurer.getPathMatcher();
+		if (pathMatcher != null) {
+			mapping.setPathMatcher(pathMatcher);
+		}
+
+		return mapping;
+	}
+}
+
+// 각 HandlerMapping의 super class인 AbstractHandlerMapping에서 HandlerExecutionChain을 만들 때 List에서 가져와서 반환하기 때문
+// 만들어진 HandlerExecutionChain을 dispatcher servlet에서 사용한다
+// dispatcher servlet에서 getHandler() 호출 -> HandlerExecutionChain 생성하면서 등록한 interceptor list에서 현재 request handler에 적용할 interceptor를 구성하여 HandlerExecutionChain 만들어서 return
+public abstract class AbstractHandlerMapping ... {
+    protected HandlerExecutionChain getHandlerExecutionChain(Object handler, HttpServletRequest request) {
+        HandlerExecutionChain chain = (handler instanceof HandlerExecutionChain ? (HandlerExecutionChain) handler : new HandlerExecutionChain(handler));
+
+        String lookupPath = this.urlPathHelper.getLookupPathForRequest(request);
+        for (HandlerInterceptor interceptor : this.adaptedInterceptors) {
+            if (interceptor instanceof MappedInterceptor) {
+                MappedInterceptor mappedInterceptor = (MappedInterceptor) interceptor;
+                if (mappedInterceptor.matches(lookupPath, this.pathMatcher)) {
+                    chain.addInterceptor(mappedInterceptor.getInterceptor());
+                }
+            }
+            else {
+                chain.addInterceptor(interceptor);
+            }
+        }
+        return chain;
+    }
+}
+
+public class HandlerExecutionChain {
+
+	private final Object handler;
+
+	private HandlerInterceptor[] interceptors;
+
+	private List<HandlerInterceptor> interceptorList;
+
+	private int interceptorIndex = -1;
+
+    ...
+}
+```
+
 ---
 
 ## Filter
@@ -334,3 +511,4 @@ public class FeedgetApiApplication {
 > #### 참고
 > * [인터셉터 인터페이스](http://egloos.zum.com/charmpa/v/2922178)
 > * [Spring MVC - Intercepting requests with a HandlerInterceptor](https://www.logicbig.com/tutorials/spring-framework/spring-web-mvc/spring-handler-interceptor.html)
+> * [스프링 3.1 (2) HandlerInterceptor의 적용순서](http://toby.epril.com/?cat=134&paged=3)
