@@ -88,7 +88,6 @@ http {
 ### IP Hash
 * IP를 기반으로 backend server로 전달
 * IP 주소가 같다면 동일한 backend server로 전달
-* 
 
 ```sh
 # nginx.conf
@@ -156,6 +155,7 @@ http {
 > ```
 > 
 > #### Server Slow-Start
+> ```sh
 > http {
 >     upstream myproject {
 >         server 127.0.0.1:8081;
@@ -165,6 +165,7 @@ http {
 > }
 > ```
 
+</br>
 
 > #### 참고
 > * [WHAT IS A REVERSE PROXY VS. LOAD BALANCER?](https://www.nginx.com/resources/glossary/reverse-proxy-vs-load-balancer)
