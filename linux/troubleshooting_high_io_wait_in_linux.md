@@ -7,7 +7,12 @@
 
 
 > #### I/O wait
-> CPU가 I/O가 완료되기를 기다리는 시간
+> * CPU가 idle이지만 I/O가 완료되기를 기다리는 시간
+> * 빠른 CPU를 사용하게 되면 I/O wait이 증가할 수 있다
+>    * 100%지만 정상 시스템
+>    * 0%지만 disk 병목현상을 보이는 시스템
+> * I/O wait이 높다고 무작정 I/O 성능에 문제가 있다고 볼 수 없다
+>    * CPU가 disk가 처리할 수 있는 IOPS 이상으로 요청하는 경우  
 
 
 ## I/O로 인해 시스템 속도가 느려지는지 진단하기
@@ -195,3 +200,4 @@ PV UUID CLbABb-GcLB-l5z3-TCj3-IOK3-SQ2p-RDPW5S
 
 > #### 참고
 > * [Troubleshooting High I/O Wait in Linux](http://bencane.com/2012/08/06/troubleshooting-high-io-wait-in-linux/)
+> * [%iowait에 대한 이해](http://seaking.tistory.com/28)
