@@ -20,10 +20,7 @@
  * Heavy objects are expensive to create.
  */
 public class Heavy {
-
-    /**
-     * Constructor
-     */
+    
     public Heavy() {
         System.out.println("Creating Heavy ...");
         try {
@@ -34,10 +31,10 @@ public class Heavy {
         System.out.println("... Heavy created");
     }
 }
+```
 
-/**
- * Simple implementation of the lazy loading idiom. However, this is not thread safe.
- */
+### Naive Lazy Loading
+```java
 public class HolderNaive {
 
     private Heavy heavy;
@@ -54,13 +51,11 @@ public class HolderNaive {
     }
 }
 ```
+* not thread safe
 
-* thread safe version
+
+### Thread Safe Lazy Loading
 ```java
-/**
- * Same as HolderNaive but with added synchronization. This implementation is thread safe, but each
- * {@link #getHeavy()} call costs additional synchronization overhead.
- */
 public class HolderThreadSafe {
 
     private Heavy heavy;
@@ -77,13 +72,12 @@ public class HolderThreadSafe {
     }
 }
 ```
+* thread safe 보장
+* getHeavy() 호출시 마다 `synchronized`로 인한 overhead 발생
 
-* Java8 version
+
+### Java8 version
 ```java
-/**
- * This lazy loader is thread safe and more efficient than {@link HolderThreadSafe}. It utilizes
- * Java 8 functional interface {@link Supplier} as {@link Heavy} factory.
- */
 public class Java8Holder {
 
     private Supplier<Heavy> heavy = () -> createAndCacheHeavy();
@@ -113,6 +107,8 @@ public class Java8Holder {
     }
 }
 ```
+* thread safe 보장
+* `Thread Safe Lazy Loading`보다 효율적
 
 
 > #### 참고
