@@ -1,15 +1,16 @@
-# Nginx
+# [Nginx] Nginx basic
 
-[특징](#특징)<br/>
-[설치](#설치)<br/>
-[설정](#설정)<br/>
-[권장 환경설정](#권장 환경설정)<br/>
+* [특징](#특징)
+* [설치](#설치)
+* [init](#init)
+* [설정](#설정)
+* [권장 환경설정](#권장-환경설정)
 
-# 특징
+## 특징
 * apache보다 설정이 간단하고 기능이 적어서 성능, 속도에서 뛰어남
 * 더 적은 자원으로 더 빠르게 데이터를 서비스할 수 있다
 * 별로 많은 연산을 하지않고, 주로 전달자 역할만하여 `Reverse Proxy Tool`이라고도 부른다
-* 동시접속 처리를잘한다
+* 동시접속 처리를 잘한다
 
 > #### CGI(Common Gateway Interface)
 > * 웹서버와 외부 프로그램을 연결해주는 표준화된 프로토콜
@@ -23,18 +24,31 @@
 > * 만들어진 프로세스가 계속해서 새로운 요청 처리
 
 
-# 설치
-### 1. apt 소스 리스트에 저장소 추가
-```sh
-$ vi /etc/apt/sources/list
+## 설치
+* [Nginx Install](https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/) 참고
 
-# /etc/apt/sources/list에 아래 내용 추가
-deb http://nginx.org/packages/mainline/ubuntu/ xenial nginx
-deb-src http://nginx.org/packages/mainline/ubuntu/ xenial nginx
+### Ubuntu
+
+#### from OS Repository
+##### 1. update the ununtu repository information
+```sh
+$ apt-get update
 ```
 
-### 2. 저장소 보안키 다운로드 후 시스템에 등록
-* 보안키 정보는 /etc/apt/trusted.gpg에 저장
+##### 2. install the Nginx
+```sh
+$ apt-get install nginx
+```
+
+##### 3. verify the installation
+```sh
+$ nginx -v
+nginx version: nginx/1.6.2
+```
+
+#### from Official Nginx Repository
+##### 1. 저장소 보안키 다운로드 후 시스템에 등록
+* 보안키 정보는 `/etc/apt/trusted.gpg`에 저장
 ```sh
 # nginx 보안키 다운로드 후 적용
 $ wget http://nginx.org/keys/nginx_signing.key
@@ -45,39 +59,168 @@ $ rm nginx_signing.key
 $ apt-key list  
 ```
 
-### 3. apt 소스 패키지 정보 업데이트
+##### 2. apt source list에 저장소 추가
 ```sh
+$ sudo vi /etc/apt/sources/list
+
+# /etc/apt/sources/list에 아래 내용 추가
+deb http://nginx.org/packages/mainline/ubuntu/ <CODENAME> nginx
+deb-src http://nginx.org/packages/mainline/ubuntu/ <CODENAME> nginx
+
+# ex. ubuntu 16.04
+deb http://nginx.org/packages/mainline/ubuntu/ xenial nginx
+deb-src http://nginx.org/packages/mainline/ubuntu/ xenial nginx
+```
+* `<CODENAME>` - ubuntu version
+   * trusty(14.04)
+   * xenial(16.04) 
+
+##### 3. install nginx
+```sh
+$ apt-get remove nginx-common
 $ apt-get update
-```
-
-### 4. nginx 설치
-```sh
 $ apt-get install nginx
-$ service nginx restart  # 자동으로 설치, 실행, 재부팅시 자동실행되게 설정
-$ nginx -v  # 버전 체크
 ```
 
-### 5. nginx 서비스 활성화
-* 재부팅시 nginx가 자동실행되도록 서비스 활성화
+##### 4. start nginx
 ```sh
-$ ststemctl enable nginx
+$ sudo nginx
 ```
+
+##### 5. verify nginx running
+```sh
+$ curl -I 127.0.0.1
+HTTP/1.1 200 OK
+Server: nginx/1.13.8
+
+$ ps -ef | grep nginx
+root     31262     1  0 06:40 ?        00:00:00 nginx: master process /usr/sbin/nginx -c /etc/nginx/nginx.conf
+nginx    31263 31262  0 06:40 ?        00:00:00 nginx: worker process
+nginx    31264 31262  0 06:40 ?        00:00:00 nginx: worker process
+ec2-user 31267 31131  0 06:40 pts/0    00:00:00 grep --color=auto nginx
+# master도 떠있고 worker도 떠있고, 정상적으로 구동 중
+
+# port check
+$ sudo netstat -ntlp
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address               Foreign Address             State       PID/Program name
+tcp        0      0 0.0.0.0:22                  0.0.0.0:*                   LISTEN      7459/sshd
+tcp        0      0 127.0.0.1:25                0.0.0.0:*                   LISTEN      2747/sendmail
+tcp        0      0 0.0.0.0:49319               0.0.0.0:*                   LISTEN      2339/rpc.statd
+tcp        0      0 0.0.0.0:111                 0.0.0.0:*                   LISTEN      7581/rpcbind
+tcp        0      0 0.0.0.0:80                  0.0.0.0:*                   LISTEN      31262/nginx
+tcp        0      0 :::22                       :::*                        LISTEN      7459/sshd
+tcp        0      0 :::49382                    :::*                        LISTEN      2339/rpc.statd
+tcp        0      0 :::111                      :::*                        LISTEN      7581/rpcbind
+tcp        0      0 :::80                       :::*                        LISTEN      31262/nginx
+```
+
+<br>
+
+---
+
+### Centos and RHEL
+
+#### from OS Repository
+##### 1. install the EPEL repository
+```sh
+$ yum install epel-release
+```
+
+##### 2. update the repository and install Nginx
+```sh
+$ yum update
+```
+
+##### 3. Verify the installation
+```sh
+$ nginx -v
+nginx version: nginx/1.6.3
+```
+
+#### from Official Nginx Repository
+##### 1. set up yum repository
+```sh
+$ sudo vi /etc/yum/repos.d/nginx.repo
+
+# nginx.repo에 기술
+[nginx]
+name=nginx repo
+baseurl=https://nginx.org/packages/mainline/<OS>/<OSRELEASE>/$basearch/
+gpgcheck=0
+enabled=1
+
+# <OS> - rhel or centos
+# <OSRELEASE> - 6, 6._x_, 7, 7._x_
+
+# ex. Centos 7
+[nginx]
+name=nginx repo
+baseurl=https://nginx.org/packages/mainline/centos/7/$basearch/
+gpgcheck=0
+enabled=1
+```
+
+##### 2. update the repository and install Nginx
+```sh
+$ yum update 
+```
+
+##### 3. Verify the installation
+```sh
+$ nginx -v
+nginx version: nginx/1.6.3
+```
+
+<br>
+
+---
+
+### Amazon Linux AMI
+* 접속시 `Welcome to nginx on the Amazon Linux AMI!`라는 화면이 보이는 Amazon Linux AMI의 nginx가 설치된다
+
+#### 1. nginx install
+```sh
+$ sudo yum update
+
+$ yum install nginx
+
+# install check
+$ nginx -v
+nginx version: nginx/1.12.1
+```
+
+#### 2. nginx service start
+```sh
+$ sudo service nginx start
+Starting nginx:                                            [  OK  ]
+
+$ sudo service nginx status
+nginx (pid  31262) is running...
+```
+
+<br>
+
+---
 
 ## init
-* Nginx와 같은 SW를 Service or Background Application이라고 부른다
-* 표준화된 인터페이스를 가지고 있다
+* Nginx와 같은 SW를 `Service` or `Background Application`이라고 부른다
+* 이들은 표준화된 인터페이스를 가지고 있다
    * `service nginx start` - 시작
    * `service nginx stop` - 정지
    * `service nginx restart` - 재시작
-   * `service nginx reload` - 설정파일을 재로드
+   * `service nginx reload` - 설정 파일을 재로딩
    * `service nginx status` - 현재 상태
-* nginx를 실행하고, 부팅시 자동동작하도록 하려면 /etc/init.d에 init 스크립트를 위치
+* nginx를 실행하고, 부팅시 자동 동작하도록 하려면 `/etc/init.d에 init 스크립트`를 위치
    * [ubuntu용 init 스크립트](https://github.com/JasonGiedymin/nginx-init-ubuntu)
    * `$ sudo update-rc.d -f nginx defaults` - nginx 자동 실행
 * [OS별 init 스크립트](https://www.nginx.com/resources/wiki/start/topics/examples/initscripts/)
 
+<br>
 
-# 설정
+---
+
+## 설정
 * 파일에 설정 값을 기술하여 nginx가 어떻게 동작해야 하는가를 지정하는 기능
 * `/etc/nginx/nginx.conf` - nginx 설정파일
    * 업데이트시 설정파일이 덮어쓰여질 위험이 있다
@@ -241,7 +384,11 @@ http {
 > #### 로그파일
 > * `/var/log/nginx`에 위치
 
-# 권장 환경설정
+<br>
+
+---
+
+## 권장 환경설정
 
 ### nginx.conf
 
@@ -496,16 +643,16 @@ upstream backend {
 /usr/local/nginx/html/production/module/index.php
 
 > #### 참고
-> [생활코딩 nginx](https://opentutorials.org/module/384/3462)  
-> [Nginx Doc](https://www.nginx.com/resources/wiki/start/)  
-> [NginX 주요 설정 (nginx.conf)](http://sarc.io/index.php/nginx/61-nginx-nginx-conf) - Nginx 카테고리 포스팅 참고하면 좋을듯  
-> [리눅스에서 웹서비스를 위한 웹서버 nginx 설치 - yum이용](https://www.conory.com/note_linux/42847)  
-> [NginX 주요 설정](http://whiteship.me/?p=13014)  
-> [tomcat + nginx 연동하기](http://misoin.tistory.com/7)  
-> [Nginx 설정](https://brunch.co.kr/@elijah17/19) - 정리 잘되있음  
+> * [생활코딩 nginx](https://opentutorials.org/module/384/3462)  
+> * [Nginx Doc](https://www.nginx.com/resources/wiki/start/)  
+> * [NginX 주요 설정 (nginx.conf)](http://sarc.io/index.php/nginx/61-nginx-nginx-conf) - Nginx 카테고리 포스팅 참고하면 좋을듯  
+> * [리눅스에서 웹서비스를 위한 웹서버 nginx 설치 - yum이용](https://www.conory.com/note_linux/42847)  
+> * [NginX 주요 설정](http://whiteship.me/?p=13014)  
+> * [tomcat + nginx 연동하기](http://misoin.tistory.com/7)  
+> * [Nginx 설정](https://brunch.co.kr/@elijah17/19) - 정리 잘되있음  
 
 > #### 더보면 좋을 자료
-> [Nginx HTTP Server](http://ohgyun.com/477) - Nginx HTTP Server 책 정리  
-> [HTTP loadbalancing springboot servers with Nginx](http://christoph-burmeister.eu/?p=2951)  
-> [nginx 공부자료](http://knight76.tistory.com/entry/Nginx-%EA%B3%B5%EB%B6%80-%EC%9E%90%EB%A3%8C-Nginx-References)  
-> [nginx upstream 성능 최적화](https://brunch.co.kr/@alden/11)  
+> * [Nginx HTTP Server](http://ohgyun.com/477) - Nginx HTTP Server 책 정리  
+> * [HTTP loadbalancing springboot servers with Nginx](http://christoph-burmeister.eu/?p=2951)  
+> * [nginx 공부자료](http://knight76.tistory.com/entry/Nginx-%EA%B3%B5%EB%B6%80-%EC%9E%90%EB%A3%8C-Nginx-References)  
+> * [nginx upstream 성능 최적화](https://brunch.co.kr/@alden/11)  
