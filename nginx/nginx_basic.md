@@ -220,6 +220,42 @@ nginx (pid  31262) is running...
 
 ---
 
+## Important Nginx Files and Directories
+
+### Content
+* `/var/www/html`
+   * 기본 nginx 페이지 제공 경로
+   * 기본 페이지를 변경하려면 여기의 파일을 수정하면 된다
+
+### Server Configuration
+* `/etc/nginx`
+   * nginx 설정 디렉토리
+   * 모든 설정 파일이 존재
+* `/etc/nginx/nginx.conf`
+   * 메인 설정 파일
+   * 이 파일을 수정해서 global 설정을 바꿀 수 있다
+* `/etc/nginx/sites-avilable`
+   * 사이트별 server block이 저장될 수 있는 디렉토리
+   * sites-enabled에 link되어 있으면 여기의 설정이 사용된다
+   * 일반적으로 모든 server block은 여기서 설정 후 다른 디렉토리에 link하여 활성화
+* `/etc/nginx/sites-enabled`
+   * 사이트별 server block이 활성화된 디렉토리
+   * sites-avilable 디렉토리에 있는 설정파일에 link해서 만들어진다
+* `/etc/nginx/snippets`
+   * 여러곳에 포함되는 nginx 설정을 모아두는 디렉토리
+   * configuration fragments 등을 리펙토링할 수 있다 
+
+### Server Logs
+* `/var/log/nginx/access.log`
+   * 모든 request에 대한 log를 기록
+   * `/etc/nginx/nginx.conf`에서 기록 여부를 설정할 수 있다
+* `/var/log/nginx/error.log`
+   * error log를 기록
+
+<br>
+
+---
+
 ## 설정
 * 파일에 설정 값을 기술하여 nginx가 어떻게 동작해야 하는가를 지정하는 기능
 * `/etc/nginx/nginx.conf` - nginx 설정파일
