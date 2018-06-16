@@ -1,4 +1,6 @@
 # [Nginx] Load Balancer
+> date - 2018.05.06  
+> keyword - nginx, load balancer  
 > nginx의 reverse proxy 기능을 살펴보던 중 load balancing 기능도 알게되어 정리
 
 

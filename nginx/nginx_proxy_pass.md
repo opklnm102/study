@@ -1,4 +1,6 @@
 # [Nginx] Proxy Pass
+> date - 2018.05.06  
+> keyword - nginx, proxy pass  
 > nginx proxy pass 설정 때문에 `/`가 하나 더 남아(index// 같이..) 삽질했던 경험이 있어서 proxy_pass 설정에 대해 정리
 
 

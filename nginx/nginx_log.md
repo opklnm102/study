@@ -1,4 +1,6 @@
 # [Nginx] Nginx log
+> date - 2018.06.17  
+> keyword - nginx, access log, error log, log format, virtual host logging  
 > Nginx에서 log는 특별히 설정하지 않아도 분석하는데 불편함이 없지만 하루에 쌓이는 양이 많다면 불필요한 정보는 남기지 않던가 알아보기 좋게 남기는게 좋기 때문에 Nginx에서 제공하는 log 설정에 대해 알아보자
 
 <br>

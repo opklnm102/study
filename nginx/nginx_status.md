@@ -1,4 +1,6 @@
 # [Nginx] nginx_status 설정
+> date - 2018.06.08  
+> keyword - nginx, status monitoring  
 
 
 ## nginx.conf에 추가

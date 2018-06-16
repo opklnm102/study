@@ -1,4 +1,8 @@
 # [Nginx] Nginx basic
+> date - 2017.02.25  
+> keyword - nginx, nginx install, upstream
+
+<br>
 
 * [특징](#특징)
 * [설치](#설치)

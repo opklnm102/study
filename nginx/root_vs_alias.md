@@ -1,5 +1,4 @@
-# Nginx directive - root vs alias
-
+# [Nginx] directive - root vs alias
 > date - 2017.03.03  
 > keyword - nginx, root, alias  
 > nginx로 static file serving 설정 중 계속 404에러가 발생해서 stackoverflow 찾다가 `root`, `alias`로 둘다 해보고 차이점을 정리
