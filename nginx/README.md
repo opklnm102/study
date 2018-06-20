@@ -6,3 +6,4 @@
 * [Nginx Load Balancer](./nginx_load_balancer.md)
 * [Nginx nginx_status 설정하기](./nginx_status.md)
 * [Nginx access log와 error log, log format 설정하기](./nginx_log.md)
+* [Nginx Log Rotation 설정하기](./nginx_log_rotation.md)
