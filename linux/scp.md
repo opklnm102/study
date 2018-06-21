@@ -1,0 +1,79 @@
+# [Linux] Copy files using scp
+> date - 2018.06.22  
+> keyword - linux, scp, file copy  
+> cloud에서 private subnet의 instance 간에 파일 전송을 위해 사용한 scp에 대해 정리
+
+## scp
+* `로컬 호스트와 원격 호스트` 또는 `두 원격 호스트` 간에 파일을 안전하게 전송할 수 있다
+* SSH 프로토콜과 동일한 인증 및 보안을 사용
+* 단순성, 보안 및 사전 설치된 가용성으로 인해 많이 사용된다
+
+### Syntax
+```sh
+$ scp [-12346BCEpqrv] [-c cipher] [-F ssh_config] [-i identity_file] [-l 
+limit] [-o ssh_option] [-P port] [-S program] [[user@]host1:]file1 ... [[user@]host2:]file2
+```
+
+### options
+
+| | |
+|:--|:--|
+| -r | 전체 디렉토리를 반복적으로 복사 |
+| -C | 압축 가능 |
+| -l | 대역폭을 Kbit/s 단위로 제한한다 |
+| -o | ssh_config에 사용된 형식으로 ssh에 옵션을 전달 |
+| -P | 원격 호스트에 연결할 포트를 지정 |
+| -p | 원본 파일에서 수정 시간, 엑세스 시간 및 모드를 유지 |
+| -q | Quiet mode <br> ssh의 경고, 진단 메시지, 진행 상태 표시를 비활성화 |
+| -v | Verbose mode <br> 진행 상황에 대한 디버깅 메시지 표시 <br> 연결, 인증, 설정 문제를 디버깅하는데 유용 |
+
+---
+
+<br>
+
+## Usage
+
+### 다른 서버로 복사(보내기)
+```sh
+$ scp /path/to/source-file user@host:/path/to/destination-folder/
+
+# example
+$ scp test.txt ec2-user@172.11.2.113:/home/ec2-user/
+```
+* test.txt를 172.11.2.113 서버의 /home/ec2-user/ 폴더에 업로드
+
+### 다른 서버에서 복사(가져오기)
+```sh
+$ scp user@host:/path/to/source-file /path/to/destination-folder/
+```
+
+### 여러 파일 보내기
+```sh
+$ scp /path/to/file1 /path/to/file2 user@host:/path/to/destination-folder/
+```
+
+### 특정 타입의 파일 보내기
+```sh
+$ scp /path/to/folder/*.txt user@host:/path/to/destination-folder/
+```
+
+### 폴더 보내기
+```sh
+$ scp -r user@host:/path/to/source-folder/ /path/to/destination-folder/
+
+# example
+$ scp -r ec2-user@172.11.2.113:/home/ec2-user/test/ /var/test
+```
+
+### 다른 포트 사용
+```sh
+$ scp -P port user@host:/path/to/source-file /path/to/destination-folder/
+```
+
+---
+
+<br>
+
+> #### 참고
+> * [리눅스 scp 사용법](https://zetawiki.com/wiki/%EB%A6%AC%EB%88%85%EC%8A%A4_scp_%EC%82%AC%EC%9A%A9%EB%B2%95)
+> * [scp command Tutorial](https://www.garron.me/en/articles/scp.html)
