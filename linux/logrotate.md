@@ -222,38 +222,96 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 <br>
 
 ## Usage
-* `-f` - 강제로 실행 
+
+### -f
+* 강제로 실행 
 ```sh
 $ logrotate -f /etc/logrotate.d/nginx
 
 error.log.1.gz
 ```
 
-* dateext 추가 - 확장자에 날짜 추가
+### -d
+* test를 위한 옵션, 실제로는 rotation되지 않는다
 ```sh
+$ logrotate -d /etc/logrotate.d/nginx
+```
+
+### /etc/logrotate.d의 모든 script 실행
+```sh
+$ logrotate -f /etc/logrotate.conf
+```
+
+### dateext 추가
+* 확장자에 날짜 추가
+```sh
+# /etc/logroate.d/x
+/var/log/nginx/*log {
+    daily
+    dateext
+    ...
+}
+
 $ logrotate -f /etc/logrotate.d/nginx
 
 error.log-20180617.gz
 ```
 
-* dateformat로 dateext의 날짜 형식 설정
-   * dateformat .%Y-%m-%d-%s 추가
-
+### dateformat로 dateext의 날짜 형식 설정
+* dateformat .%Y-%m-%d-%s 추가
 ```sh
+# /etc/logroate.d/x
+/var/log/nginx/*log {
+    daily
+    dateext
+    dateformat -%Y-%m-%d-%s
+    ...
+}
+
 $ logrotate -f /etc/logrotate.d/nginx
 
 error.log-2018-06-17-1529250021.gz
 ```
 
-* -d - test를 위한 옵션, 실제로는 rotation되지 않는다
-```sh
-$ logrotate -d /etc/logrotate.d/nginx
-```
+### size, minsize, maxsize
+* minsize, size
+   * 로그 파일이 size보다 크고, 지정한 시간 조건(daily, weekly, monthly)이 지났을 때 로테이트
+* maxsize, size
+   * 로그 파일이 size보다 크거나, 지정한 시간 조건이 지났을 때 로테이트
+* size
+   * 시간 조건은 무시하고, 로그 파일이 특정 size 이상일 때 로테이트
 
-* /etc/logrotate.d의 모든 script 실행
-```sh
-$ logrotate -f /etc/logrotate.conf
-```
+#### 로그가 30M 쌓이고, 하루가 지난 경우
+* minsize 50M, daily
+   * size가 50M 미만이므로, 로테이트 X
+* maxsize 50M, daily
+   * size가 50M 미만이지만, 시간 조건 충족이므로 로테이트 O
+* size 50M, daily
+   * 시간 조건에 관계 없이, size가 50M 미만이므로 로테이트 X
+
+#### 로그가 80M 쌓이고, 하루가 지난 경우
+* minsize 50M, daily
+   * size가 50M 이상, 시간 조건 충족이므로 로테이트 O
+* maxsize 50M, daily
+   * size가 50M 이상, 시간 조건 충족이므로 로테이트 O
+* size 50M, daily
+   * 시간조건 관계 없이, size가 50M 이상이므로 로테이트 O
+
+#### 로그가 80M 쌓이고, 1시간이 지난 후 실행한 경우(cronjob)
+* minsize 50M, daily
+   * size가 50M 이상이지만, 시간 조건 불충족으로 로테이트 X
+* maxsize 50M, daily
+   * 시간 조건 불충족이지만, size가 50M 이상이므로 로테이트 O
+* size 50M, daily
+   * 시간 조건 관계없이, size가 50M 이상으므로 로테이트 O
+
+#### 정리
+* 로그 파일 size에 관계 없이 로그를 매일 쌓고 싶다면
+   * size 1, daily
+* 로그 파일 size에 관계 없이 로그를 매시간 쌓고 싶다면
+   * size 1 + cronjob으로 1시간 마다 실행
+* 정해진 size로 로그를 쌓고 싶다면
+   * size 50M + 로그가 얼마나 쌓이는지 확인하여 일정 주기로 cronjob 실행
 
 ---
 
