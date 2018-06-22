@@ -3,6 +3,8 @@
 > keyword - linux, scp, file copy  
 > cloud에서 private subnet의 instance 간에 파일 전송을 위해 사용한 scp에 대해 정리
 
+<br>
+
 ## scp
 * `로컬 호스트와 원격 호스트` 또는 `두 원격 호스트` 간에 파일을 안전하게 전송할 수 있다
 * SSH 프로토콜과 동일한 인증 및 보안을 사용
@@ -15,8 +17,7 @@ limit] [-o ssh_option] [-P port] [-S program] [[user@]host1:]file1 ... [[user@]h
 ```
 
 ### options
-
-| | |
+| 옵션 | 설명 |
 |:--|:--|
 | -r | 전체 디렉토리를 반복적으로 복사 |
 | -C | 압축 가능 |
@@ -68,6 +69,46 @@ $ scp -r ec2-user@172.11.2.113:/home/ec2-user/test/ /var/test
 ### 다른 포트 사용
 ```sh
 $ scp -P port user@host:/path/to/source-file /path/to/destination-folder/
+```
+
+### Increase Speed
+* scp는 AES-128을 사용하기 때문에 안전하지만 느리다
+* 더 빠른 속도를 원한다면 `Blowfish` 또는 `RC4`를 사용
+```sh
+# blowfish
+$ scp -c blowfish user@host:/path/to/source-file /path/to/destination-folder/
+
+# arcfour
+$ scp -c arcfour user@host:/path/to/source-file /path/to/destination-folder/
+```
+
+### Increase Security
+* 속도는 더 느리지만, 보안성을 향상시키고 싶은 경우
+```sh
+$ scp -c 3des user@host:/path/to/source-file /path/to/destination-folder/
+```
+
+### Limit Bandwidth
+* scp가 사용하는 bandwidth(대역폭)을 제한하고 싶은 경우
+```sh
+$ scp -l <limit> user@host:/path/to/source-file /path/to/destination-folder/
+
+# example
+$ scp -l 150 user@host:/path/to/source-file /path/to/destination-folder/
+```
+
+### Save Bandwidth
+* 파일을 압축해서 bandwidth를 절약하고 싶은 경우
+```sh
+$ scp -C user@host:/path/to/source-file/ /path/to/destination-folder/
+```
+
+### Use IPv4 or IPv6
+* IPv4 또는 IPv6를 사용할 경우
+```sh
+$ scp -4 user@host:/path/to/source-file/ /path/to/destination-folder/
+
+$ scp -6 user@host:/path/to/source-file/ /path/to/destination-folder/
 ```
 
 ---
