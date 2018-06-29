@@ -7,11 +7,13 @@
 
 ## [Spring Retry](https://github.com/spring-projects/spring-retry)
 * 실패한 작업을 자동으로 다시 호출하는 기능 제공
-   * declarative retry support
-* 일시적인 network 장애 같은 일시적인 오류로 실패하는 경우에 유용
+  * declarative retry support
+* 일시적인 오류로 실패하는 경우에 유용
+  * 일시적인 network 장애
+  * DB update의 deadlock
 * Spring Batch에 있던 retry 기능이 유틸성으로 패키지 분리
 * Spring Batch, Spring Integration, Spring Cloud 등에서 사용 중
-   * `org.springframework.cloud.client.loadbalancer.InterceptorRetryPolicy`
+  * `org.springframework.cloud.client.loadbalancer.InterceptorRetryPolicy`
 
 ---
 
@@ -86,7 +88,7 @@ public String recover(MyException e, String url) {
 ```
 * 정해진 횟수만큼 retry 후 실패시 동작하는 메소드로 선언
 * retry를 시도한 method(@Retryable이 선언된)와 return type이 같으면 `@Recover`가 동작한다 
-   * parameter는 optional
+  * parameter는 optional
 
 ```java
 // private여도 실행
@@ -123,9 +125,10 @@ recover : class me.dong.retrybasic.MyException, url : testUrl
 <br>
 
 ## RetryTemplate
+* `RetryTemplate`은 RetryOperations의 가장 단순한 범용 구현체
 
 ### RetryOperation
-* Spring Retry가 제공하는 interface
+* Spring Retry가 제공하는 retry를 자동화하기 위한 interface
 * parameter로 retry할 logic을 RetryCallback으로 받아 callback 방식으로 retry한다
 ```java
 public interface RetryOperations {
@@ -140,10 +143,13 @@ public interface RetryOperations {
 			throws E;
 }
 ```
+* callback이 실행되어 exception 발생되어 실패하면, 성공할 때까지 또는 중단될 때까지 retry
+* RetryState
+  * client와 구현체간의 호출 정보를 저장
 
 #### RetryCallback
 * `RetryOperations`에서 retry시 사용하는 callback interface
-* 재시도해야 하는 business logic을 구현할 수 있는 interface
+* 재시도해야 하는 `business logic을 구현할 수 있는 interface`
 ```java
 public interface RetryCallback<T, E extends Throwable> {
 	T doWithRetry(RetryContext context) throws E;
@@ -162,10 +168,12 @@ public class RetryConfiguration {
     public RetryTemplate retryTemplate() {
         RetryTemplate retryTemplate = new RetryTemplate();
 
+        // retry 전에 고정된 시간동안 일시 중지하는 backOff
         FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
         backOffPolicy.setBackOffPeriod(2000L);
         retryTemplate.setBackOffPolicy(backOffPolicy);
 
+        // 고정된 횟수만큼 retry하는 policy
         SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
         retryPolicy.setMaxAttempts(4);
         retryTemplate.setRetryPolicy(retryPolicy);
@@ -174,12 +182,6 @@ public class RetryConfiguration {
     }
 }
 ```
-* RetryPolicy
-  * retry 시기를 결정
-  * SimpleRetryPolicy는 고정된 횟수만큼 retry하는데 사용
-* BackOffPolicy
-  * retry간의 backOff를 제어하는데 사용
-  * FixedBackOffPolicy는 retry하기 전에 일정 시간동안 일시 중지한다
 
 <br>
 
@@ -191,15 +193,12 @@ public String  call(String url) {
     return retryTemplate.execute(new RetryCallback<String, RuntimeException>() {
             @Override
             public String doWithRetry(RetryContext context) {
-                log.info("call : {}", url);
-
                 return "OK";
             }
     });
 
     // using lambda
     return retryTemplate.execute(context -> {
-            log.info("call : {}", url);
             return "OK";
     });
 }
@@ -208,6 +207,103 @@ public String  call(String url) {
 ---
 
 <br>
+
+## Retry Context
+* `RetryCallback.doWithRetry(RetryContext context)`
+* 많은 callback이 RetryContext를 무시하지만, 필요에 따라 retry 과정의 데이터를 저장할 수 있다
+* 동일한 thread에서 진행 중인 nested retry가 있는 경우 parent context를 가지는데 `execute()` 호출에서 공유해야 하는 데이터를 저장하는데 유용
+
+```
+RetryContext
+  └── RetryContextSupport
+        ├── SimpleRetryContext => SimpleRetryPolicy에서 사용
+        ├── NeverRetryContext => NeverRetryPolicy에서 사용
+        ├── TimeoutRetryContext => TimeoutRetryPolicy에서 사용
+        ├── ExceptionClassifierRetryContext => ExceptionClassifierRetryPolicy에서 사용
+        ├── CircuitBreakerRetryContext => CircuitBreakerRetryPolicy에서 사용
+        └── CompositeRetryContext => CompositeRetryPolicy에서 사용
+```
+
+---
+
+<br>
+
+## RecoveryCallback
+
+
+
+
+---
+
+<br>
+
+## Stateless Retry
+
+
+
+---
+
+<br>
+
+## Stateful Retry
+
+
+---
+
+<br>
+
+## Retry Policies
+* retry 시기를 결정
+
+
+```
+Todo: 이렇게 구현체들 나열해서 간단한 설명 작성
+RetryPolicy
+  └── RetryContextSupport
+        ├── SimpleRetryContext
+        ├── NeverRetryContext
+        ├── TimeoutRetryContext
+        ├── ExceptionClassifierRetryContext  
+        ├── CircuitBreakerRetryContext
+        └── CompositeRetryContext
+
+RetryPolicy
+  └──
+        SimpleRetryPolicy - 고정된 횟수만큼 retry 한다
+        TimeoutRetryPolicy - 시간 초과에 도달 할 때까지 다시 시도됩니다?
+```
+
+
+
+
+
+---
+
+<br>
+
+## Backoff policies
+* retry간의 backOff를 제어하는데 사용
+
+
+
+```
+Todo: 이렇게 구현체들 나열해서 간단한 설명 작성
+RetryContext
+  └── RetryContextSupport
+        ├── SimpleRetryContext
+        ├── NeverRetryContext
+        ├── TimeoutRetryContext
+        ├── ExceptionClassifierRetryContext  
+        ├── CircuitBreakerRetryContext
+        └── CompositeRetryContext
+
+BackoffPolicy
+  └──
+        FixedBackOffPolicy - retry 전에 고정된 시간동안 일시 중지한다
+```
+
+
+
 
 ## Listeners
 * retry시 추가 callback 제공
@@ -261,9 +357,12 @@ public class RetryConfiguration {
 
 <br>
 
-Todo:
-https://github.com/spring-projects/spring-retry
-=> 여기 README 정도는 정리해두자
+## Declarative Retry
+
+
+
+
+
 
 > #### 참고
 > * [spring-projects/spring-retry](https://github.com/spring-projects/spring-retry)
