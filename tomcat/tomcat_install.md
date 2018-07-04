@@ -109,6 +109,58 @@ $ $TOMCAT_HOME/bin/shutdown.sh
 $ shutdown.sh
 ```
 
+---
+
+<br>
+
+## tomcat service 등록하기
+* EC2를 다시 시작할 때마다 tomcat이 자동으로 시작되도록 service로 등록
+
+* systemd 파일 생성
+```sh
+$ sudo vi /etc/systemd/system/tomcat.service
+
+# 아래 내용 등록
+[Unit]
+Description=Apache Tomcat
+After=network.target
+
+[Service]
+Type=forking
+
+Environment=CATALINA_PID=/opt/tomcat-9/temp/tomcat9.pid
+Environment=JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
+Environment=CATALINA_HOME=/opt/tomcat-9
+Environment=CATALINA_BASE=/opt/tomcat-9
+Environment="CATALINA_OPTS=-Xms512m -Xmx1G"
+Environment="JAVA_OPTS=-Dfile.encoding=UTF-8 -Djava.awt.headless=true"
+
+ExecStart=/opt/tomcat-9/bin/startup.sh
+ExecStop=/opt/tomcat-9/bin/shutdown.sh
+
+User=tomcat
+Group=tomcat
+
+[Install]
+WantedBy=multi-user.target
+```
+
+* tomcat service 실행
+```sh
+$ sudo systemctl daemon-reload
+$ sudo systemctl start tomcat
+$ sudo systemctl enable tomcat
+```
+
+* tomcat 실행
+```sh
+$ sudo service tomcat start
+```
+
+---
+
+<br>
 
 > #### 참고
 > [How To Install Apache Tomcat 8 on Ubuntu 16.04](https://www.digitalocean.com/community/tutorials/how-to-install-apache-tomcat-8-on-ubuntu-16-04)
+> [HOW TO INSTALL TOMCAT ON EC2 INSTANCE](http://techkube.com/article/how-install-tomcat-ec2-instance)
