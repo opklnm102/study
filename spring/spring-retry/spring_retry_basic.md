@@ -231,6 +231,7 @@ public String  call(String url) {
   * callback이 RetryContext를 무시할 수 있다
 * 동일한 thread에서 진행 중인 nested retry가 있는 경우 parent context를 가지는데 `execute()` 호출에서 공유해야 하는 데이터를 저장하는데 유용
 
+#### Class Structure
 ```
 RetryContext(I)
   └── RetryContextSupport(C)
@@ -313,7 +314,7 @@ public String call(String url) {
 ## Retry Policies
 * retry 여부를 결정
 
-
+#### Class Structure
 ```
 Todo: 이렇게 구현체들 나열해서 간단한 설명 작성
 RetryPolicy
@@ -346,15 +347,15 @@ RetryPolicy
 
 <br>
 
-### BackoffPolicy
+### BackOffPolicy
 * retry간의 간격을 제어하는데 사용
 * 원하는 방식으로 backOff를 자유롭게 구현 가능
-* Spring Retry가 제공하는 BackoffPolicy는 모두 `Object.wait()` 사용
+* Spring Retry가 제공하는 BackOffPolicy는 모두 `Object.wait()` 사용
   * 1.2.2 RELASE에서는 `Thread.sleep()` 사용
-* RetryCallback이 실패하면 RetryTemplate은 BackoffPolicy에 따라 실행을 일시 정지할 수 있다
+* RetryCallback이 실패하면 RetryTemplate은 BackOffPolicy에 따라 실행을 일시 정지할 수 있다
 
 ```java
-public interface BackoffPolicy {
+public interface BackOffPolicy {
  
     // backoff의 새로운 block 시작
     // start()가 호출될 때 일시 정지되도록 할 수 있지만 일반적으로는 BackOffContext가 즉시 반환된다
@@ -366,6 +367,7 @@ public interface BackoffPolicy {
 }
 ```
 
+#### Class Structure
 ```
 BackOffPolicy(I)
   ├── SleepingBackOffPolicy(I) => backoff시 sleep하는 policy
@@ -394,6 +396,56 @@ public interface Sleeper extends Serializable {
     void sleep(long var1) throws InterruptedException;
 }
 ```
+
+#### Class Structure
+```
+Sleeper(I)
+  ├── ObjectWaitSleeper(C) => local object를 wait()로 대기시키는 구현체, deprecated되어 ThreadWaitSleeper 사용 권장
+  ├── ThreadWaitSleeper(C) => 현재 thread를 sleep시켜서 대기시키는 구현체
+  └── StealingSleeper(C) => RetrySimulator에서 사용
+
+I - interface
+C - class 
+```
+
+```java
+// local object의 wait()로 대기시키는 구현체
+@Deprecated  // deprecated되어 ThreadWaitSleeper 사용 권장
+public class ObjectWaitSleeper implements Sleeper {
+    
+    public void sleep(long backOffPeriod) throws InterruptedException {
+        Object mutex = new Object();
+        synchronized (mutex) {
+            mutex.wait(backOffPeriod);
+        }
+    }
+}
+
+// 현재 thread를 sleep시켜서 대기시키는 구현체
+public class ThreadWaitSleeper implements Sleeper {
+    
+    @Override
+    public void sleep(long backOffPeriod) throws InterruptedException {
+        Thread.sleep(backOffPeriod);
+    }
+}
+
+// RetrySimulator에서 사용. static inner class로 구현
+static class StealingSleeper implements Sleeper {
+    
+    private final List<Long> sleeps = new ArrayList<Long>();
+    
+    public void sleep(long backOffPeriod) throws InterruptedException {
+        sleeps.add(backOffPeriod);
+    }
+    
+    public List<Long> getSleeps() {
+        return sleeps;
+    }
+}
+```
+
+---
 
 <br>
 
