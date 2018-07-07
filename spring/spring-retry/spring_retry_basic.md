@@ -312,29 +312,84 @@ public String call(String url) {
 <br>
 
 ## Retry Policies
-* retry 여부를 결정
+* RetryTemplate 내부에서, 실행된 메소드의 `재시도 및 실패에 대한 결정`은 RetryPolicy에서 결정
+  * RetryPolicy는 `RetryContext의 factory`
+* RetryTemplate은 현재 위임된 RetryPolicy에서 `RetryContext를 만들어 모든 시도에 RetryCallback으로 전달`할 책임을 가진다
+  * callback이 실패한 후 RetryPolicy의 RetryContext에 저장된 상태를 업데이트하도록 요청하고 재시도 여부를 묻는다
+* timeout이나 retry limit에 도달해 retry할 수 없는 경우 policy는 `exhausted state를 식별할 책임`이 있지만 exception handling은 하지 않는다
+
+<br>
+
+### RetryTemplate에서 exception throw
+* stateful case를 제외하고는 원본 exception throw
+* recoverCallback을 사용할 수 없는 경우 `ExhaustedRetryException` 발생
+* 원본 예외를 무조건 throw하도록 flag 설정 가능
+  * `throwLastExceptionOnExhausted`
+
+```java
+protected <E extends Throwable> void rethrow(RetryContext context, String message) throws E {
+    if (this.throwLastExceptionOnExhausted) {
+        @SuppressWarnings("unchecked")
+        E rethrow = (E) context.getLastThrowable();
+        throw rethrow;
+    } else {
+        throw new ExhaustedRetryException(message, context.getLastThrowable());
+    }
+}
+```
+
+<br>
+
+### 실패할 것을 알고 있는 것을 재시도하는건 낭비
+* 실패는 본질적으로 `재시도 가능하지 않다`
+  * 항상 같은 exception으로 실패 business logic...
+* 모든 exception에서 재시도하지말고 `재시도로 인해 성공될 exception에만 집중`
+
+<br>
+
+### `canRetry()`이 핵심
+* 어떻게 retry할지 결정하는지 알 수 있다
+* 잘 알려진, 솔루션별로 재시도 가능, 불가능으로 분류된 exception이 있는 경우 custom retryPolicy를 구현해야 할 수 도 있다
+
+<br>
+
+#### example
+* spring retry에서 SimpleRetryPolicy, TimeoutRetryPolicy와 같은 Stateless RetryPolicy 구현체를 제공
+```java
+// Set the max attempts including the initial attempt before retrying
+// and retry on all exceptions (this is the default):
+SimpleRetryPolicy policy = new SimpleRetryPolicy(5, Collections.singletonMap(Exception.class, true));
+
+// Use the policy...
+RetryTemplate template = new RetryTemplate();
+template.setRetryPolicy(policy);
+template.execute(new RetryCallback<Foo>() {
+    public Foo doWithRetry(RetryContext context) {
+        // business logic here
+    }
+});
+```
+
+<br>
 
 #### Class Structure
 ```
-Todo: 이렇게 구현체들 나열해서 간단한 설명 작성
-RetryPolicy
-  └── RetryContextSupport
-        ├── SimpleRetryContext
-        ├── NeverRetryContext
-        ├── TimeoutRetryContext
-        ├── ExceptionClassifierRetryContext  
-        ├── CircuitBreakerRetryContext
-        └── CompositeRetryContext
+RetryPolicy(I)
+  ├── SimpleRetryPolicy(C) => 정의된 exception 리스트에서 정해진 최대 횟수만큼 재시도
+  │     └── ExpressionRetryPolicy(C) => 마지막으로 throw된 exception에 대해 표현식을 평가하여 재시도
+  ├── NeverRetryPolicy(C) => 항상 재시도하지 않는다
+  │     └── AlwaysRetryPolicy(C) => 항상 재시도한다
+  ├── TimeoutRetryPolicy(C) => timeout에 도달할 때까지 재시도
+  ├── ExceptionClassifierRetryPolicy(C) => ExceptionClassifier로 마지막 exception에 따라 동적으로 retryPolicy를 적용해서 재시도
+  │                                        특정 exception을 다른 retryPolicy에 매핑하여 다른 exception보다 1번 더 재시도 가능하도록 구성할 수 있다
+  ├── ExceptionClassifierRetryContext(C) => ExceptionClassifierRetryPolicy의 static inner class                             
+  ├── CircuitBreakerRetryPolicy(C) => circuit이 close인 경우에만 delegate된 retryPolicy에 따라 재시도
+  │                                   circuit - CircuitBreakerRetryContext로 표현
+  └── CompositeRetryPolicy(C) => 여러 retryPolicy를 호출 순서에 따라 적용해서 재시도
 
-RetryPolicy
-  └──
-        SimpleRetryPolicy => 고정된 횟수만큼 retry 한다
-        TimeoutRetryPolicy => 시간 초과에 도달 할 때까지 다시 시도됩니다?
+I - interface
+C - class
 ```
-
-
-
-
 
 ---
 
@@ -382,7 +437,7 @@ BackOffPolicy(I)
 
 I - interface
 AC - abstract class
-C - class 
+C - class
 ```
 
 <br>
