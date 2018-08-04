@@ -181,7 +181,7 @@ nginx version: nginx/1.6.3
 ---
 
 ### Amazon Linux AMI
-* 접속시 `Welcome to nginx on the Amazon Linux AMI!`라는 화면이 보이는 Amazon Linux AMI의 nginx가 설치된다
+* 접속시 `Welcome to nginx on the Amazon Linux AMI!`라는 글자가 보이는 OS
 
 #### 1. nginx install
 ```sh
@@ -201,6 +201,63 @@ Starting nginx:                                            [  OK  ]
 
 $ sudo service nginx status
 nginx (pid  31262) is running...
+```
+
+<br>
+
+---
+
+### Amazon Linux 2 AMI
+* 접속시 `Amazon Linux 2 AMI`라는 글자가 보이는 OS
+* default로 yum에 nginx repository가 포함되어 있지 않아 [Amazon Linux Extras](https://aws.amazon.com/ko/amazon-linux-2/faqs/#Amazon_Linux_Extras)을 사용해야 한다
+
+
+#### 1. nginx install
+```sh
+# nginx package check
+$ amazon-linux-extras list
+...
+  3  nginx1.12                available  [ =1.12.2 ]
+... 
+
+# install nginx
+$ amazon-linux-extras install nginx1.12 
+
+...
+Complete!
+...
+  3  nginx1.12=latest         enabled    [ =1.12.2 ]  # available -> enabled로 변경되었다
+...
+
+# install check
+$ nginx -v
+nginx version: nginx/1.12.1
+```
+
+#### 2. nginx service start
+```sh
+$ sudo service nginx start
+Redirecting to /bin/systemctl start nginx.service
+
+$ sudo service nginx status
+Redirecting to /bin/systemctl status nginx.service
+● nginx.service - The nginx HTTP and reverse proxy server
+   Loaded: loaded (/usr/lib/systemd/system/nginx.service; disabled; vendor preset: disabled)
+   Active: active (running) since 토 2018-08-04 01:51:25 UTC; 15min ago
+  Process: 12187 ExecStart=/usr/sbin/nginx (code=exited, status=0/SUCCESS)
+  Process: 12184 ExecStartPre=/usr/sbin/nginx -t (code=exited, status=0/SUCCESS)
+  Process: 12183 ExecStartPre=/usr/bin/rm -f /run/nginx.pid (code=exited, status=0/SUCCESS)
+ Main PID: 12190 (nginx)
+   CGroup: /system.slice/nginx.service
+           ├─12190 nginx: master process /usr/sbin/nginx
+           └─12191 nginx: worker process
+
+ 8월 04 01:51:25 ip-172-31-28-244.ap-northeast-2.compute.internal systemd[1]: Starting...
+ 8월 04 01:51:25 ip-172-31-28-244.ap-northeast-2.compute.internal nginx[12184]: nginx:...
+ 8월 04 01:51:25 ip-172-31-28-244.ap-northeast-2.compute.internal nginx[12184]: nginx:...
+ 8월 04 01:51:25 ip-172-31-28-244.ap-northeast-2.compute.internal systemd[1]: Failed t...
+ 8월 04 01:51:25 ip-172-31-28-244.ap-northeast-2.compute.internal systemd[1]: Started ...
+Hint: Some lines were ellipsized, use -l to show in full.
 ```
 
 <br>
