@@ -26,14 +26,8 @@ $ chkconfig nginx --list
 nginx          	0:해제	1:해제	2:활성	3:활성	4:활성	5:활성	6:해제
 ```
 * 2~5까지 활성화되었다
-   * 이게 무슨뜻일까...?
+   * 이게 무슨뜻일까...? -> [service와 chkconfig](../linux/service_and_chkconfig.md)에 정리되어 있다
 * `chkconfig nginx on`을 적용하고 instance rebooting 후 확인해보니 정상적으로 nginx가 자동 시작됨을 확인...!
-
----
-
-<br>
-
-> TODO: chkconfig가 뭘까..?
 
 ---
 
