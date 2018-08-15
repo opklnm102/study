@@ -17,12 +17,13 @@ Created symlink from
 <br>
 
 ## systemctl이란?
-* 오랫동안 daemon이라는 background 프로그램은 inits cript를 사용해 구동했다
+* 오랫동안 daemon이라는 background 프로그램은 inits cript를 사용해 구동해왔다
   * init script는 읽고 해석, 변경에 어려움이 있다
 * RHEL 7/CentOS 7에 도입된 `Systemd`라는 서비스 관리 애플리케이션이 init script를 대체
   * 최신 리눅스 배포판에서는 필요한 서비스를 시작하는 역할은 systemd가 맡고 있을 가능성이 높다
 * systemd를 관리하는 명령어가 `systemctl`
- 
+
+![systemd architecture](https://github.com/opklnm102/study/blob/master/linux/images/systemd_architecture.png)
 
 ### Linux의 기본 뼈대 프로세스
 * Linux는 OS라서 부팅되는 과정에서 리눅스 커널이 부팅된 후 `시스템을 초기화`하고 기타 서비스들을 위한 `환경을 조성하고, 시작`시켜주는 일을 하는 process가 필요
@@ -65,9 +66,11 @@ Created symlink from
 * 서비스 관리 명령을 사용할 때 `.service` 생략 가능
 
 ```sh
+# 아래 2개는 같다
 $ systemctl start nginx.service
-$ systemctl start nginx
+$ systemctl start nginx  # .service 생략
 ```
+
 
 ### 주요 명령어
 * systemctl
@@ -76,71 +79,32 @@ $ systemctl start nginx
 * systemd-cgtop
 * systemd-loginctl
 
+
 ### 실행중인 서비스 조회하기
 ```sh
 $ systemctl list-units --type=service  # or $ systemctl
 
 # example
 $ systemctl list-units --type=service
-TODO: 실행해보고 결과 추가
-```
 
-### TODO: 위와 차이가 뭔지 알아보기.. 서비스 리스트 조회
-```sh
-$ systemctl list-units
-```
-
-### systemd 모든 서비스 조회하기
-```sh
-$ systemctl list-unit-files
-
-# example
-$ systemctl list-unit-files
-nginx.service                                 disabled
+UNIT                             LOAD   ACTIVE SUB     DESCRIPTION
+amazon-ssm-agent.service         loaded active running amazon-ssm-agent
+atd.service                      loaded active running Job spooling tools
+auditd.service                   loaded active running Security Auditing Service
+chronyd.service                  loaded active running NTP client/server
+cloud-config.service             loaded active exited  Apply the settings specified in
+cloud-final.service              loaded active exited  Execute cloud user/final scripts
+cloud-init-local.service         loaded active exited  Initial cloud-ini
 ...
+
+LOAD   = Reflects whether the unit definition was properly loaded.
+ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
+SUB    = The low-level unit activation state, values depend on unit type.
+
+43 loaded units listed. Pass --all to see loaded but inactive units, too.
+To show all installed unit files use 'systemctl list-unit-files'.
 ```
 
-### 서비스 의존성 확인
-* 각 서비스들은 서로간의 의존관계를 가지고 있다 
-```sh
-$ systemctl list-dependencies
-
-TODO: 실행해보고 결과 추가
-```
-
-### 특정 서비스의 의존성 확인
-* 특정 서비스에 대해 활성화된 서비스
-```sh
-$ systemctl list-dependencies <target>
-
-# example
-$ systemctl list-dependencies nginx
-TODO: 실행해보고 결과 추가
-```
-
-### 구동에 실패한 서비스
-```sh
-$ systemctl list-units --state=failed
-TODO: 결과...
-```
-
-### 모든 active 리스트
-```sh
-$ systemctl list-units --state=active
-TODO: 결과...
-```
-
-### 상태가 inactive인 리스트
-```sh
-$ systemctl list-units --all --state=inactive
-TODO: 결과...
-```
-
-### 상태가 running인 리스트
-```sh
-$ systemctl list-units --type=service --state=running
-TODO: 결과...
-```
 
 ### 서비스 상태 확인하기
 ```sh
@@ -148,8 +112,25 @@ $ systemctl status <service name>
 
 # example
 $ systemctl status nginx.service
-TODO: 결과...
+● nginx.service - The nginx HTTP and reverse proxy server
+   Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; vendor preset: disabled)
+   Active: active (running) since 수 2018-08-15 04:04:53 UTC; 8min ago
+  Process: 3080 ExecStart=/usr/sbin/nginx (code=exited, status=0/SUCCESS)
+  Process: 3061 ExecStartPre=/usr/sbin/nginx -t (code=exited, status=0/SUCCESS)
+  Process: 3058 ExecStartPre=/usr/bin/rm -f /run/nginx.pid (code=exited, status=0/SUCCESS)
+ Main PID: 3086 (nginx)
+   CGroup: /system.slice/nginx.service
+           ├─3086 nginx: master process /usr/sbin/nginx
+           └─3087 nginx: worker process
+
+ 8월 15 04:04:53 ip-172-31-28-244.ap-northeast-2.compute.internal systemd[1]: Start...
+ 8월 15 04:04:53 ip-172-31-28-244.ap-northeast-2.compute.internal nginx[3061]: ngin...
+ 8월 15 04:04:53 ip-172-31-28-244.ap-northeast-2.compute.internal nginx[3061]: ngin...
+ 8월 15 04:04:53 ip-172-31-28-244.ap-northeast-2.compute.internal systemd[1]: Faile...
+ 8월 15 04:04:53 ip-172-31-28-244.ap-northeast-2.compute.internal systemd[1]: Start...
+Hint: Some lines were ellipsized, use -l to show in full.
 ```
+
 
 ### 부팅시 서비스 활성화(자동 실행)
 ```sh
@@ -157,19 +138,34 @@ $ systemctl enable <service name>
 
 # example
 $ systemctl enable nginx.service
-TODO: 결과...
-```
-* 자동 시작을 위한 심볼링 링크가 생성된다
-  * `/lib/systemd/system <- /etc/systemd/system`
+Failed to execute operation: The name org.freedesktop.PolicyKit1 was not provided by any .service files
 
-### 부팅시 서비스 비활성화(자동 실행 안하기)
+# root 영역에 symlink를 생성하므로 sudo 권한 필요
+$ sudo systemctl enable nginx.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/nginx.service to /usr/lib/systemd/system/nginx.service.
+
+# 자동 시작을 위한 symlink가 생성되었다
+$ ls -al /etc/systemd/system/multi-user.target.wants/ | grep nginx.service
+lrwxrwxrwx  1 root root   37  8월  5 17:34 nginx.service -> /usr/lib/systemd/system/nginx.service
+
+```
+* 자동 시작을 위해 default target에 symlink가 생성
+
+
+### 부팅시 서비스 비활성화(자동 실행 X)
 ```sh
 $ systemctl disable <service name>
 
 # example
 $ systemctl disable nginx.service
-TODO: 결과...
+Failed to execute operation: The name org.freedesktop.PolicyKit1 was not provided by any .service files
+
+# root 영역의 symlink를 제거하므로 sudo 권한 필요
+$ sudo systemctl disable nginx.service
+Removed symlink /etc/systemd/system/multi-user.target.wants/nginx.service.
 ```
+* `systemctl enable`로 생성된 symlink가 제거됨을 볼 수 있다
+
 
 ### 서비스 시작하기
 ```sh
@@ -177,8 +173,12 @@ $ systemctl start <service name>
 
 # example
 $ systemctl start nginx.service
-TODO: 결과...
+Failed to start nginx.service: The name org.freedesktop.PolicyKit1 was not provided by any .service files
+See system logs and 'systemctl status nginx.service' for details.
+
+$ sudo systemctl start nginx.service  # sudo 필요
 ```
+
 
 ### 서비스 중지하기
 ```sh
@@ -186,8 +186,12 @@ $ systemctl stop <service name>
 
 # example
 $ systemctl stop nginx.service
-TODO: 결과...
+Failed to stop nginx.service: The name org.freedesktop.PolicyKit1 was not provided by any .service files
+See system logs and 'systemctl status nginx.service' for details.
+
+$ sudo systemctl stop nginx.service  # sudo 필요
 ```
+
 
 ### 서비스 재시작하기
 ```sh
@@ -195,8 +199,12 @@ $ systemctl restart <service name>
 
 # example
 $ systemctl restart nginx.service
-TODO: 결과...
+Failed to restart nginx.service: The name org.freedesktop.PolicyKit1 was not provided by any .service files
+See system logs and 'systemctl status nginx.service' for details.
+
+$ sudo systemctl restart nginx.service  # sudo 필요
 ```
+
 
 ### 서비스 리로드
 ```sh
@@ -204,8 +212,12 @@ $ systemctl reload <service name>
 
 # example
 $ systemctl reload nginx.service
-TODO: 결과...
+Failed to restart nginx.service: The name org.freedesktop.PolicyKit1 was not provided by any .service files
+See system logs and 'systemctl status nginx.service' for details
+
+$ sudo systemctl reload nginx.service  # sudo 필요
 ```
+
 
 ### 서비스 리로드 or 재시작
 * reload 기능이 있는지 확실하지 않으면 사용
@@ -215,8 +227,12 @@ $ systemctl reload-or-restart <service name>
 
 # example
 $ systemctl reload-or-restart nginx.service
-TODO: 결과...
+Failed to reload-or-restart nginx.service: The name org.freedesktop.PolicyKit1 was not provided by any .service files
+See system logs and 'systemctl status nginx.service' for details.
+
+$ sudo systemctl reload-or-restart nginx.service  # sudo 필요
 ```
+
 
 ### 서비스 활성화 여부 조회
 ```sh
@@ -224,8 +240,9 @@ $ systemctl is-enabled <service name>
 
 # example
 $ systemctl is-enabled nginx.service
-TODO: 결과...
+disabled
 ```
+
 
 ### 서비스 실행 여부 조회
 ```sh
@@ -233,8 +250,9 @@ $ systemctl is-active <service name>
 
 # example
 $ systemctl is-active nginx.service
-TODO: 결과...
+active
 ```
+
 
 ### 서비스 실패 여부 확인
 ```sh
@@ -242,69 +260,43 @@ $ systemctl is-failed <service name>
 
 # example
 $ systemctl is-failed nginx.service
-TODO: 결과...
+active
 ```
 
-### 서비스의 systemd 정보 확인
-
-```sh
-$ systemctl show <service name>
-
-# example
-$ systemctl show nginx.service
-TODO: 결과...
-```
 
 ### systemd 재시작
 ```sh
-$ systemctl damon-reload
-TODO: 결과...
+$ systemctl daemon-reload
+Failed to execute operation: The name org.freedesktop.PolicyKit1 was not provided by any .service files
+
+$ sudo systemctl daemon-reload  # sudo 필요
 ```
+
+> sudo 권한이 필요하다고, 명시적으로 알려주면 편했을거 같은데, apt, yum 등은 permission 문제라고 알려주는데...
 
 ---
 
 <br>
 
-## journalctl
-* Query the systemd journal log
+## Unit Management
 
-### 자세한 systemctl error log 조회
-```sh
-$ joirnalctl -xn
-
-TODO: 결과..
-```
-
-### 마지막 error log line 보기
-```sh
-$ journalctl -xe
-
-TODO: 결과..
-```
-
-### 짤리는 페이지 개행하기
-```sh
-$ journalctl -xn --no-pager | less
-
-TODO: 결과..
-```
-
-
-
-## System State Overview
-* 현재 시스템 상태를 알 수 있는 명령어
-
-### Listing Current Units
-* active unit 조회
+### active unit 조회
+* active unit만 표시하므로 전부 loaded, active
 ```sh
 $ systemctl list-units
 
-TODO: 결과 추가..
-# list-units은 active unit만 표시하므로 전부 loaded, active
+UNIT                             LOAD   ACTIVE SUB       DESCRIPTION
+proc-sys-fs-binfmt_misc.automount loaded active waiting   Arbitrary Executable File Forma
+sys-devices-platform-serial8250-tty-ttyS1.device loaded active plugged   /sys/devices/pla
+-.mount                          loaded active mounted   /
+dev-mqueue.mount                 loaded active mounted   POSIX Message Queue File System
+brandbot.path                    loaded active waiting   Flexible branding
+chronyd.service                  loaded active running   NTP client/server
+cloud-init.service               loaded active exited    Initial cloud-init
+...
 ```
-
 * UNIT
-  * `systemd` unit name
+  * systemd unit name
 * LOAD
   * unit의 설정이 systemd에 의해 파생되었는지 여부
   * 로드된 unit 구성은 메모리에 유지
@@ -314,37 +306,101 @@ TODO: 결과 추가..
   * 자세한 정보를 나타내는 하위 레벨 상태
   * unit type, state, unit이 실행되는 실제 방법에 따라 다르다
 * DESCRIPTION
-  * 짧은 설명
-
-
-
+  * 간단한 설명
 
 ### 현재 systemd가 로드한 모든 unit 조회
 * 일부 장치는 실행 후 비활성화 상태가 되고 시스템에서 로드하려고 시도한 일부 장치는 발견되지 않을 수 있다
 ```sh
-systemctl list-units --all
-```
+$ systemctl list-units --all
 
-### systemd에서 사용 가능한 모든 unit file 조회
+UNIT                             LOAD   ACTIVE SUB       DESCRIPTION
+-.mount                        loaded    active   mounted   /
+dev-mqueue.mount               loaded    active   mounted   POSIX Message Queue File Sy
+proc-sys-fs-binfmt_misc.mount  loaded    inactive dead      Arbitrary Executable File F
+sys-kernel-debug.mount         loaded    active   mounted   Debug File System
+tmp.mount                      loaded    inactive dead      Temporary Directory
+var-lib-nfs-rpc_pipefs.mount   loaded    active   mounted   RPC Pipe File System
+systemd-ask-password-console.path loaded    inactive dead      Dispatch Password Reques
+brandbot.service               loaded    inactive dead      Flexible Branding Service
+chronyd.service                loaded    active   running   NTP client/server
+```
+* loaded, inactive인 것도 보인다
+
+
+### systemd에서 사용 가능한 모든 unit 조회
 * list-units은 systemd가 메모리로 로드한 unit만 표시
 ```sh
 $ systemctl list-unit-files
-```
 
-* unit
+# example
+$ systemctl list-unit-files
+
+UNIT FILE                                     STATE
+dev-mqueue.mount                              static
+crond.service                                 enabled
+nginx.service                                 disabled
+...
+```
+* UNIT FILE
   * systemd가 알고 있는 resource의 표현
 * STATE
-  * enabled
-  * disabled
+  * enabled - 활성화
+  * disabled - 비활성화
   * static - unit을 enable시키는데 사용되는 install section이 없다
-  * masked
+  * masked - 자동/수동으로 시작 불가능
 
 
----
+### 구동에 실패한 unit 조회
+```sh
+$ systemctl list-units --state=failed  # systemctl --failed
 
-<br>
+0 loaded units listed. Pass --all to see loaded but inactive units, too.
+To show all installed unit files use 'systemctl list-unit-files'.
+```
 
-## Unit Management
+
+### 모든 active unit 조회
+```sh
+$ systemctl list-units --state=active
+UNIT                             LOAD   ACTIVE SUB       DESCRIPTION
+-.mount                          loaded active mounted   /
+dev-mqueue.mount                 loaded active mounted   POSIX Message Queue File System
+...
+```
+
+
+### inactive unit 조회
+```sh
+$ systemctl list-units --all --state=inactive
+
+ UNIT                             LOAD      ACTIVE   SUB  DESCRIPTION
+  proc-sys-fs-binfmt_misc.mount    loaded    inactive dead Arbitrary Executable File Form
+● display-manager.service          not-found inactive dead display-manager.service
+  dm-event.service                 loaded    inactive dead Device-mapper event daemon
+  dmraid-activation.service        loaded    inactive dead Activation of DM RAID sets
+● exim.service                     not-found inactive dead exim.service
+...
+```
+
+
+### running unit 조회
+```sh
+$ systemctl list-units --type=service --state=running
+UNIT                       LOAD   ACTIVE SUB     DESCRIPTION
+amazon-ssm-agent.service   loaded active running amazon-ssm-agent
+atd.service                loaded active running Job spooling tools
+auditd.service             loaded active running Security Auditing Service
+chronyd.service            loaded active running NTP client/server
+...
+
+LOAD   = Reflects whether the unit definition was properly loaded.
+ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
+SUB    = The low-level unit activation state, values depend on unit type.
+
+20 loaded units listed. Pass --all to see loaded but inactive units, too.
+To show all installed unit files use 'systemctl list-unit-files'.
+```
+
 
 ### unit file 내용 확인
 ```sh
@@ -352,79 +408,221 @@ $ systemctl cat <service name>
 
 # example
 $ systemctl cat nginx.service
+
+# /usr/lib/systemd/system/nginx.service
+[Unit]
+Description=The nginx HTTP and reverse proxy server
+After=network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=forking
+PIDFile=/run/nginx.pid
+# Nginx will fail to start if /run/nginx.pid already exists but has the wrong
+# SELinux context. This might happen when running `nginx -t` from the cmdline.
+# https://bugzilla.redhat.com/show_bug.cgi?id=1268621
+ExecStartPre=/usr/bin/rm -f /run/nginx.pid
+ExecStartPre=/usr/sbin/nginx -t
+ExecStart=/usr/sbin/nginx
+ExecReload=/bin/kill -s HUP $MAINPID
+KillSignal=SIGQUIT
+TimeoutStopSec=5
+KillMode=process
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
 ```
 
-###
+
+### unit 의존성 확인
+* 각 unit은 서로간의 의존관계를 가지고 있다 
+```sh
+$ systemctl list-dependencies
+
+default.target
+● ├─display-manager.service
+● ├─network.service
+● ├─systemd-readahead-collect.service
+● ├─systemd-readahead-replay.service
+● ├─systemd-update-utmp-runlevel.service
+● └─multi-user.target
+●   ├─amazon-ssm-agent.service
+●   ├─atd.service
+●   ├─auditd.service
+...
+```
+
+#### 특정 unit의 의존성 확인
+* 특정 서비스에 대해 활성화된 서비스
+```sh
+$ systemctl list-dependencies <unit name>
+
+# example
 $ systemctl list-dependencies nginx.service
 
+nginx.service
+● ├─-.mount
+● ├─system.slice
+● └─basic.target
+●   ├─rhel-autorelabel-mark.service
+●   ├─rhel-autorelabel.service
+●   ├─rhel-configure.service
+●   ├─rhel-dmesg.service
+●   ├─rhel-loadmodules.service
+●   ├─selinux-policy-migrate-local-changes@targeted.service
+●   ├─paths.target
+●   ├─slices.target
+...
+```
 
-$ systemctl list-dependencies --all nginx.service
-모든 종속성 unit 조회
-
-$ systemctl list-dependencies --reverse nginx.service
-역방향 모든 종속성 unit 조회
-
-$ systemctl list-dependencies --before nginx.service
-앞에 시작하는 종속된 unit 조회
-
-$ systemctl list-dependencies --after nginx.service
-뒤에 시작하는 종속된 unit 조회
-
-
-### low-level properties 조회
+#### 모든 종속성 unit 조회
 ```sh
-$ systemctl show <service name>
+$ systemctl list-dependencies --all <unit name>
+
+# example
+$ systemctl list-dependencies --all nginx.service
+
+nginx.service
+● ├─-.mount
+● │ └─system.slice
+● │   └─-.slice
+● ├─system.slice
+● │ └─-.slice
+● └─basic.target
+●   ├─rhel-autorelabel-mark.service
+●   │ ├─system.slice
+●   │ │ └─-.slice
+●   │ └─local-fs.target
+●   │   ├─-.mount
+●   │   │ └─system.slice
+●   │   │   └─-.slice
+●   │   ├─rhel-import-state.service
+...
+```
+
+#### 역방향 모든 종속성 unit 조회
+```sh
+$ systemctl list-dependencies --reverse <unit name>
+
+# example
+$ systemctl list-dependencies --reverse nginx.service
+nginx.service
+
+$ systemctl list-dependencies --reverse sockets.target
+sockets.target
+● └─basic.target
+●   ├─amazon-ssm-agent.service
+●   ├─atd.service
+●   ├─brandbot.service
+●   ├─chronyd.service
+●   ├─nginx.service
+...
+```
+
+#### 지정한 unit 이전에 시작하는 종속된 unit 조회
+```sh
+$ systemctl list-dependencies --before <unit name>
+
+# example
+$ systemctl list-dependencies --before nginx.service
+
+nginx.service
+● └─shutdown.target
+●   ├─systemd-reboot.service
+●   └─final.target
+●     └─systemd-reboot.service
+```
+
+#### 지정한 unit 이후에 시작하는 종속된 unit 조회
+```sh
+$ systemctl list-dependencies --after <unit name>
+
+# example
+$ systemctl list-dependencies --after nginx.service
+
+nginx.service
+● ├─-.mount
+● ├─system.slice
+● ├─systemd-journald.socket
+● ├─tmp.mount
+● ├─basic.target
+● │ ├─rhel-import-state.service
+● │ ├─systemd-ask-password-plymouth.path
+● │ ├─paths.target
+● │ │ ├─brandbot.path
+● │ │ ├─systemd-ask-password-console.path
+● │ │ └─systemd-ask-password-wall.path
+● │ ├─slices.target
+...
+```
+
+
+### unit의 systemd 정보 확인
+* low-level properties 조회
+```sh
+$ systemctl show <unit name>
 
 # example
 $ systemctl show nginx.service
 
-TODO: 결과
+Type=forking
+Restart=no
+PIDFile=/run/nginx.pid
+NotifyAccess=none
+RestartUSec=100ms
+TimeoutStartUSec=1min 30s
+TimeoutStopUSec=5s
+WatchdogUSec=0
+WatchdogTimestampMonotonic=0
+StartLimitInterval=10000000
+StartLimitBurst=5
+StartLimitAction=none
+...
 ```
 
-* 단일 property 표시
+#### 단일 property 표시
 ```sh
-$ systemctl show <service name> -p <property name>
+$ systemctl show <unit name> -p <property name>
 
 # example
-$ systemctl show nginx.service -p Conflicts
+$ systemctl show nginx.service -p Type
 
-TODO: 결과
+Type=forking
 ```
 
 
 ### unit masking
-* /dev/null에 링크하여 완전히 자동/수동으로 완전히 시작 불가능한 상태로 표시
+* /dev/null에 링크하여 `자동/수동으로 완전히 시작 불가능`한 상태로 표시
 
 ```sh
-$ systemctl mask <service name>
+$ systemctl mask <unit name>
 
 # example
-$ systemctl mask nginx.service
+$ systemctl list-unit-files | grep nginx
+nginx.service                                 disabled
 
-$ systemctl list-unit-files
-TODO: 결과 추가
-kmod-static-nodes.service              static  
-ldconfig.service                       static  
-mandb.service                          static  
-messagebus.service                     static  
-nginx.service                          `masked`
-quotaon.service                        static  
-rc-local.service                       static  
-rdisc.service                          disabled
-rescue.service                         static
-. . .
+$ sudo systemctl mask nginx.service  # sudo 필요
+
+Created symlink from /etc/systemd/system/nginx.service to /dev/null.
+
+# check
+$ systemctl list-unit-files | grep nginx
+nginx.service                          masked
 
 # 시작하려고 하면
 $ sudo systemctl start nginx.service
-Failed to start nginx.service: Unit nginx.service is masked. 
+Failed to start nginx.service: Unit is masked.
 ```
+
 
 ### unit unmasking
 ```sh
-$ systemctl unmask <service name>
+$ systemctl unmask <unit name>
 
 # example
-$ systemctl unmask nginx.service
+$ sudo systemctl unmask nginx.service  # sudo 필요
+
+Removed symlink /etc/systemd/system/nginx.service.
 ```
 
 ---
@@ -432,28 +630,28 @@ $ systemctl unmask nginx.service
 <br>
 
 ## Unit File 편집
-* Systemd는 `/usr/lib/system`에 Unit File 보관
-* 커스터마이징을 위해 해당 파일을 직접 수정하지 말고, `/etc/systemd/system/nginx.service.d`에 .conf로 끝나는 설정파일을 만들면 된다
+* Systemd는 `/usr/lib/systemd/system`에 Unit File 보관
+* 커스터마이징을 위해 해당 파일을 직접 수정하지 말고, `/etc/systemd/system/<unit name>.d`에 `.conf`로 끝나는 설정파일을 만들면 된다
 * 이런 과정은 번거롭고, 실수도 많기 때문에 systemd에서 제공하는 기능을 사용하자
 
 ```sh
-$ systemctl edit <service name>
+$ systemctl edit <unit name>
 
 # example
-$ systemctl edit nginx.service
+$ sudo systemctl edit nginx.service
 ```
 * 위 명령어는 다음을 수행
   1. `/etc/systemd/system/nginx.service.d` 생성
   2. 시스템에 등록된 편집기 오픈
   3. 내용을 입력하고 저장하면 1에서 생성한 디렉토리에 override.conf를 생성하고 내용을 읽는다
     * systemctl daemon-reload는 불필요
-* /usr/lib/system/nginx.service Unit File 자체를 편집하고 싶다면 `-full`을 사용
+* /usr/lib/systemd/system/nginx.service Unit File 자체를 편집하고 싶다면 `-full`을 사용
 
 ```sh
 $ systemctl edit <service name> --full
 
 # example
-$ systemctl edit nginx.service --full
+$ sudo systemctl edit nginx.service --full  # sudo 필요
 ```
 
 ### 편집한 내용 제거
@@ -464,7 +662,7 @@ $ sudo rm -r /etc/systemd/system/nginx.servicd.d
 $ sudo rm /etc/systemd/system/nginx.service
 
 # reload 필요
-$ systemctl damon-reload
+$ systemctl daemon-reload
 ```
 
 ---
@@ -477,6 +675,7 @@ $ systemctl damon-reload
 * 시스템 상태, 동기화 지점을 설명하는 특수 unit file
 * 동시에 서비스들을 시작하는 걸 허용하기 위한 그룹 메커니즘
   * unit을 grouping
+  * target에 따라 부팅시 시작되는 unit이 달라진다
 * 접미사 `.target` 사용
 * 기존 SysV init의 run level과 같은 개념
 * systemd의 default target은 `default.target`
@@ -487,21 +686,55 @@ $ systemctl damon-reload
     * 이 프로세스의 일부인 unit은 `WantedBy=`, `RequiredBy=swap.target`로 동기화 할수 있다
     * swap을 사용할 수 있어야 하는 unit은 `Wants=`, `Requires=`, `After=`로 조건을 지정해 관계를 나타낼 수 있다
 
+
 ### default target 조회
 ```sh
 $ systemctl get-default
+
+graphical.target
 ```
 
 ### target list 조회
+* active target만 표시하므로 전부 loaded, active
 ```sh
 $ systemctl list-units --type=target
+
+UNIT                  LOAD   ACTIVE SUB    DESCRIPTION
+basic.target          loaded active active Basic System
+cloud-config.target   loaded active active Cloud-config availability
+cloud-init.target     loaded active active Cloud-init target
+cryptsetup.target     loaded active active Local Encrypted Volumes
+getty.target          loaded active active Login Prompts
+graphical.target      loaded active active Graphical Interface
+local-fs-pre.target   loaded active active Local File Systems (Pre)
+local-fs.target       loaded active active Local File Systems
+multi-user.target     loaded active active Multi-User System
+network-online.target loaded active active Network is Online
+network-pre.target    loaded active active Network (Pre)
+...
 ```
--> 활성화 된것만 나오는듯...?
+
 
 ### 활성화 되지 않은 target(rescue, emergency 등) 리스트 조회
 ```sh
 $ systemctl list-units --type=target --all
+ UNIT                   LOAD      ACTIVE   SUB    DESCRIPTION
+  basic.target           loaded    active   active Basic System
+  cloud-config.target    loaded    active   active Cloud-config availability
+  cloud-init.target      loaded    active   active Cloud-init target
+  cryptsetup.target      loaded    active   active Local Encrypted Volumes
+  emergency.target       loaded    inactive dead   Emergency Mode
+  final.target           loaded    inactive dead   Final Step
+  getty-pre.target       loaded    inactive dead   Login Prompts (Pre)
+  getty.target           loaded    active   active Login Prompts
+  graphical.target       loaded    active   active Graphical Interface
+  local-fs-pre.target    loaded    active   active Local File Systems (Pre)
+ ...
+
+31 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
 ```
+
 
 ### default target 변경
 ```sh
@@ -509,10 +742,16 @@ $ systemctl set-default <target name>
 
 # example
 # 설치시 default target은 multi-user.target이며 부팅시 X-Windows로 로그인 하려면 graphical.target으로 설정
-$ systemctl set-default graphical.target
+$ sudo systemctl set-default graphical.target
+
+Removed symlink /etc/systemd/system/default.target.
+Created symlink from /etc/systemd/system/default.target to /usr/lib/systemd/system/graphical.target.
 
 $ systemctl get-default
+
+graphical.target
 ```
+
 
 ### Isolating Target
 * 관련된 모든 unit을 시작하고, 종속성 트리의 일부가 아닌 모든 unit을 중지할 수 있다
@@ -523,10 +762,18 @@ $ systemctl get-default
 $ systemctl isolate <target name>
 
 # example
-$ systemctl isolate runlevel3.target # or multi-user.target
+$ sudo systemctl isolate runlevel3.target  # or multi-user.target
 
-$ systemctl isolate graphical.target
+$ sudo systemctl isolate graphical.target  # or runlevel5.target
 ```
+
+| Run Level | Target Units | Description |
+|:--|:--|:--|
+| 0 | runlevel0.target <br>poweroff.target | Shutdown and power off |
+| 1 | runlevel1.target <br>rescue.target | Set up a rescue shell |
+| 2, 3, 4 | runlevel[234].target <br>multi-user.target | Set up a nongraphical multi-user shell |
+| 5 | runlevel5.target <br>graphical.target | Set up a graphical multi-user shell |
+| 6 |runlevel6.target <br>reboot.target | Shutdown and reboot the system |
 
 ---
 
@@ -538,12 +785,40 @@ $ systemctl isolate graphical.target
 ### 부팅 시간 정보
 ```sh
 $ systemd-analyze
+
+Startup finished in 1.329s (kernel) + 1.321s (initrd) + 8.017s (userspace) = 10.667s
 ```
+
 
 ### 부팅 과정에 각 서비스별 초기화하는데 걸린 시간
 * 소요시간순으로 정렬해서 보여준다
 ```sh
 $ systemd-analyze blame
+
+2.871s update-motd.service
+2.023s network.service
+1.211s cloud-init.service
+ 870ms cloud-init-local.service
+ 819ms postfix.service
+ 734ms cloud-config.service
+ 599ms cloud-final.service
+ 586ms lvm2-monitor.service
+ 463ms dev-xvda1.device
+ 321ms proc-fs-nfsd.mount
+ 274ms systemd-journal-flush.service
+ 274ms systemd-udev-trigger.service
+ 271ms rhel-readonly.service
+ 219ms plymouth-quit.service
+ 214ms plymouth-quit-wait.service
+ 145ms systemd-udev-settle.service
+  99ms gssproxy.service
+  82ms chronyd.service
+  76ms sshd.service
+  75ms auditd.service
+  75ms sysstat.service
+  75ms rhel-dmesg.service
+  64ms rpc-statd-notify.service
+...    
 ```
 
 ### 부팅 과정 분석 html 파일로 덤프
@@ -551,24 +826,80 @@ $ systemd-analyze blame
 * 부팅 과정에서 소비되는 시간을 측정해 개선점을 찾게 해준다
 ```sh
 $ systemd-analyze plot > plot.html
+
+# example
+$ systemd-analyze plot
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="1147px" height="2550px" version="1.1" xmlns="http://www.w3.org/2000/svg">
+...
 ```
+
+* plot.html
+
+![systemd analyze plot](https://github.com/opklnm102/study/blob/master/linux/images/systemd-analyze_plot.png)
+
       
 ### 시간을 많이 잡아먹는 서비스들을 트리 형태로 조회
 ```sh
 $ systemd-analyze critical-chain
-```
 
-#### 특정 서비스
+The time after the unit is active or started is printed after the "@" character.
+The time the unit takes to start is printed after the "+" character.
+
+graphical.target @8.009s
+└─multi-user.target @8.009s
+  └─update-motd.service @5.137s +2.871s
+    └─network-online.target @5.135s
+      └─cloud-init.service @3.914s +1.211s
+        └─network.service @1.889s +2.023s
+          └─network-pre.target @1.889s
+            └─cloud-init-local.service @1.019s +870ms
+              └─basic.target @947ms
+                └─paths.target @947ms
+                  └─brandbot.path @947ms
+                    └─sysinit.target @946ms
+                      └─systemd-update-utmp.service @932ms +14ms
+                        └─auditd.service @855ms +75ms
+                          └─systemd-tmpfiles-setup.service @831ms +23ms
+                            └─local-fs.target @831ms
+                              └─local-fs-pre.target @831ms
+                                └─lvm2-monitor.service @245ms +586ms
+                                  └─lvm2-lvmetad.service @310ms
+                                    └─lvm2-lvmetad.socket @244ms
+                                      └─-.slice
+```
+* `@ <time>` - unit이 활성화, 시작된 후 시간
+* `+ <time>` - unit이 시작될 때까지의 시간
+
+#### 특정 서비스를 트리 형태로 조회
 ```sh
-$ systemd-analyze critical-chain <service naem>
+$ systemd-analyze critical-chain <unit naem>
 
 # example
 $ systemd-analyze critical-chain nginx.service
-```
 
-### 서비스 실행 실패 서비스 확인
-```sh
-$ systemctl --failed
+The time after the unit is active or started is printed after the "@" character.
+The time the unit takes to start is printed after the "+" character.
+
+nginx.service +183ms
+└─network.target @3.913s
+  └─network.service @1.889s +2.023s
+    └─network-pre.target @1.889s
+      └─cloud-init-local.service @1.019s +870ms
+        └─basic.target @947ms
+          └─paths.target @947ms
+            └─brandbot.path @947ms
+              └─sysinit.target @946ms
+                └─systemd-update-utmp.service @932ms +14ms
+                  └─auditd.service @855ms +75ms
+                    └─systemd-tmpfiles-setup.service @831ms +23ms
+                      └─local-fs.target @831ms
+                        └─local-fs-pre.target @831ms
+                          └─lvm2-monitor.service @245ms +586ms
+                            └─lvm2-lvmetad.service @310ms
+                              └─lvm2-lvmetad.socket @244ms
+                                └─-.slice
 ```
 
 ---
@@ -580,31 +911,49 @@ $ systemctl --failed
 ### rescue
 * 시스템 복구 등의 이유로 single user mode로 진입할 필요가 있을 경우
 ```sh
-$ systemctl rescue
+$ sudo systemctl rescue
+
+Broadcast message from ec2-user@ip-172-31-28-244.ap-northeast-2.compute.internal on pts/0 (수 2018-08-15 07:27:13 UTC):
+
+The system is going down to rescue mode NOW!
 ```
+> 그리고 접속이 끊겼다.. 그 후 접속이 안돼서 리부팅...
+
 
 ### emergency
 * 파일 시스템이 깨졌다 등의 이유로 single user mode로 진입할 수 없을 떄
 * emergency로 들어가면 부팅시 최소의 기능으로만 부팅(root 파일 시스템은 read only로 마운트, 다른 파일 시스템은 마운트를 안하는 등)하므로 응급 복구 가능
 ```sh
-$ systemctl emergency
+$ sudo systemctl emergency
+
+Connection to xxx.xxx.xxx.xxx closed by remote host.
 ```
+> 그리고 또 접속이 끊겼다...
+
 
 ### 시스템 정지
 ```sh
-$ systemctl halt
+$ sudo systemctl halt
+
+Connection to xxx.xxx.xxx.xxx closed by remote host.
 ```
+> EC2 dashboard에서도 stop으로 변경됨을 볼 수 있었다
+
 
 ### 시스템 종료
 ```sh
-$ systemctl poweroff
+$ sudo systemctl poweroff
+
+Connection to xxx.xxx.xxx.xxx closed by remote host.
 ```
+> EC2 dashboard에서도 stop으로 변경됨을 볼 수 있었다
+
 
 ### 시스템 재시작
 ```sh
-$ systemctl reboot 
-# or 
-$ reboot
+$ sudo systemctl reboot  # or reboot
+
+Connection to xxx.xxx.xxx.xxx closed by remote host.
 ```
 
 ---
@@ -632,6 +981,55 @@ $ reboot
 | chkconfig --list | systemctl list-unit-files --type service | 모든 서비스의 현재 활성화 여부 조회 |
 | chkconfig --list | systemctl list-dependencies --after | 지정한 target 이후에 시작하는 서비스 조회 |
 | chkconfig --list | systemctl list-dependencies --before | 지정한 target 이전에 시작하는 서비스 조회 |
+
+---
+
+<br>
+
+## journalctl
+* systemd와 관련된 journal log query하는 법
+
+### 자세한 systemctl error log 조회
+```sh
+$ journalctl -xn
+
+-- Logs begin at 토 2018-08-04 01:36:46 UTC, end at 수 2018-08-15 08:03:44 UTC. --
+ 8월 15 08:03:31 ip-172-31-28-244.ap-northeast-2.compute.internal dhclient[2992]: XMT: So
+ 8월 15 08:03:36 ip-172-31-28-244.ap-northeast-2.compute.internal dhclient[2992]: XMT: So
+ 8월 15 08:03:44 ip-172-31-28-244.ap-northeast-2.compute.internal sshd[3232]: Accepted pu
+ 8월 15 08:03:44 ip-172-31-28-244.ap-northeast-2.compute.internal systemd[1]: Created sli
+...
+```
+
+### 마지막 error log line 보기
+```sh
+$ journalctl -xe
+
+-- now idle as services might still be busy with completing start-up.
+--
+-- Kernel start-up required 1121354 microseconds.
+--
+-- Initial RAM disk start-up required 1650662 microseconds.
+--
+-- Userspace start-up required 7513737 microseconds.
+ 8월 15 08:03:31 ip-172-31-28-244.ap-northeast-2.compute.internal dhclient[2992]: XMT: So
+ 8월 15 08:03:36 ip-172-31-28-244.ap-northeast-2.compute.internal dhclient[2992]: XMT: So
+ 8월 15 08:03:44 ip-172-31-28-244.ap-northeast-2.compute.internal sshd[3232]: Accepted pu
+ 8월 15 08:03:44 ip-172-31-28-244.ap-northeast-2.compute.internal systemd[1]: Created sli
+...
+```
+
+### 짤리는 페이지 개행하기
+```sh
+$ journalctl -xn --no-pager | less
+
+...
+8월 15 08:03:44 ip-172-31-28-244.ap-northeast-2.compute.internal sshd[3232]: pam_unix(sshd:session): session opened for user ec2-user by (uid=0)
+8월 15 08:03:44 ip-172-31-28-244.ap-northeast-2.compute.internal dhclient[2992]: XMT: Solicit on eth0, interval 16160ms.
+8월 15 08:04:00 ip-172-31-28-244.ap-northeast-2.compute.internal dhclient[2992]: XMT: Solicit on eth0, interval 30960ms.
+8월 15 08:04:31 ip-172-31-28-244.ap-northeast-2.compute.internal dhclient[2992]: XMT: Solicit on eth0, interval 59850ms.
+8월 15 08:05:31 ip-172-31-28-244.ap-northeast-2.compute.internal dhclient[2992]: XMT: Solicit on eth0, interval 117800ms.
+```
 
 ---
 
