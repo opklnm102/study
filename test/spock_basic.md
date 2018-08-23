@@ -78,7 +78,7 @@ def "pushing an element on the stack" () {
 
 ## block
 
-![spock block](https://github.com/opklnm102/study/blob/master/spring/images/spock_blocks.png)
+![spock block](https://github.com/opklnm102/study/blob/master/test/images/spock_blocks.png)
 
 * `given`, `when`, `then`과 같은 코드 블록
 * block은 feature method 내 최소 1개 필수
