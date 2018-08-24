@@ -100,6 +100,178 @@ def "pushing an element on the stack" () {
   * feature method를 파라미터 삼아 실행시킨다
   * 실패한 모든 테스트 케이스를 알려준다
 
+
+### Helper Methods
+* 2가지 이상의 feature method에서 중복되는 로직을 분리
+* 설정 및 검증 로직이 좋은 후보군
+```groovy
+// before
+def "offered PC matches preferred configuration"() {
+  when:
+  def pc = shop.buyPc()
+
+  then:
+  pc.vendor == "Sunny"
+  pc.clockRate >= 2333
+  pc.ram >= 4096
+  pc.os == "Linux"
+}
+
+// after
+def "offered PC matches preferred configuration"() {
+  when:
+  def pc = shop.buyPc()
+
+  then:
+  matchesPreferredConfiguration(pc)
+}
+
+def matchesPreferredConfiguration(pc) {
+  pc.vendor == "Sunny" && pc.clockRate >= 2333 && pc.ram >= 4096 && pc.os == "Linux"
+}
+
+// result
+Condition not satisfied:
+
+matchesPreferredConfiguration(pc)
+|                             |
+false                         me.dong.spocksample.SpockTest$Shop$Pc@6c80d78a
+```
+
+#### 실패시 메시지
+* 위의 helper method는 자세하지 않아 별로 도움이 되지 않는다
+* 2가지를 추가하면 도움이 되는 메시지를 얻을 수 있다
+  * 암시적 조건을 `assert`로 명시적 조건으로 변환
+  * helper method의 return 형식 `void`로 수정
+    * return 값을 실패 조건으로 해석할 수 있기 때문
+
+```groovy
+void matchesPreferredConfiguration(pc) {
+  assert pc.vendor == "Sunny"
+  assert pc.clockRate >= 2333
+  assert pc.ram >= 4096
+  assert pc.os == "Linux"
+}
+
+// result
+Condition not satisfied:
+
+pc.vendor == "Sunny"
+|  |      |
+|  Sunn   false
+|         1 difference (80% similarity)
+|         Sunn(-)
+|         Sunn(y)
+me.dong.spocksample.SpockTest$Shop$Pc@6c80d78a
+
+Expected :Sunny
+
+Actual   :Sunn
+```
+* 코드의 재사용은 좋은 시도지만 fixture와 helper method를 사용하면 feature method간에 `coupling이 증가`할 수 있다
+* 너무 많이 잘못된 코드를 재사용하면 `깨지기 쉽고, 발전하기 어려운` Specfication이 될 수 있기 때문에 조심
+
+
+### Using with for expectations
+* helper method 대신 `with(target, closure)`를 사용하면 `assert`가 필요 없다
+```groovy
+def service = Mock(Service) // has start(), stop(), and doWork() methods
+def app = new Application(service) // controls the lifecycle of the service
+
+when:
+app.run()
+
+then:
+with(service) {
+  1 * start()
+  1 * doWork()
+  1 * stop()
+}
+```
+
+<br>
+
+## Specifications as Documentation
+* block마다 자연어로 설명을 기술할 수 있다
+* `and`로 block 내에서 개별로도 가능
+```groovy
+def "back account credited 10"() {
+  given: "open a database connection"
+  
+  and: "seed the customer table"
+  
+  and: "an empty bank account"
+  
+  when: "the account is credited 10"
+  
+  then: "the account's balance is 10"
+  
+  cleanup: "close a database connection"
+```
+
+<br>
+
+## Extensions
+* spock는 interception-based extension mechanism 제공
+* Extensions은 directive라는 annotation에 의해 활성화
+
+### @Timeout
+* feature method에 timeout 설정
+```groovy
+@Timeout(value = 1000, unit = TimeUnit.SECONDS)
+def "feature method with timeout directive"() {
+  ...
+}
+```
+
+### @Ignore
+* Ignores a feature method
+```groovy
+@Ignore(value = "reason..")
+def "feature method with ignore directive"() {
+  ...
+}
+```
+
+### @IgnoreRest
+* Annotation을 가지고 있지 않은 모든 feature method를 무시
+* 하나의 method만 빠르게 실행하는데 유용
+```groovy
+@IgnoreRest
+def "only running this feature method with ignore restdirective"() {
+  ...
+}
+```
+
+### @FailsWith
+* feature method가 갑자기 완료되는걸 표현
+* 2가지 use case
+  * 즉시 해결할 수 없는 bug를 문서화
+  * 특정 조건에서 예외조건과 조건의 동작지정을 바꿀 수 있다
+* 다른 모든 경우에는 예외 조건이 바람직
+
+```groovy
+@FailsWith(value = NullPointerException, reason = "reason..")
+def "back account credited 1"() {
+  given:
+  def shop
+  
+  when:
+  def pc = shop.buyPc()
+  
+  then:
+  with(pc) {
+    vendor == "Sunny"
+    clockRate >= 2333
+    ram >= 406
+    os == "Linux"
+  }
+}
+```
+
+<br>
+
+
 ## spock vs JUnit
 
 | Spock | JUnit |
@@ -116,6 +288,8 @@ def "pushing an element on the stack" () {
 | Exception condition | @Test(expected=..) |
 | Interaction | Mock expectation(e.g. in Mockito) |
 
+
+<br>
 
 ## example
 * 소수점 버림 계산기에 대해 TC 작성해보기
@@ -170,6 +344,36 @@ class CalculatorTest extends Specification {
         roundingMode = null
     }
 }
+
+class FileTest extends Specfication {
+
+    def "file..." () {
+      setup:
+      def file = new File("/some/path")
+      file.createNewFile()
+
+      // ...
+
+      cleanup:
+      file.delete()
+    }
+}
+```
+
+* expect block
+```groovy
+def "max with when, then"() {
+  when:
+  def = x = Math.max(1, 2)
+
+  then:
+  x == 2
+}
+
+def "max with expect"() {
+  expect:
+  Math.max(1, 2) == 2
+}
 ```
 
 ### where 사용하기
@@ -221,6 +425,20 @@ def "음수가 들어오면 예외가 발생하는지 알아보자"() {
     then:
     def e = thrown(NegativeNumberNotAllowException.class)
     e.message == "음수는 계산할 수 없습니다"
+}
+```
+
+* `notThrown()`
+```groovy
+def "HashMap accpets null key" () {
+  setup:
+  def map = new HashMap()
+
+  when:
+  map.put(null, "elem")
+
+  then:
+  notThrown(NullPointerException)
 }
 ```
 
@@ -289,7 +507,6 @@ def "complex order는 조회가 2번된다"() {
     2 * mockOrderRepository.findOne(_)  // any parameter
 }
 ```
-
 
 ### Unroll
 * 메소드 이름에 지정된 템플릿에 따라 테스트 결과를 보여준다
