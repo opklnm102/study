@@ -307,11 +307,15 @@ public class Calculator {
 }
 ```
 
+<br>
+
 ### Dependency 추가
 ```gradle
 testCompile('org.spockframework:spock-core:1.1-groovy-2.4')
 testCompile('org.spockframework:spock-spring:1.1-groovy-2.4')
 ```
+
+<br>
 
 ### basic feature method 작성해보기
 ```groovy
@@ -376,8 +380,12 @@ def "max with expect"() {
 }
 ```
 
+<br>
+
 ### where 사용하기
 * JUnit 기반
+* 다양한 입력 및 예상 결과로 동일한 테스트를 여러번 실행하는 것이 유용
+* Spock는 Data Driven Testing을 지원
 ```java
 @Test
 public void 금액의_퍼센트_계산_결과값의_소수점_버림을_검증한다() throws Exception {
@@ -392,8 +400,15 @@ public void 금액의_퍼센트_계산_결과값의_소수점_버림을_검증�
     assertThat(result1, is(5L));
 }
 ```
+* 위 같은 접근법은 간단한 경우에는 괜찮지만 잠재적인 단점 존재
+  * 코드와 데이터가 섞여있어 쉽게 독립적으로 변경할 수 없다
+  * 외부 소스에서 데이터를 쉽게 자동 생성하거나 가져올 수 없다
+  * 동일한 코드를 여러번 실행하려면 중복되거나 별도의 메소드로 추출해야 한다
+  * 장애가 발생한 경우 장애를 유발한 입력이 즉시 명확하지 않을 수있다
+  * 동일한 코드를 여러번 실행하는 것은 별도의 메소드를 실행하는 것과 같이 격리되지 못한다
 
-* `where`로 간단하게 표현 가능..!
+
+#### where, Data Table로 간단하게 표현 가능..!
 ```groovy
 def "여러 금액의 퍼센트 계산 결과값의 소수점 버림을 검증한다"() {
     given:
@@ -402,7 +417,9 @@ def "여러 금액의 퍼센트 계산 결과값의 소수점 버림을 검증�
     expect:
     Calculator.calculate(amount, rate, roundingMode) == result
 
+    // 사용할 data 제공
     where:
+    // data table
     amount | rate  | result
     10000L | 0.1f  | 10L
     2799L  | 0.2f  | 5L
@@ -410,6 +427,102 @@ def "여러 금액의 퍼센트 계산 결과값의 소수점 버림을 검증�
     2299L  | 0.15f | 3L
 }
 ```
+
+#### data table
+* 고정된 데이터 집합을 사용하여 feature method를 실행하는 편리한 방법
+* 각 iteration은 feature와 동일한 방식으로 격리된다
+  * iteration의 feature method 전후로 setup, cleanup 실행되어 격리
+* 2개의 column 필수
+* 단일 column으로 사용하려면 `_` 사용
+
+```
+...
+where:
+a | _
+1 | _
+7 | _
+0 | _
+```
+
+* `||` 로 입력, 결과를 시각적으로 표현
+```groovy
+ def "maximum of two numbers"() {
+   // where block에서 모든 데이터 변수를 선언하기 때문에 매개변수에서 생략 가능
+   expect:
+   Math.max(a, b) == c
+   
+   where:
+   a | b || c
+   1 | 3 || 3
+   7 | 4 || 7
+   0 | 1 || 0
+}
+```
+
+#### Data Pipes
+* data table은 데이터 변수에 값을 하나 이상의 data pipe에 대한 문법적 설탕
+
+```groovy
+def "maximum of two numbers"() {
+  expect:
+  Math.max(a, b) == c
+
+  where:
+  a << [1, 7, 0]
+  b << [3, 4, 0]
+  c << [3, 7, 0]
+}
+```
+
+#### Multi-Variable Data Pipes
+```groovy
+@Shared sql = Sql.newInstance("jdbc:h2.mem:", "org.h2.Drover")
+
+def "maximum of two numbers"() {
+  expect:
+  Math.max(a, b) == c
+
+  where:
+  // data provider가 iteration 당 여러 값을 반환하면 여러 데이터 변수에 동시에 연결 가능
+  [a, b, c] << sql.rows("select a, b, c from maxdata")
+
+  // 관심없는 데이터는 _로 무시
+  [a, b, _, c] << sql.rows("select * from maxdata")
+}
+```
+
+#### Data variable assignment
+```groovy
+def "maximum of two numbers"() {
+  expect:
+  Math.max(a, b) == c
+
+  where:
+  // data provider가 iteration 당 여러 값을 반환하면 여러 데이터 변수에 동시에 연결 가능
+  row << sql.rows("select * from maxdata")
+  a = row.a
+  b = row.b
+  c = row.c
+}
+```
+
+
+#### Combine Data table, Data pipe, Data variable assignment
+```groovy
+def "maximum of two numbers"() {
+  where:
+  a | _
+  3 | _
+  7 | _
+  0 | _
+
+  b << [5, 0, 0]
+
+  c = a > b ? a : b
+}
+```
+
+<br>
 
 ### 예외 검증하기
 * `thrown()`
@@ -441,6 +554,8 @@ def "HashMap accpets null key" () {
   notThrown(NullPointerException)
 }
 ```
+
+<br>
 
 ### Mock
 * Mock 생성 2가지 방법
@@ -508,8 +623,11 @@ def "complex order는 조회가 2번된다"() {
 }
 ```
 
+<br>
+
 ### Unroll
 * 메소드 이름에 지정된 템플릿에 따라 테스트 결과를 보여준다
+* test시 사용했던 데이터들을 명시적으로 알 수 있다
 ```groovy
 def "금액이 주어지면 원단위 반올림 결과가 반환된다 [금액: #amount, 결과: #result]"() {
     given:
@@ -538,7 +656,6 @@ me.dong.spocksample.FeeCalculateTypeTest
 ```
 
 
-
 <br>
 
 ## 정리
@@ -553,4 +670,5 @@ me.dong.spocksample.FeeCalculateTypeTest
 > #### Reference
 > * [Spock Framework - Github](https://github.com/spockframework/spock/)
 > * [spockframework example project - Github](https://github.com/spockframework/spock-example)
+> * [Spock Framework v1.1 Reference Documentation](http://spockframework.org/spock/docs/1.1/index.html)
 > * [Spock 소개 및 튜토리얼](http://jojoldu.tistory.com/228)
