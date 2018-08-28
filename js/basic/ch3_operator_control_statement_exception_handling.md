@@ -2,25 +2,37 @@
 
 ## 비교연산자
 ### ==
-* 좌우 표현식의 평가가 동일할 경우 true
+* Equal Operator
+* 좌우 표현식의 `평가가 동일`할 경우 true
 * undefined와 null을 동등하다고 평가
 * 문자열과 숫자를 비교할 경우 숫자를 문자열로 변환
 * 숫자를 불리언과 비교할 경우 true는 1, false는 0으로 변환
 * 객체를 숫자 또는 문자열과 비교할 경우 객체의 valueOf() 또는 toString()변환값인 기본 타입값으로 평가
 
 ```JavaScript
-5 == 5  //true
-5 == '5'  //true
-true == 1  //true
+5 == 5  // true
+5 == '5'  // true
+true == 1  // true
+undefined == null  // true
 ```
 
 ### ===
-* 좌우 표현식 평가 동일, 데이터 타입도 같을 경우 true
+* Strict Equal Operator
+* 좌우 표현식 `평가 동일`, `데이터 타입`도 같을 경우 true
 * ==와 다르게 타입 변환을 하지 않음
 
 ```JavaScript
-5 === '5'  //false
+5 === '5'  // false
+'5' === '5'  // true
+undefined === null  // false
 ```
+
+> #### null과 undefined
+> * 둘다 값이 없다는 의미의 데이터형
+> * null
+>   * 값이 없음을 명시적으로 표현
+> * undefined
+>   * 값이 없는 상태
 
 <br>
 
