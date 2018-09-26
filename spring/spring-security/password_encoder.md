@@ -14,24 +14,24 @@ package org.springframework.security.crypto.password;
 
 @Deprecated  // when spring security 5.0
 public final class NoOpPasswordEncoder implements PasswordEncoder {
+    
+    // singleton
+    private static final PasswordEncoder INSTANCE = new NoOpPasswordEncoder();
 	
-	// singleton
-	private static final PasswordEncoder INSTANCE = new NoOpPasswordEncoder();
+    public static PasswordEncoder getInstance() {
+        return INSTANCE;
+    }
 	
-	public static PasswordEncoder getInstance() {
-		return INSTANCE;
-	}
-	
-	private NoOpPasswordEncoder() {
-	}
-	
-	public String encode(CharSequence rawPassword) {
-		return rawPassword.toString();
-	}
-	
-	public boolean matches(CharSequence rawPassword, String encodedPassword) {
-		return rawPassword.toString().equals(encodedPassword);
-	}
+    private NoOpPasswordEncoder() {
+    }
+
+    public String encode(CharSequence rawPassword) {
+        return rawPassword.toString();
+    }
+
+    public boolean matches(CharSequence rawPassword, String encodedPassword) {
+        return rawPassword.toString().equals(encodedPassword);
+    }
 }
 ```
 
@@ -54,15 +54,15 @@ package org.springframework.security.authentication.encoding;
 @Deprecated
 public class ShaPasswordEncoder extends MessageDigestPasswordEncoder {
 	
-	// SHA-1 사용
-	public ShaPasswordEncoder() {
-		this(1);
-	}
-	
-	// strength에 따라 어떤 SHA를 사용할지 결정(1, 256, 384, 512)
-	public ShaPasswordEncoder(int strength) {
-		super("SHA-" + strength);
-	}
+    // SHA-1 사용
+    public ShaPasswordEncoder() {
+        this(1);
+    }
+
+    // strength에 따라 어떤 SHA를 사용할지 결정(1, 256, 384, 512)
+    public ShaPasswordEncoder(int strength) {
+        super("SHA-" + strength);
+    }
 }
 ```
 
@@ -87,75 +87,75 @@ package org.springframework.security.crypto.password;
 @Deprecated
 public final class StandardPasswordEncoder implements PasswordEncoder {
 	
-	private static final int DEFAULT_ITERATIONS = 1024;
-	
-	private final Digester digester;
-	
-	private final byte[] secret;
-	
-	private final BytesKeyGenerator saltGenerator;
-	
-	public StandardPasswordEncoder() {
-		this("");
-	}
+    private static final int DEFAULT_ITERATIONS = 1024;
+
+    private final Digester digester;
+
+    private final byte[] secret;
+
+    private final BytesKeyGenerator saltGenerator;
+
+    public StandardPasswordEncoder() {
+        this("");
+    }
     
     // secret - encoding에 사용될 공유되지 않는 key
-	public StandardPasswordEncoder(CharSequence secret) {
-		this("SHA-256", secret);
-	}
+    public StandardPasswordEncoder(CharSequence secret) {
+        this("SHA-256", secret);
+    }
 
-	public String encode(CharSequence rawPassword) {
-		return encode(rawPassword, saltGenerator.generateKey());
-	}
+    public String encode(CharSequence rawPassword) {
+        return encode(rawPassword, saltGenerator.generateKey());
+    }
 
-	public boolean matches(CharSequence rawPassword, String encodedPassword) {
-		byte[] digested = decode(encodedPassword);
-		byte[] salt = subArray(digested, 0, saltGenerator.getKeyLength());
-		return matches(digested, digest(rawPassword, salt));
-	}
+    public boolean matches(CharSequence rawPassword, String encodedPassword) {
+        byte[] digested = decode(encodedPassword);
+        byte[] salt = subArray(digested, 0, saltGenerator.getKeyLength());
+        return matches(digested, digest(rawPassword, salt));
+    }
 
-	/*** internal helpers ***/
+    /*** internal helpers ***/
 
-	private StandardPasswordEncoder(String algorithm, CharSequence secret) {
-		this.digester = new Digester(algorithm, DEFAULT_ITERATIONS);
-		this.secret = Utf8.encode(secret);
-		this.saltGenerator = KeyGenerators.secureRandom();
-	}
+    private StandardPasswordEncoder(String algorithm, CharSequence secret) {
+        this.digester = new Digester(algorithm, DEFAULT_ITERATIONS);
+        this.secret = Utf8.encode(secret);
+        this.saltGenerator = KeyGenerators.secureRandom();
+    }
 
-	private String encode(CharSequence rawPassword, byte[] salt) {
-		byte[] digest = digest(rawPassword, salt);  // 평문과 salt를 사용해 digest 생성
-		return new String(Hex.encode(digest));  // digest를 16진수로 반환
-	}
+    private String encode(CharSequence rawPassword, byte[] salt) {
+        byte[] digest = digest(rawPassword, salt);  // 평문과 salt를 사용해 digest 생성
+        return new String(Hex.encode(digest));  // digest를 16진수로 반환
+    }
 
-	private byte[] digest(CharSequence rawPassword, byte[] salt) {
-		// salt + secret + rawPassword(utf-8 encoding)으로 digest 생성
-		byte[] digest = digester.digest(concatenate(salt, secret, Utf8.encode(rawPassword)));
-		
-		// 생성된 digest를 salt와 연결해 반환 
-		// matches(...)에서 salt를 입력받지 않고, 암호화된 메시지에서 가져올 수 있도록 하기 위해
-		// salt가 암호문에 포함되기 때문에 암호문이 노출되면(그럴일은 없나..?) salt가 노출된다
-		// 평문, secret key만 똑같은 hash를 만들 수 있다
-		return concatenate(salt, digest);  
-	}
+    private byte[] digest(CharSequence rawPassword, byte[] salt) {
+        // salt + secret + rawPassword(utf-8 encoding)으로 digest 생성
+        byte[] digest = digester.digest(concatenate(salt, secret, Utf8.encode(rawPassword)));
+        
+        // 생성된 digest를 salt와 연결해 반환 
+        // matches(...)에서 salt를 입력받지 않고, 암호화된 메시지에서 가져올 수 있도록 하기 위해
+        // salt가 암호문에 포함되기 때문에 암호문이 노출되면(그럴일은 없나..?) salt가 노출된다
+        // 평문, secret key만 똑같은 hash를 만들 수 있다
+        return concatenate(salt, digest);  
+    }
 
-	private byte[] decode(CharSequence encodedPassword) {
-		return Hex.decode(encodedPassword);
-	}
+    private byte[] decode(CharSequence encodedPassword) {
+        return Hex.decode(encodedPassword);
+    }
 
-	/**
-	 * Constant time comparison to prevent against timing attacks.
-	 */
-	private boolean matches(byte[] expected, byte[] actual) {
-		if (expected.length != actual.length) {
-			return false;
-		}
-		
-		int result = 0;
-		for (int i = 0; i < expected.length; i++) {
-			result |= expected[i] ^ actual[i];
-		}
-		return result == 0;
-	}
+    /**
+        * Constant time comparison to prevent against timing attacks.
+        */
+    private boolean matches(byte[] expected, byte[] actual) {
+        if (expected.length != actual.length) {
+            return false;
+        }
+        
+        int result = 0;
+        for (int i = 0; i < expected.length; i++) {
+            result |= expected[i] ^ actual[i];
+        }
+        return result == 0;
+    }
 }
 ```
 
@@ -176,65 +176,65 @@ package org.springframework.security.crypto.bcrypt;
 
 public class BCryptPasswordEncoder implements PasswordEncoder {
 
-	private Pattern BCRYPT_PATTERN = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
-	
-	private final Log logger = LogFactory.getLog(getClass());
-	
-	private final int strength;
-	
-	private final SecureRandom random;
-	
-	public BCryptPasswordEncoder() {
-		this(-1);
-	}
-	
-	/**
-	 * @param strength the log rounds to use, between 4 and 31
-	 */
-	public BCryptPasswordEncoder(int strength) {
-		this(strength, null);
-	}
+    private Pattern BCRYPT_PATTERN = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
 
-	/**
-	 * @param strength the log rounds to use, between 4 and 31
-	 * @param random the secure random instance to use
-	 *
-	 */
-	public BCryptPasswordEncoder(int strength, SecureRandom random) {
-		if (strength != -1 && (strength < BCrypt.MIN_LOG_ROUNDS || strength > BCrypt.MAX_LOG_ROUNDS)) {
-			throw new IllegalArgumentException("Bad strength");
-		}
-		this.strength = strength;
-		this.random = random;
-	}
-	
-	public String encode(CharSequence rawPassword) {
-		String salt;
-		if (strength > 0) {
-			if (random != null) {
-				salt = BCrypt.gensalt(strength, random);
-			} else {
-				salt = BCrypt.gensalt(strength);
-			}
-		} else {
-			salt = BCrypt.gensalt();
-		}
-		return BCrypt.hashpw(rawPassword.toString(), salt);
-	}
-	
-	public boolean matches(CharSequence rawPassword, String encodedPassword) {
-		if (encodedPassword == null || encodedPassword.length() == 0) {
-			logger.warn("Empty encoded password");
-		    return false;
-		}
-		
-		if (!BCRYPT_PATTERN.matcher(encodedPassword).matches()) {
-			logger.warn("Encoded password does not look like BCrypt");
-			return false;
-		}
-		
-		return BCrypt.checkpw(rawPassword.toString(), encodedPassword);
-	}
+    private final Log logger = LogFactory.getLog(getClass());
+
+    private final int strength;
+
+    private final SecureRandom random;
+
+    public BCryptPasswordEncoder() {
+        this(-1);
+    }
+
+    /**
+        * @param strength the log rounds to use, between 4 and 31
+        */
+    public BCryptPasswordEncoder(int strength) {
+        this(strength, null);
+    }
+
+    /**
+        * @param strength the log rounds to use, between 4 and 31
+        * @param random the secure random instance to use
+        *
+        */
+    public BCryptPasswordEncoder(int strength, SecureRandom random) {
+        if (strength != -1 && (strength < BCrypt.MIN_LOG_ROUNDS || strength > BCrypt.MAX_LOG_ROUNDS)) {
+            throw new IllegalArgumentException("Bad strength");
+        }
+        this.strength = strength;
+        this.random = random;
+    }
+
+    public String encode(CharSequence rawPassword) {
+        String salt;
+        if (strength > 0) {
+            if (random != null) {
+                salt = BCrypt.gensalt(strength, random);
+            } else {
+                salt = BCrypt.gensalt(strength);
+            }
+        } else {
+            salt = BCrypt.gensalt();
+        }
+        return BCrypt.hashpw(rawPassword.toString(), salt);
+    }
+
+    public boolean matches(CharSequence rawPassword, String encodedPassword) {
+        if (encodedPassword == null || encodedPassword.length() == 0) {
+            logger.warn("Empty encoded password");
+            return false;
+        }
+        
+        if (!BCRYPT_PATTERN.matcher(encodedPassword).matches()) {
+            logger.warn("Encoded password does not look like BCrypt");
+            return false;
+        }
+        
+        return BCrypt.checkpw(rawPassword.toString(), encodedPassword);
+    }
 }
 ```
 
