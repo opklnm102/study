@@ -37,3 +37,75 @@
   * 여러 timezone의 시간 비교시 유용
 * [Epoch Unix Time Stamp Converter](https://www.unixtimestamp.com/)
   * 현재 시간을 unix timestamp로 변환할 때 유용
+
+<br>
+
+## dev tool
+
+### [brew](https://brew.sh/)
+* macOS 사용자를 위한 package manager
+* Command Line Tools for Xcode, Homebrew-Cask도 자동 설치
+
+### [iTerm2](https://www.iterm2.com/downloads.html)
+* 홈페이지에서 설치
+
+### zsh
+```sh
+$ brew install zsh
+```
+
+### [oh-my-zsh](https://github.com/robbyrussell/oh-my-zsh)
+* 매뉴얼따라 설치
+
+### tree
+```sh
+$ brew install tree
+```
+
+#### Usage
+```
+.
+├── Apps
+├── CONTRIBUTING.md
+├── Docker
+│   └── README.md
+├── Git
+│   ├── README.md
+│   └── gitignore.md
+└── Go
+    └── README.md
+```
+
+```sh
+$ tree -L 1
+
+.
+├── Apps
+├── CONTRIBUTING.md
+├── Cpp
+├── Docker
+├── Git
+└── Go
+
+5 directories, 1 files
+```
+
+
+### Docker
+```sh
+$ brew cask install docker
+```
+* Application의 Docker App 실행
+  * 상단바에 docker가 실행된다
+
+### Docker compose
+```sh
+$ brew install docker-compose
+```
+
+### [Source Tree](https://www.sourcetreeapp.com/)
+
+
+
+> #### Reference
+> * [macOS Setup Guide](https://sourabhbajaj.com/mac-setup/)
