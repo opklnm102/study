@@ -150,9 +150,17 @@
   * 고래는 서버에서 여러개의 컨테이너(이미지)를 실행하고 이미지 저장과 배포(운반)을 의미
   * 고래 -> Docker(이미지 생성, 저장, 실행, 배포)
   * 고래 위 컨테이너 -> 이미지, 컨테이너
-* Build, Ship, and Run Any App, Anywhere
+* `Build, Ship, and Run Any App, Anywhere`
   * 서비스 운영환경을 묶어서 손쉽게 배포하고 실행하는 `경량 컨테이너 기술`
   * 애플리케이션과 애플레케이션 실행에 필요한 것들을 `포장`하고, 포장한 것을 손쉽게 이동시켜 어디서나 실행시킬 수 있게 하는 도구와 환경을 제공하는 `오픈소스 컨테이너 플랫폼`
+* 중요 기반 기술
+  * cgroups
+  * namespaces(Process ID, Mount, UTS, User ID, IPC, Network...)
+  * union-capable file system(OverlayFS, AuFS...)
+
+### Workflow
+![docker workflow](./images/docker_workflow.png)
+
 
 <br>
 
