@@ -1,5 +1,7 @@
 # [Docker] Docker 기초
 
+<br>
+
 ## [컨테이너란?](https://www.docker.com/what-container)
 가상화보다 훨씬 가벼운 기술
 
@@ -8,19 +10,25 @@
 <img src="https://www.docker.com/sites/default/files/Container%402x.png" alt="Container" width="350" height="350"/>  
 </div>
 
-#### Virtual Machines - 가상화  
+#### Virtual Machines
+* Type 1 Hypervisor, Type 2 Hypervisor, Para-Virtualization(반가상화), Full-Virtualization(전가상화) 등 
 * Hypervisor 위에 Guest OS 설치하여 가상화
-   * 항상 Guest OS 필요
-   * 이미지 용량이 커짐
-#### Container - 격리  
-* Docker Engine 위에 애플리케이션 격리
-   * Docker 이미지에 애플리케이션과 라이브러리만 격리하여 설치
-   * OS 자원(System Call)은 호스트와 공유
-   * 이미지 용량 감소
+  * 항상 Guest OS 필요
+  * 이미지 용량이 커짐
+* Xen, Kvm, VMware, Virtualbox 등
+
+
+#### Container
+* isolation(격리) + Resource Management
+* Docker Engine 위에 Application 격리
+  * Docker 이미지에 Application과 Library만 격리하여 설치
+  * OS 자원(System Call)은 호스트와 공유
+  * 이미지 용량 감소
 * HW 가상화 계층 X
-   * 메모리 접근, 파일 시스템, 네트워크 속도가 VM에 비해 월등히 빠르다
+  * 메모리 접근, 파일 시스템, 네트워크 속도가 VM에 비해 월등히 빠르다
 
 ![Containers and Virtual Machines Togeter](https://www.docker.com/sites/default/files/containers-vms-together.png)
+
 #### Containers and Virtual Machines Togeter  
 * VM 위에 Docker를 사용 예시
 
@@ -43,8 +51,8 @@
 ### 4. 이러나 저러나 VM은 완전한 컴퓨터
 * 항상 게스트 OS를 설치해야함  
 * 이미지안에 OS가 포함
-   * 이미지 용량이 커짐 
-   * 네트워크로 가상화 이미지를 주고받는건 꽤 부담스러움
+  * 이미지 용량이 커짐 
+  * 네트워크로 가상화 이미지를 주고받는건 꽤 부담스러움
 
 ### 5. 오픈소스 가상화SW는 OS가상화에만 주력
 * 배포와 관리 기능이 부족
@@ -54,8 +62,10 @@
 * 리눅스 커널의 cgroups, namespaces가 제공하는 기술
 * 가상화가 아닌 `격리`!!
 
+<br>
 
-## 도커의 특징
+## Docker의 특징
+
 ### 1. 게스트 OS를 설치하지 않음 
 * 이미지에 서버운영을 위한 프로그램과 라이브러리만 `격리해서 설치`
 * 이미지 용량이 크게 줄어듦
@@ -64,45 +74,48 @@
 
 ### 2. HW가상화 계층이 없음
 * 메모리 접근, 파일 시스템, 네트워크 전송속도가 VM에 비해 월등히 빠름
-* 호스트와 도커 컨테이너 사이의 성능차이가 크지 않음(오차범위 안)
+* 호스트와 Docker Container 사이의 성능차이가 크지 않음(오차범위 안)
 
 ### 3. 이미지 생성과 배포에 특화
 * 이미지 버전관리도 제공하고 중앙저장소에 이미지를 올리고 받을 수 있음(Push/Pull)
 * 이미지를 공유하는 Docker hub 제공
-   * GitHub와 비슷한 방식
+  * GitHub와 비슷한 방식
 
 ### 4. 다양한 API를 제공하여 원하는 만큼 자동화 가능
 * 개발과 서버 운영에 매우 유용
 * 개발, 테스트, 서비스 환경을 하나로 통일하여 효율적으로 관리
 * 복잡한 리눅스 애플리케이션을 `컨테이너로 묶어서` 실행
 
+<br>
 
-## 도커 이미지와 컨테이너의 차이?
+## Docker Image와 Container의 차이?
 * 이미지
-   * 서비스 운영에 필요한 `서버 프로그램, 소스코드, 컴파일된 실행파일을 묶은 형태`
-   * 저장소에 올리고 받는건(push/pull) 이미지
-   * OS로 치면 `실행파일`
+  * 서비스 운영에 필요한 `서버 프로그램, 소스코드, 컴파일된 실행파일을 묶은 형태`
+  * 저장소에 올리고 받는건(push/pull) 이미지
+  * OS로 치면 `실행파일`
 * 컨테이너
-   * `이미지를 실행`한 상태
-   * 이미지로 `여러개의 컨테이너`를 만들 수 있음
-   * OS로 치면 `프로세스`
+  * `이미지를 실행`한 상태
+  * 이미지로 `여러개의 컨테이너`를 만들 수 있음
+  * OS로 치면 `프로세스`
 
 > #### 도커의 이미지 처리방식, 도커는 이미지의 바뀐 부분을 어떻게 관리하나?
 > * 유니온 파일 시스템 형식(aufs, btrfs, devicemapper)
 > * 베이스 이미지에서 `바뀐부분만` 이미지로 생성
 > * 컨테이너로 실행할 때는 베이스 이미지와 바뀐 부분을 합쳐서 실행
 > * Docker Hub 및 개인저장소에서 이미지를 공유할 때 바뀐 부분만 주고 받음
->    *각 이미지는 의존관계 형성
+>   * 각 이미지는 의존관계 형성
+
+<br>
 
 ## 서비스 운영과 도커
 * 지금까지는 물리서버를 직접 운영
-   * 호스팅 또는 IDC 코로케이션 서비스 사용
-   * 서버구입과 설치에 돈이 많이들고 시간이 오래걸림
+  * 호스팅 또는 IDC 코로케이션 서비스 사용
+  * 서버구입과 설치에 돈이 많이들고 시간이 오래걸림
 * 가상화가 발전하면서 클라우드 환경으로 변화
-   * 가상서버를 임대하여 사용한 만큼만 요금지불
-   * 클릭 몇번만으로 가상서버를 생성 - 자동으로 서버를 추가, 삭제
-   * 서버 대수가 많아지면서 사람이 일일이 세팅하기 힘들어짐
-      * `Immutable Infrastructure`라는 패러다임 등장
+  * 가상서버를 임대하여 사용한 만큼만 요금지불
+  * 클릭 몇번만으로 가상서버를 생성 - 자동으로 서버를 추가, 삭제
+  * 서버 대수가 많아지면서 사람이 일일이 세팅하기 힘들어짐
+    * `Immutable Infrastructure`라는 패러다임 등장
 
 ### Immutable Infrastructure
 * 호스트 OS와 서비스 운영환경(서버 프로그램, 소스코드, 컴파일된 바이너리)을 분리
@@ -129,20 +142,25 @@
 ##### 4. 가볍다
 * OS와 서비스 환경을 분리하여 가볍고(Lightweight) 어디서든 실행가능한(Portable) 환경 제공
 
-## 도커
+<br>
+
+## Docker
 * `Immutable Infrastructure`를 구현한 프로젝트
 * 컨테이너를 싣고 다니는 고래
-   * 고래는 서버에서 여러개의 컨테이너(이미지)를 실행하고 이미지 저장과 배포(운반)을 의미
-   * 고래 -> Docker(이미지 생성, 저장, 실행, 배포)
-   * 고래 위 컨테이너 -> 이미지, 컨테이너
+  * 고래는 서버에서 여러개의 컨테이너(이미지)를 실행하고 이미지 저장과 배포(운반)을 의미
+  * 고래 -> Docker(이미지 생성, 저장, 실행, 배포)
+  * 고래 위 컨테이너 -> 이미지, 컨테이너
 * Build, Ship, and Run Any App, Anywhere
-   * 서비스 운영환경을 묶어서 손쉽게 배포하고 실행하는 `경량 컨테이너 기술`
-   * 애플리케이션과 애플레케이션 실행에 필요한 것들을 `포장`하고, 포장한 것을 손쉽게 이동시켜 어디서나 실행시킬 수 있게 하는 도구와 환경을 제공하는 `오픈소스 컨테이너 플랫폼`
+  * 서비스 운영환경을 묶어서 손쉽게 배포하고 실행하는 `경량 컨테이너 기술`
+  * 애플리케이션과 애플레케이션 실행에 필요한 것들을 `포장`하고, 포장한 것을 손쉽게 이동시켜 어디서나 실행시킬 수 있게 하는 도구와 환경을 제공하는 `오픈소스 컨테이너 플랫폼`
 
-### 도커 설치하기
+<br>
+
+## Docker 설치하기
 * 리눅스
 
-#### 리눅스 배포판 종류를 자동으로 인식하여 도커패키지를 설치해주는 스크립트 제공
+### 자동으로 설치하기
+* 리눅스 배포판 종류를 자동으로 인식하여 Docker Package를 설치해주는 스크립트 제공
 ```sh
 # wget 옵션 참고 - http://coffeenix.net/board_print.php?bd_code=168
 $ sudo wget -qO- https://get.docker.com/ | sh
@@ -152,7 +170,7 @@ $ sudo docker rm 'sudo docker ps -aq'
 $ sudo docker rmi hello-world
 ```
 
-#### 직접 설치하기
+### 수동으로 설치하기
 * 우분투, /usr/bin/docker.io실행 파일을 /usr/local/bin/docker로 링크하여 사용
 ```sh
 $ sudo apt-get update
@@ -177,7 +195,7 @@ $ sudo yum install docker
 $ brew cask install docker
 ```
 
-#### Docker 서비스 실행하기
+### Docker 서비스 실행하기
 ```sh
 $ sudo service docker start
 
@@ -185,19 +203,19 @@ $ sudo service docker start
 $ sudo chkconfig docker on
 ```
 
-#### 최신 바이너리 사용하기
+### 최신 바이너리 사용하기
 * 배포판 별 패키지가 아닌 빌드된 바이너리를 직접 사용하는 방법
 
-##### 이미 패키지로 설치했을 때
+#### 이미 패키지로 설치했을 때
 ```sh
 $ sudo service docker stop
 $ sudo wget https://get.docker.com/builds/Linux/x86_64/docker-latest \ -0 $(type -P docker)
 $ sudo service docker start
 ```
 
-##### 새로 설치할 때, URL을 지정
-   * docker-latest(최신 버전)
-   * docker-1.3.0(특정 버전)
+#### 새로 설치할 때, URL을 지정
+* docker-latest(최신 버전)
+* docker-1.3.0(특정 버전)
 ```sh
 $ wget https://get.docker.com/builds/Linux/x86_64/docker-latest
 $ chmod +x docker-latest
@@ -205,7 +223,9 @@ $ sudo mv docker-latest /usr/local/bin/docker
 $ sudo /usr/local/bin/docker -d
 ```
 
-### 명령어
+<br>
+
+## 명령어
 * 항상 root권한으로 실행
 * `root 권한 + docker <command>`
 ```sh
@@ -219,13 +239,13 @@ $ docker <command>
 > $ sudo su
 > ```
 > * 현재 계정을 docker 그룹에 포함(root 권한과 동일하므로 꼭 필요한 계정만 포함)
->    * 재로그인 필요
+>   * 재로그인 필요
 > ```sh
 > $ sudo usermod -aG docker ${USER}
 > $ sudo service docker restart
 > ```
 
-#### 이미지 검색
+### 이미지 검색
 ```sh
 $ docker search <image name>
 ```
@@ -234,7 +254,7 @@ $ docker search <image name>
 * 유명 리눅스 배포판, 오픈 소스 프로젝트(Redis, Nginx 등)의 이미지를 모두 Docker Hub에서 구할 수 있음
 * `이미지와 관련된 명령은 기본적으로 Docker Hub를 이용`하도록 설정되어 있음
 
-#### Pull 명령어로 이미지 받기
+### Pull 명령어로 이미지 받기
 ```sh
 $ docker pull <image name>:<tag>
 
@@ -244,10 +264,10 @@ $ sudo docker pull ununtu:latest
 * 이미지 이름뒤에 `latest`를 설정하면 최신버전을 받음
 * ubuntu:14.04, ubuntu:12.10처럼 `태그를 지정`할 수 있음
 * 이미지 이름에서 pyrasis/ubuntu처럼 / 앞에 사용자명을 지정하면 해당 사용자가 올린 이미지를 받음
-   * 공식 이미지는 사용자명 X
+  * 공식 이미지는 사용자명 X
 * 호스트에 설치된 리눅스 배포판과 도커 이미지의 배포판 종류는 달라도 됨, 즉 Contos에서 Ununtu컨테이너를 실행할 수 있음
 
-#### 이미지 목록 출력
+### 이미지 목록 출력
 ```sh
 # 모든 이미지
 $ docker images  
@@ -256,7 +276,7 @@ $ docker images
 $ docker images ubuntu  
 ```
 
-#### 컨테이너 생성하기
+### 컨테이너 생성하기
 ```sh
 $ docker run <option> <image name> <실행할 file name>
 
@@ -271,7 +291,7 @@ $ sudo docker run -i -t --name hello ubuntu /bin/bash
 > #### centos에서
 > `unable to remount sys read only: unable to mount sys as readonly max retries reached 에러` 발생시 /etc/sysconfig/docker 파일에 `--exec-dirver=lxc 추가` 그리고 `$ sudo service docker restart`로 재시작
 
-#### 컨테이너 목록 확인하기
+### 컨테이너 목록 확인하기
 ```sh
 $ docker ps
 
@@ -282,22 +302,22 @@ $ sudo docker ps  # 실행되고 있는 컨테이너 출력
 $ sudo docker ps  -a  # 정지된 컨테이너까지 모두 출력
 ```
 
-#### 컨테이너 시작하기
+### 컨테이너 시작하기
 ```sh
 $ docker start <컨테이너 이름 or ID>
 ```
 
-#### 컨테이너 재시작하기
+### 컨테이너 재시작하기
 ```sh
 $ docker restart <컨테이너 이름 or ID>
 ```
 
-#### 컨테이너에 접속하기
+### 컨테이너에 접속하기
 ```sh
 $ docker attach <컨테이너 이름 or ID>
 ```
 
-#### 외부에서 컨테이너 안의 명령 실행하기
+### 외부에서 컨테이너 안의 명령 실행하기
 ```sh
 $ docker exec <컨테이너 이름 or ID> <명령> <매개 변수>
 ```
@@ -305,29 +325,31 @@ $ docker exec <컨테이너 이름 or ID> <명령> <매개 변수>
    * 정지된 상태에서는 사용할 수 없음
 * 이미 실행된 컨테이너에 apt-get, yum명령으로 패키지를 설치하거나 각종 데몬을 실행할 때 활용
 
-#### 컨테이너 정지하기
+### 컨테이너 정지하기
 ```sh
 $ docker stop <컨테이너 이름 or ID>
 ```
 
-#### 컨테이너 삭제하기
+### 컨테이너 삭제하기
 ```sh
 $ docker rm <컨테이너 이름 or ID>
 $ docker ps -a 해도 안나온다  # 삭제 확인
 ```
 
-#### 이미지 삭제하기
+### 이미지 삭제하기
 ```sh
 $ docker rmi <image name or ID>:<tag>
 # ex.$sudo docker rmi ubuntu:latest
 ```
 * tag 생략시 이름이 같은 모든 이미지 삭제
 
-### 도커 이미지 생성하기
+<br>
 
-#### 1. Dockerfile 작성하기
-* 도커 이미지 설정파일
-* `Dockerfile`에 설정된 대로 이미지를 생성하게 됨
+## Docker 이미지 생성하기
+
+### 1. Dockerfile 작성하기
+* Docker Image 설정 파일
+* `Dockerfile`의 설정을 따라 이미지를 생성
 ```sh
 # ex. Dockerfile 작성하기
 # ubuntu 14.04를 기반으로 nginx 서버를 설치한 도커 이미지 생성
@@ -348,7 +370,8 @@ CMD ["nginx"]  # 컨테이너가 시작되었을 때 실행할 실행파일 또�
 EXPOSE 80  # 호스트와 연결할 포트 번호
 EXPOSE 443
 ```
-#### 2. build 명령으로 이미지 생성
+
+### 2. build 명령으로 이미지 생성
 ```sh
 $ docker build <옵션> <Dockerfile 경로>
 $ sudo docker build --tag hello:0.1 .
@@ -356,15 +379,15 @@ $ sudo docker build --tag hello:0.1 .
 * `--tag`옵션으로 이미지 이름과 태그를 설정할 수 잇음
 * 이미지 이름만 설정하면 태그는 `latest`로 설정됨
 
-```
+```sh
 $ sudo docker run  --name hello-nginx -d -p 80:80 -v /root/data:/data hello:0.1
 ```
 * `-d`옵션 컨테이너를 `백그라운드로 실행`
 * `-p 80:80(host:docker)`옵션으로 호스트의 80번 포트와 컨테이너의 80번 포트를 연결하고 외부에 노출
 * `-v /root/data:/data`옵션으로 호스트의 /root/data 디렉토리를 /data 디렉토리에 연결
-* http://<host ip>:80으로 접속하면 Welcome to nginx! 페이지가 표시됨!
+* `http://<host ip>:80`으로 접속하면 Welcome to nginx! 페이지가 표시됨!
 
-#### ex. Docker로 Spring Boot 프로젝트 빌드
+### Ex. Docker로 Spring Boot App build 해보기
 ```sh
 # Dockerfile
 FROM dockerfile/java:oracle-java8  # java8 기반의 이미지 생성
@@ -381,7 +404,9 @@ docker build -t <image name> <dockerfile path>
 docker run -p 8080:8080 <image name/image id>
 ```
 
-> #### 침고
-> [도커 무작정 따라하기: 도커가 처음인 사람도 60분이면 웹 서버를 올릴 수 있습니다!](https://www.slideshare.net/pyrasis/docker-fordummies-44424016)  
-> [What is a Container](https://www.docker.com/what-container)  
-> [Spring boot와 docker를 이용한 MSA](https://www.slideshare.net/heungrae_kim/spring-boot-docker-msa)  
+<br>
+
+> #### Reference
+> * [도커 무작정 따라하기: 도커가 처음인 사람도 60분이면 웹 서버를 올릴 수 있습니다!](https://www.slideshare.net/pyrasis/docker-fordummies-44424016)
+> * [What is a Container](https://www.docker.com/what-container)
+> * [Spring boot와 docker를 이용한 MSA](https://www.slideshare.net/heungrae_kim/spring-boot-docker-msa)
