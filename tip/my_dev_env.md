@@ -106,6 +106,15 @@ $ brew install docker-compose
 ### [Source Tree](https://www.sourcetreeapp.com/)
 
 
+<br>
+
+## IntelilJ plugin
+* [Lombok plugin](https://github.com/mplushnikov/lombok-intellij-plugin)
+* Go - golang 관련 자동 완성 등
+* Kubernetes - k8s 관련 자동 완성 지원 등
+
+
+<br>
 
 > #### Reference
 > * [macOS Setup Guide](https://sourabhbajaj.com/mac-setup/)
