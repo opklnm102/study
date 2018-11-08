@@ -3,11 +3,11 @@
 <br>
 
 ## [컨테이너란?](https://www.docker.com/what-container)
-가상화보다 훨씬 가벼운 기술
+* 가상화보다 훨씬 가벼운 기술
 
 <div align="center">
-<img src="https://www.docker.com/sites/default/files/VM%402x.png" alt="Virtual Machines" width="350" height="350"/>
-<img src="https://www.docker.com/sites/default/files/Container%402x.png" alt="Container" width="350" height="350"/>  
+<img src="./images/virtual_machines.png" alt="Virtual Machines" width="350" height="350"/>
+<img src="./images/container.png" alt="Container" width="350" height="350"/>  
 </div>
 
 #### Virtual Machines
@@ -27,10 +27,12 @@
 * HW 가상화 계층 X
   * 메모리 접근, 파일 시스템, 네트워크 속도가 VM에 비해 월등히 빠르다
 
-![Containers and Virtual Machines Togeter](https://www.docker.com/sites/default/files/containers-vms-together.png)
+![Containers and Virtual Machines Togeter](./images/containers-vms-together.png)
+ex) VM 위에 Docker 사용  
+AWS EC2에 Docker를 사용하면 이런 모습이라고 생각하면 된다
 
-#### Containers and Virtual Machines Togeter  
-* VM 위에 Docker를 사용 예시
+
+<br>
 
 ### 1. 서버의 성능이 좋아졌다 
 * 서버가 놀고 있다
