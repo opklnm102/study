@@ -35,6 +35,8 @@ $ docker rmi `docker images -aq`
 
 $ docker rmi $(docker images -aq)
 ```
+* 사용중인 image(container로 실행중인)는 삭제되지 않는다
+  * `Error response from daemon: conflict: unable to delete xxx (cannot be forced) - image is being used by running container xxx`
 
 
 <br>
