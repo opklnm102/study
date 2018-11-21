@@ -27,6 +27,7 @@ rm: 1 image(s) successfully removed
 Spawning container core-fedora-latest on /var/lib/toolbox/core-fedora-latest.
 Press ^] three times within 1s to kill container.
 
+# toolbox 진입 상태
 [root@ip-15-0-0-0]#
 ```
 
@@ -37,7 +38,27 @@ Press ^] three times within 1s to kill container.
   * container 내부에서 변경한 내용을 다른 세션에서 공유된다
 
 
-### Fedora의 namespace에 있으며 dnf를 통해 SW를 설치할 수 있다
+<br>
+
+## toolbox에서 I/O issue를 해결하기 위해 tool 설치
+* toolbox container 실행시 fedora의 namespace에 있으며 `dnf`로 tool을 설치할 수 있다
+
+### install ps
+```sh
+[root@ip-15-0-0-0]# dnf install procps -y
+```
+
+### install iotop
+```sh
+[root@ip-15-0-0-0]# dnf install iotop -y
+```
+
+### install iostat
+```sh
+[root@ip-15-0-0-0]# dnf install sysstat -y
+```
+
+### install tcpdump
 ```sh
 [root@ip-15-0-0-0]# dnf -y install tcpdump
 
@@ -57,6 +78,8 @@ listening on ens3, link-type EN10MB (Ethernet), capture size 65535 bytes
 > ```
 >
 
+> 해결 과정은 [[Linux] Troubleshooting High I/O Wait in Linux](https://github.com/opklnm102/study/blob/master/linux/troubleshooting_high_io_wait_in_linux.md) 참고
+
 
 <br>
 
@@ -68,7 +91,7 @@ $ cat .toolboxrc
 TOOLBOX_DOCKER_IMAGE=index.example.com/debug
 TOOLBOX_USER=root
 
-$ /usr/bin/toolbox  # or toolbox
+$ toolbox
 Pulling repository index.example.com/debug
 ...
 ```
@@ -89,9 +112,10 @@ $ ssh bob@example.com
 ....
 ```
 
-
 <br>
 
 > #### Reference
 > * [Install debugging tools - CoreOS](https://coreos.com/os/docs/latest/install-debugging-tools.html)
 > * [toolbox - bring your tools with you](https://github.com/coreos/toolbox)
+> * [Wheezy: "ps: command not found"](https://github.com/tianon/docker-brew-debian/issues/13)
+> * [How to install and use iostat](https://www.globo.tech/learning-center/install-use-iostat/)
