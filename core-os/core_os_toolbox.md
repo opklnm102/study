@@ -40,6 +40,15 @@ Press ^] three times within 1s to kill container.
 
 <br>
 
+### delete toolox
+* `/var/lib/toolbox`에 다운로드된 image를 삭제해주면 된다
+```sh
+$ rm -r /var/lib/toolbox/[user name]-[image name]-[image tag]
+```
+
+
+<br>
+
 ## toolbox에서 I/O issue를 해결하기 위해 tool 설치
 * toolbox container 실행시 fedora의 namespace에 있으며 `dnf`로 tool을 설치할 수 있다
 
