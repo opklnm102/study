@@ -23,8 +23,8 @@
 ## I/O로 인해 시스템 속도가 느려지는지 진단하기
 * 가장 쉬운 방법은 `top` 사용
 * CPU 라인에서 I/O 대기 상태의 현재 CPU 백분률을 볼 수 있다
-   * 96.0%wa
-   * `wa` - iowait
+  * 96.0%wa
+  * `wa` - iowait
 * 숫자가 높을수록 I/O Access를 기다리는 CPU 리소스가 많다는 뜻
 
 ```sh
@@ -99,7 +99,7 @@ Total DISK READ: 8.00 M/s | Total DISK WRITE: 20.36 M/s
 * storage를 가장 많이 이용하는 프로세스를 찾는 `가장 간단한 방법`
 * 통계를 살펴본 후 `bonnie++ process`가 가장 많은 I/O 사용률을 유발하는 프로세스임을 쉽게 식별할 수 있다
 * 모든 linux 배포판에 기본으로 설치되어 있지 않다
-   * `기본 명령어가 아닌것에 의존하지 말자`
+  * `기본 명령어가 아닌것에 의존하지 말자`
 
 
 <br>
@@ -160,7 +160,7 @@ cancelled_write_bytes: 0
 ```
 
 * `read_bytes`, `write_bytes`
-   * 프로세스가 storage에서 읽고 쓴 byte
+  * 프로세스가 storage에서 읽고 쓴 byte
 * 46MB를 읽고, 542MB를 disk에 썼다
 * 일부 프로세스의 경우 작업이 많지 않을 수 있지만 `충분한 R/W만으로 시스템 대기 시간이 길어질 수 있다`
 
