@@ -105,6 +105,19 @@ Pulling repository index.example.com/debug
 ...
 ```
 
+* example - ubuntu image 사용
+```sh
+$ cat .toolboxrc
+TOOLBOX_DOCKER_IMAGE=ubuntu
+TOOLBOX_DOCKER_TAG=latest
+TOOLBOX_USER=root
+
+$ toolbox
+...
+Spawning container core-ubuntu-latest on /var/lib/toolbox/core-ubuntu-latest.
+```
+> docs에 보면 `Container Linux Config`를 사용하는 법도 나와있다
+
 
 <br>
 
