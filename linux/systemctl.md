@@ -23,7 +23,7 @@ Created symlink from
   * 최신 리눅스 배포판에서는 필요한 서비스를 시작하는 역할은 systemd가 맡고 있을 가능성이 높다
 * systemd를 관리하는 명령어가 `systemctl`
 
-![systemd architecture](https://github.com/opklnm102/study/blob/master/linux/images/systemd_architecture.png)
+![systemd architecture](./images/systemd_architecture.png)
 
 ### Linux의 기본 뼈대 프로세스
 * Linux는 OS라서 부팅되는 과정에서 리눅스 커널이 부팅된 후 `시스템을 초기화`하고 기타 서비스들을 위한 `환경을 조성하고, 시작`시켜주는 일을 하는 process가 필요
@@ -665,6 +665,19 @@ $ sudo rm /etc/systemd/system/nginx.service
 $ systemctl daemon-reload
 ```
 
+### 수동으로 편집하기
+```sh
+$ sudo vi /usr/lib/systemd/system/nginx.service  # unit 내용 수정
+
+$ sudo systemctl daemon-reload
+
+$ sudo systemctl restart nginx
+```
+
+* `daemon-reload 없이 restart하면 변경 내용이 적용되지 않는다`
+* daemon-reload는 unit을 reload/restart하지 않고 systemd가 변경을 인식하도록 한다
+  * systemd의 모든 unit 파일이 reload되고 dependency tree가 다시 구성된다
+
 ---
 
 <br>
@@ -837,7 +850,7 @@ $ systemd-analyze plot
 
 * plot.html
 
-![systemd analyze plot](https://github.com/opklnm102/study/blob/master/linux/images/systemd-analyze_plot.png)
+![systemd analyze plot](./images/systemd-analyze_plot.png)
 
       
 ### 시간을 많이 잡아먹는 서비스들을 트리 형태로 조회
@@ -1035,8 +1048,9 @@ $ journalctl -xn --no-pager | less
 
 <br>
 
-> #### 참고
+> #### Reference
 > * [How To Use Systemctl to Manage Systemd Services and Units](https://www.digitalocean.com/community/tutorials/how-to-use-systemctl-to-manage-systemd-services-and-units)
 > * [CENTOS 7 SYSTEMD 이해하기](http://linux.systemv.pe.kr/centos-7-systemd-%EC%9D%B4%ED%95%B4%ED%95%98%EA%B8%B0/)
 > * [red hat doc - systemd service](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/system_administrators_guide/sect-managing_services_with_systemd-services)
 > * [RHEL/CentOS 7 systemctl 사용법](https://www.lesstif.com/pages/viewpage.action?pageId=24445064)
+> * [Do systemd unit files have to be reloaded when modified?](https://serverfault.com/questions/700862/do-systemd-unit-files-have-to-be-reloaded-when-modified)
