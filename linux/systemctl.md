@@ -1000,9 +1000,11 @@ Connection to xxx.xxx.xxx.xxx closed by remote host.
 <br>
 
 ## journalctl
-* systemd와 관련된 journal log query하는 법
+* systemd-journald 를 제어하는 tool
+* systemd의 서비스 로그를 확인할 수 있다
+* `systemd-journald.service`를 통해 systemd의 정보를 이용
 
-### 자세한 systemctl error log 조회
+### 자세한 systemd error log 조회
 ```sh
 $ journalctl -xn
 
@@ -1044,9 +1046,104 @@ $ journalctl -xn --no-pager | less
 8월 15 08:05:31 ip-172-31-28-244.ap-northeast-2.compute.internal dhclient[2992]: XMT: Solicit on eth0, interval 117800ms.
 ```
 
+### unit의 log 조회
+```sh
+$ journalctl -u <unit>
+
+## example
+$ journalctl -u nginx.service
+```
+
+### 최근 log 조회
+* `tail`처럼 결과를 확인할 수 있다
+* default 10
+```sh
+$ journalctl -n <count>
+
+## example - nginx unit의 최근 log 50줄 조회
+$ journalctl -u nginx.service -n 50
+```
+
+### Following Logs
+* `tail -f`처럼 결과를 확인할 수 있다
+```sh
+$ journalctl -f
+
+## example - nginx unit의 최근 log 50줄을 following mode로 조회
+$ journalctl -u nginx.service -n 50 -f
+```
+
+### 특정 level의 log 조회
+* emerg
+* alert
+* crit
+* err
+* warning
+* notice
+* info
+* debug
+
+```sh
+$ journalctl -p <level>
+
+## example
+$ journalctl -p crit
+```
+
+### 기간별 log 조회
+
+#### 특정 기간 log 조회
+* today
+* yesterday
+* tomorrow
+```sh
+$ journalctl --since=today
+
+## example - nginx unit의 오늘 log 조회
+$ journalctl -u nginx.service --since today
+```
+
+#### 일정 기간 사이의 log 조회
+* 시간 생략시 `00:00:00`
+```sh
+$ journalctl --since "<start at>" --until "<end at>"
+
+## example - 2018-12-03 07:30:00 ~ 2018-12-05 22:30:00의 log 조회
+$ journalctl --since "2018-12-03 07:30:00" --until "2018-12-05 22:30:00"
+
+$ journalctl --since "2018-12-03" --until "2018-12-05"
+```
+
+### 마지막 부팅 후 로그 조회
+```sh
+$ journalctl -b
+```
+
+### journalctl이 log를 위해 사용하는 disk 용량 조회
+```sh
+$ journalctl --disk-usage
+```
+
+### 오래된 log 삭제하기
+* disk usage based delete
+```sh
+$ journalctl --vacuum-size=<size>
+
+# 1GB를 차지하면 이전 항목 제거
+$ journalctl --vacuum-size=1G
+```
+
+* time based delete
+```sh
+$ journalctl --vacuum-time=<time>
+
+# 1년된 항목 제거
+$ journalctl --vacuum-time=1years
+```
+
 ---
 
-<br>
+<br><br>
 
 > #### Reference
 > * [How To Use Systemctl to Manage Systemd Services and Units](https://www.digitalocean.com/community/tutorials/how-to-use-systemctl-to-manage-systemd-services-and-units)
@@ -1054,3 +1151,4 @@ $ journalctl -xn --no-pager | less
 > * [red hat doc - systemd service](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/system_administrators_guide/sect-managing_services_with_systemd-services)
 > * [RHEL/CentOS 7 systemctl 사용법](https://www.lesstif.com/pages/viewpage.action?pageId=24445064)
 > * [Do systemd unit files have to be reloaded when modified?](https://serverfault.com/questions/700862/do-systemd-unit-files-have-to-be-reloaded-when-modified)
+> * [How To Use Journalctl to View and Manipulate Systemd Logs](https://www.digitalocean.com/community/tutorials/how-to-use-journalctl-to-view-and-manipulate-systemd-logs#active-process-monitoring)
