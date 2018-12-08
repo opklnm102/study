@@ -37,6 +37,11 @@
   * 여러 timezone의 시간 비교시 유용
 * [Epoch Unix Time Stamp Converter](https://www.unixtimestamp.com/)
   * 현재 시간을 unix timestamp로 변환할 때 유용
+* [gitignore.io](https://www.gitignore.io/)
+  * Create useful .gitignore files for your project
+* [nginxconfig.io](https://nginxconfig.io/)
+  * NGiИX config generator generator on steroids
+
 
 <br>
 
@@ -114,7 +119,7 @@ $ brew install docker-compose
 * Kubernetes - k8s 관련 자동 완성 지원 등
 
 
-<br>
+<br><br>
 
 > #### Reference
 > * [macOS Setup Guide](https://sourabhbajaj.com/mac-setup/)
