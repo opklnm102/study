@@ -41,6 +41,8 @@
   * Create useful .gitignore files for your project
 * [nginxconfig.io](https://nginxconfig.io/)
   * NGiИX config generator generator on steroids
+* [Rico's cheatsheets](https://devhints.io/)
+  * 다양한 CheatSheet를 확인할 수 있다
 
 
 <br>
