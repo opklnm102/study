@@ -10,6 +10,8 @@
 * `JAVA_HOME`을 설정해주기 때문에 nvm처럼 여러 Java version을 사용할 수 있다
 
 
+<br>
+
 ## Installation
 
 ```sh
@@ -78,8 +80,11 @@ $ brew install jenv
 ## zsh 사용 중이므로
 $ echo 'export PATH="$PATH:$HOME/.jenv/bin"' >> ~/.zshrc
 $ echo 'eval "($jenv init -)"' >> ~/.zshrc
+$ echo 'export JAVA_HOME="$(jenv prefix)"' >> ~/.zshrc  # 어느날 갑자기.. IntelliJ terminal에서 Java 버전 mismatch가 일어나서..
 ```
 
+
+<br>
 
 ## Usage
 * Java 추가
@@ -108,10 +113,11 @@ $ jenv local 1.8.0.192
 ```
 
 
-<br>
+<br><br>
 
 > #### Reference
 > * [Mac OS X and multiple Java versions](https://stackoverflow.com/questions/26252591/mac-os-x-and-multiple-java-versions)
 > * [jEnv - Manage your Java environment](http://www.jenv.be/)
 > * [Mac에 Java 여러 버전 설치 & 사용하기](https://jojoldu.tistory.com/329)
 > * [Installing Java 8 and Managing Multiple Java Versions on OSX](http://hanxue-it.blogspot.com/2014/05/installing-java-8-managing-multiple.html)
+> * [Jenv not setting JAVA_HOME](https://github.com/gcuisinier/jenv/issues/44)
