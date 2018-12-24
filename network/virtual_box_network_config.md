@@ -28,7 +28,7 @@
   * Bridget, Internal, Host Only Network를 추가로 구성해 Guest OS간 연결 가능
 
 #### NAT를 이용하는 이유?
-* 사설 네트워크에 속한 여러개의 호스트가 하나의 Public IP address를 사용하여 인터넷에 접속하기 위함
+* 사설 네트워크에 속한 여러개의 호스트가 `하나의 Public IP address를 사용`하여 인터넷에 접속하기 위함
 * NAT가 혹스트 간의 통신에 있어서 복잡성을 증가시킬 수 있으므로 네트워크 성능에 영향을 줄 수 있다
 
 
@@ -38,7 +38,7 @@
 <img src="./images/bridget_networing.png" alt="Bridget Networking" width="500" height="400"/>
 
 * 실제 Public IP를 여러개 부여 가능
-* 외부 Gateway를 이용해 인터넷에 연결 가능
+* `외부 Gateway를 이용`해 인터넷에 연결 가능
 * 위 그림에서는 모든 Guest OS를 Host OS와 동일한 네트워크로 구성했으나, 격리된 네트워크 설계 가능
 
 
@@ -47,9 +47,9 @@
 ### Internal Networking
 <img src="./images/internal_networking.png" alt="Internal Networking" width="500" height="400"/>
 
-* vboxnet0로 격리된 네트워크로 동작
+* vboxnet0로 `격리된 네트워크`로 동작
   * 필요시 vboxnet2 등 virtual network 추가 가능
-* VM간 통신은 지원하면서 외부의 격리를 통해 보안 강화
+* Guest OS간 통신은 지원하면서 `외부와의 격리를 통해 보안 강화`
 * Host Network와 분리되어 동작하므로 Internet 연결 지원 X
 
 
@@ -60,7 +60,7 @@
 
 * Internal Networking과 비슷하지만 Host OS와 연결이 가능
 * DHCP 설정 가능
-* Host OS는 net0(실제 NIC)를 통해 Internet과 연결, net1(Virtual NIC)를 통해 Guest OS와 연결 가능
+* Host OS는 `net0(실제 NIC)를 통해 Internet`과 연결, `net1(Virtual NIC)를 통해 Guest OS`와 연결 가능
   * Guest OS는 Host와 연결이 가능하지만 Internet 연결은 불가능
   * Guest OS에 2개의 NIC를 부여해서 해결
     * NIC1 - nat
@@ -80,8 +80,11 @@
 <br>
 
 ## DHCP로 Host OS에서 Guest OS로 접근 네트워크 설정
-* `DHCP`, `Host Only Adapter`를 사용해서 Host OS에서 Guest OS로 접근
+* `DHCP`, `Host Only Network`로 구성해서 `Host OS <-> Guest OS`, `Guest OS <-> Guest OS`로 접근 가능
   * DHCP라서 IP가 자동으로 할당
+* `NAT`를 추가로 구성해서 internet과 연결 지원
+
+<br>
 
 ### 1. Host Only Network 설정
 * `메뉴 - 파일 - 호스트 네트워크 관리자`에서 추가한다
@@ -120,7 +123,7 @@ core@localhost ~ $
 ### 5. 위와 같은 방법으로 다른 Guest OS에도 같게 설정하면 Guest OS간에서도 통신이 가능하다
 
 ```sh
-## Guest Os1 - 192.168.56.4
+## Guest OS 1 - 192.168.56.4
 $ core@localhost ~ $ ssh core@192.168.56.3
 
 Last login: Sat Dec 22 05:57:51 UTC 2018 on tty1
@@ -133,18 +136,103 @@ core@localhost ~ $
 <br>
 
 ## Static IP로 Host OS에서 Guest OS로 접근 네트워크 설정
-TODO: 
+* `Host Only Network`로 구성해서 `Host OS <-> Guest OS`, `Guest OS <-> Guest OS`로 접근 가능
+* DHCP를 사용하지 않기 때문에 IP를 수동으로 할당해야 한다
+* `NAT`를 추가로 구성해서 internet과 연결 지원
+
+<br>
+
+### 1. Host Only Network 설정
+* `메뉴 - 파일 - 호스트 네트워크 관리자`에서 추가한다
+
+![virtual box host network manager](./images/virtual_box_host_network_manager_non_dhcp.png)
 
 
+<br>
+
+### 2. Guest OS에 Adapter 추가
+* `설정 - 네트워크 - 어댑터`에서 설정한다
+![guest os network adapter1](./images/guest_os_network_adapter1.png)
+![guest os network adapter2](./images/guest_os_network_adapter2.png)
 
 
+<br>
+
+### 3. Guest OS booting 후 네트워크 설정
+```sh
+$ sudo vi /etc/systemd/network/10-enp0s8.network
+
+[Match]
+Name=enp0s8
+
+[Network]
+Address=192.168.57.100
+Gateway=192.168.57.1
+DNS=1.2.3.4
+
+$ sudo vi /etc/systemd/network/20-dhcp.network
+
+[Match]
+Name=enp*
+
+[Network]
+DHCP=yes
+
+$ sudo systemctl restart systemd-networkd
+
+## check
+$ ifconfig
+enp0s3: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.0.2.15  netmask 255.255.255.0  broadcast 10.0.2.255
+        inet6 fe80::a00:27ff:fea0:e9e0  prefixlen 64  scopeid 0x20<link>
+        ether 08:00:27:a0:e9:e0  txqueuelen 1000  (Ethernet)
+        RX packets 420  bytes 49638 (48.4 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 574  bytes 65020 (63.4 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+enp0s8: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.57.100  netmask 255.255.255.0  broadcast 192.168.57.255
+        inet6 fe80::a00:27ff:fe34:909d  prefixlen 64  scopeid 0x20<link>
+        ether 08:00:27:34:90:9d  txqueuelen 1000  (Ethernet)
+        RX packets 489  bytes 52451 (51.2 KiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 762  bytes 89091 (87.0 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+```
+> 당연히 Guest OS별 IP는 다르게 설정해야 한다
 
 
+<br>
 
+### 4. 설정한 IP로 SSH 접근
+```sh
+## Host OS
+$ ssh core@192.168.57.100
 
+Last login: Sat Dec 22 05:58:18 UTC 2018 on tty1
+Container Linux by CoreOS stable (1911.4.0)
+Update Strategy: No Reboots
+core@localhost ~ $
+```
+
+<br>
+
+### 5. 위와 같은 방법으로 다른 Guest OS에도 같게 설정하면 Guest OS간에서도 통신이 가능하다
+
+```sh
+## Guest OS 1 - 192.168.57.100
+$ core@localhost ~ $ ssh core@192.168.57.101
+
+Last login: Sat Dec 22 05:57:51 UTC 2018 on tty1
+Container Linux by CoreOS stable (1911.4.0)
+Update Strategy: No Reboots
+core@localhost ~ $
+```
 
 
 <br><br>
 
 > #### Reference
 > * [버추얼박스 네트워크 이해 및 구성-완벽 가이드](http://solatech.tistory.com/263)
+> * [Network configuration with networkd](https://coreos.com/os/docs/latest/network-config-with-networkd.html)
