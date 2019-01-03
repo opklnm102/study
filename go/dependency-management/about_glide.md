@@ -1,5 +1,5 @@
 # [Go] About glide
- > date - 2018.11.02  
+> date - 2018.11.02  
 > keyword - go, dependency management  
 > [aws-alb-ingress-controller](https://github.com/kubernetes-sigs/aws-alb-ingress-controller) 1.0-alpha.3의 코드를 읽기 위해 
 project 설정 중에 glide가 필요해서 설치 및 사용법에 대해 정리  
@@ -90,7 +90,7 @@ $ glide get github.com/aws/aws-sdk-go/aws
 ```
 
 
-<br>
+<br><br>
 
 > #### Reference
 > * [Glide: Vendor Package Management for Golang](https://github.com/Masterminds/glide)
