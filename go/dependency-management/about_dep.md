@@ -1,8 +1,7 @@
 # [Go] About dep
-> date - 2018.01.03  
+> date - 2019.01.03  
 > keyword - go, dependency management  
-> [Dependency management - K8S](https://github.com/kubernetes/community/blob/master/contributors/devel/development.md#dependency-management)를 보면 K8S는 dependency 관리를 위해  
-> dep을 사용하는데 go module을 보기 전에 dep에 대해 알아보고자 함  
+> [Dependency management - K8S](https://github.com/kubernetes/community/blob/master/contributors/devel/development.md#dependency-management)를 보면 K8S는 dependency 관리를 위해 dep을 사용하는데 go module을 보기 전에 dep에 대해 알아보고자 함  
 
 <br>
 
@@ -291,23 +290,83 @@ $ dep status -dot | dot -T png | display
 
 ### Before: short git version hash를 사용
 ```
+## Gopkg.toml
+
+...
 [[constraint]]
   name = "github.com/golang/glog"
   revision = "23def4e"
-```
+...
 
-* short git version hash를 사용하면 warning... `full hash를 사용`하자
-```sh
 $ dep ensure
 
 dep: WARNING: revision "23def4e" should not be in abbreviated form
 ```
+* short git version hash를 사용하면 warning... `full hash를 사용`하자
+
 
 ### After: full hash 사용
 ```
 [[constraint]]
   name = "github.com/golang/glog"
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
+```
+
+
+<br>
+
+## Docker에서 dep 사용하기
+* `dep ensure -vendor-only`는 Gopkg.toml, Gopkg.lock과 code의 유효성 체크를 하지 않고 vendor 폴더를 생성
+* cache layer를 사용하는 docker 내부 빌드에 유용
+  * 각 build를 docker를 사용할 경우 사용
+
+```
+FROM golang:1.11.4 AS builder
+
+RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/vX.X.X/dep-linux-amd64 && chmod +x /usr/local/bin/dep
+
+RUN mkdir -p /go/src/github.com/xxx
+WORKDIR /go/src/github.com/xxx
+
+COPY Gopkg.toml Gopkg.lock ./
+
+# install the dependencies without checking for go code
+RUN dep ensure -vendor-only
+```
+
+
+<br>
+
+## Travis CI에서 dep 사용하기
+```yaml
+...
+
+env:
+  - DEP_VERSION="0.5.0"
+
+before_install:
+  - curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o $GOPATH/bin/dep
+  - chmod +x $GOPATH/bin/dep
+
+install:
+  - dep ensure
+
+...
+```
+
+### Travis CI Cache 사용시 주의할 점
+* build가 깨뜨린다면 간헐적인 cache 손상이 발생
+* 너무 큰 cache는 권장하지 않는다
+* cache 사용시 안전한 `URL을 사용해 storage provider에 업로드`해 보안 및 개인정보 보장
+  * cache 성능은 로컬이 아니기 때문에 S3의 `네트워크 대역폭, DNS 성능`에 따라 달라진다
+  * cache로 수백 MB보다 큰걸 저장하면 속도가 크게 향상되진 않는다
+* Travis CI에서 caching하려면 `GOPATH/pkg/dep(dep cache 기본 경로)`를 cache directory에 추가
+```yaml
+...
+cache:
+  directories:
+    - $GOPATH/pkg/dep
+...
 ```
 
 
