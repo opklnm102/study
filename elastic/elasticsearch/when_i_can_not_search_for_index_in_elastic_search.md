@@ -74,7 +74,7 @@ yellow open   product-2019.01.21 ZEI4F1YiTA2tj34ezZYsdw   5   1    1435964      
 <br>
 
 ## 3. shard 정보 조회
-* `GET _cat_shards`로 unassigned reason을 확인
+* `GET _cat/shards`로 unassigned reason을 확인
 * 어떤 Node에 어떤 shard가 assign되었는지에 대한 상세정보
   * primary/replica 여부, docs 수, shards의 byte 및 assign된 Node
 
@@ -212,7 +212,30 @@ GET _cluster/allocation/explain
   ]
 }
 ```
-* index가 delete되서 assign되지 않았음을 알 수 있다
+
+* 위 정보를 통해 primary shard가 assign된 `Node가 cluster에서 빠졌거나 ndex가 delete`되서 assign되지 않았다고 추측
+  * Node가 복구되지 않으면 `snapshot`에서 찾아야 한다
+* document는 index에 배치되고, index는 설정된 shard 수에 따라 document를 각기 다른 shard에 균등하게 분산시킨다
+  * ex) Node에서 분산 방식으로 데이터를 요청하기 위해 index가 생성될 때마다 5개의 shard가 생성
+  * shard가 너무 많아진다 -> CPU 사용량이 무거워진다 -> 결국 Node에 access할 수 없다 -> cluster에서 빠지게된다 -> 다른 Node에서 shard를 즉시 복구하지 않으므로 status가 green이 아니게 된다
+
+
+<br>
+
+## Solution
+1. `DELETE /{index name}`로 손상된 index 제거
+2. cluster load를 줄이기 위해 사용하지 않는 index 정리
+3. 설정된 index당 shard 수를 감소시킨다
+
+
+<br>
+
+### 고려할 점
+* master node를 사용해 안정성 확보
+* shard수 관리
+  * 1000개는 나쁜 성능, 2000개 이상은 cluster가 불안정해진다
+* shard의 크기는 10GB ~ 50GB로 유지하면 성능이 향상된다
+
 
 <br><br>
 
@@ -221,3 +244,4 @@ GET _cluster/allocation/explain
 > * [cat shards - Elastic Docs](https://www.elastic.co/guide/en/elasticsearch/reference/current/cat-shards.html)
 > * [cat nodes - Elastic Docs](https://www.elastic.co/guide/en/elasticsearch/reference/current/cat-nodes.html)
 > * [Cluster Allocation Explain API - Elastic Docs](https://www.elastic.co/guide/en/elasticsearch/reference/6.0/cluster-allocation-explain.html)
+> * [記一次 Elasticsearch troubleshooting 的歷程](https://kkc.github.io/2018/08/15/lesson-learn-of-elasticsearch-outage/)
