@@ -8,6 +8,7 @@
 ## External DNS란?
 * Configure external DNS servers (AWS Route53, Google CloudDNS and others) for Kubernetes Ingresses and Services
 * 외부로 노출된 Cluster 내부 DNS를 외부 DNS Provider(Route 53 등)와 동기화하는 역할
+  * record 등록, 수정, 삭제
 * K8S resource(Service, Ingress)에 따라 Public DNS Server를 구성
 * KubeDNS처럼 External DNS 자체가 DNS server가 되는게 아니라 외부 DNS Provider(Route 53...)에 설정을 해준다
 * DNS Provider와 무관하게 k8s resource로 DNS record를 동적으로 제어할 수 있다
@@ -82,7 +83,7 @@ $ docker run -it registry.opensource.zalan.do/teapot/external-dns:v0.5.9 --help
 ```
 
 ### external-dns log
-* 1분 주기로 Domain 등록 event를 처리하는걸 확인할 수 있다
+* 1분마다 Master Node와 통신해서 sync하는걸 확인할 수 있다
 ```sh
 time="2019-02-03T06:18:52Z" level=info msg="config: {Master: KubeConfig: Sources:[service ingress] Namespace: AnnotationFilter: FQDNTemplate: CombineFQDNAndAnnotation:false Compatibility:molecule PublishInternal:false Provider:aws GoogleProject: DomainFilter:[] ZoneIDFilter:[] AWSZoneType: AWSAssumeRole: AzureConfigFile:/etc/kubernetes/azure.json AzureResourceGroup: CloudflareProxied:false InfobloxGridHost: InfobloxWapiPort:443 InfobloxWapiUsername:admin InfobloxWapiPassword: InfobloxWapiVersion:2.3.1 InfobloxSSLVerify:true DynCustomerName: DynUsername: DynPassword: DynMinTTLSeconds:0 InMemoryZones:[] PDNSServer:http://localhost:8081 PDNSAPIKey: Policy:upsert-only Registry:txt TXTOwnerID:dailyhotel TXTPrefix: Interval:1m0s Once:false DryRun:false LogFormat:text MetricsAddress::7979 LogLevel:info}"
 time="2019-02-03T06:18:52Z" level=info msg="Connected to cluster at https://192.0.0.123:443"
