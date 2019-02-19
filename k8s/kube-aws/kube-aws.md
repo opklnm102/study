@@ -65,9 +65,9 @@
 
 <br>
 
-## Getting Started
+## 1. Configure
 
-### 1. Download kube-aws
+### Download kube-aws
 ```sh
 $ KUBE_AWS_VERSION="v0.12.3"
 $ PLATFORM="darwin-amd64"
@@ -82,9 +82,57 @@ $ kube-aws --help
 
 <br>
 
-### 2. Render
+### Configure AWS credentials
+* 아래 방법 중 하나로 AWS CLU를 사용하기 위한 credentials을 설정
 
-#### cluster.yaml 생성
+#### 1. Configure command
+```sh
+$ aws configure
+
+AWS Access Key ID [None]: MY_ACCESS_KEY
+AWS Secret Access Key [None]: MY_SECRET_KEY
+Default region name [None]: us-west-2
+Default output format [None]: text
+```
+
+#### 2. Config file
+* `~/.aws/credentials`에 아래 내용 추가
+* `aws configure`로 하는 것을 직접하는 방법
+```sh
+[default]
+aws_access_key_id = MY_ACCESS_KEY
+aws_secret_access_key = MY_SECRET_KEY
+```
+
+#### 3. Environment variables
+```sh
+export AWS_ACCESS_KEY_ID=MY_ACCESS_KEY
+export AWS_SECRET_ACCESS_KEY=MY_SECRET_KEY
+```
+
+* 기존에 설정한 configure profile을 `AWS_PROFILE`를 이용해 사용할 수 있다
+```sh
+$ AWS_PROFILE=my-profile kube-aws init ...
+```
+
+* Multi-Factor Authentication(MFA)를 사용하면 Session Token을 사용
+```sh
+export AWS_SESSION_TOKEN=MY_SESSION_TOKEN
+```
+
+### Test Credentials
+* 위에서 설정한 credentials이 제대로 동작하는지 확인
+```sh
+$ aws ec2 describe-instances
+```
+
+
+<br>
+
+## 2. Render
+* AWS CLI를 사용
+
+### cluster.yaml 생성
 * Pre-Requisites에서 생성한 정보를 이용
 ```sh
 $ kube-aws init \
@@ -106,7 +154,7 @@ Next steps:
 * 지금 생성된 cluster.yaml에서 필요한 옵션들을 수정한다
 
 
-#### credentials 생성
+### credentials 생성
 * Node간 통신, cluster administer를 위한 TLS assets
 ```sh
 $ kube-aws render credentials --generate-ca
@@ -150,7 +198,7 @@ Writing 1070 bytes to credentials/kiam-ca.pem
 --> Verifying the result
 ```
 
-#### CloudFormation stack templates & user data 생성
+### CloudFormation stack templates & user data 생성
 * 생성된 파일들을 기반으로 cluster를 deploy한다
 ```sh
 $ kube-aws render stack
@@ -162,7 +210,7 @@ Next steps:
 3. Start the cluster with "kube-aws up".
 ```
 
-#### cluster deploy전에 유효성 검사
+### cluster deploy전에 유효성 검사
 * TLS assets, CloudFormation stack templates, user data 사용해 cluster를 구성하기 위하 asset을 생성하고 validation, S3 Bucket에 upload 한다
 ```sh
 $ kube-aws validate
@@ -249,7 +297,7 @@ Validation OK!
 
 <br>
 
-### Launch
+## Launch
 ```sh
 $ kube-aws apply
 
@@ -259,7 +307,7 @@ This operation will create/update the cluster. Are you sure? [y,n]: y
 
 <br>
 
-### Tear Down
+## Tear Down
 * cluster가 내려가고 CloudFormation stack 제거된다
 ```sh
 $ kube-aws destroy
@@ -270,3 +318,4 @@ $ kube-aws destroy
 
 > #### Reference
 > * [kube-aws docs](https://kubernetes-incubator.github.io/kube-aws/)
+> * [AWS CLI 구성 - AWS docs](https://docs.aws.amazon.com/ko_kr/cli/latest/userguide/cli-chap-configure.html)
