@@ -574,13 +574,58 @@ Validation OK!
 
 <br>
 
-## Launch
+## 3. Launch
+
+### Create the instances defined in the CloutFormation template
 ```sh
 $ kube-aws apply
 
 This operation will create/update the cluster. Are you sure? [y,n]: y
 ...
 ```
+* cluster components(Kubernetes, dns, heapster...)의 container image를 다운로드해야 해서 시간이 소요된다
+
+
+<br>
+
+### Configure DNS
+* `createRecordSet`을 설정했다면 Route53에 external DNS name의 A record가 Master Node의 Public IP로 라우팅되도록 생성되어 있다
+* cluster API endpoint 조회하기
+```sh
+$ kube-aws status
+
+Cluster Name: my-cluster
+Controller DNS Names:	my-cluster-Con-APIEndpo-1AJX9TZS3L7OZ-116732171.us-east-1.elb.amazonaws.com
+```
+
+
+<br>
+
+### Access the cluster
+* * `kubeconfig`는 kubectl config file로 cluster와 interact하기 위한 설정이 있다
+```sh
+$ kubectl --kubeconfig=kubeconfig get nodes
+
+## access할 수 없는 경우
+The connection to the server <externalDNSName>:443 was refused - did you specify the right host or port?
+
+## access한 경우
+NAME                                       STATUS                     AGE
+ip-10-0-0-xxx.us-west-1.compute.internal   Ready                      5m
+ip-10-0-0-xxx.us-west-1.compute.internal   Ready                      5m
+ip-10-0-0-xx.us-west-1.compute.internal    Ready,SchedulingDisabled   5m
+```
+
+
+<br>
+
+### Export the CloudFormation stack
+* stack을 share, audit, back up하려면 `--export` 사용
+```sh
+$ kube-aws apply --export
+```
+
+
 
 <br>
 
