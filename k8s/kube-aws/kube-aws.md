@@ -626,6 +626,76 @@ $ kube-aws apply --export
 ```
 
 
+<br>
+
+## 4. Updating the Kubernetes cluster
+
+### Cluster update 유형
+
+#### Parameter-level update
+* `cluster.yaml` and/or `credentials/`의 TLS asset에 대한 변경 사항만 반영
+* CloudFormation or cloud-config userdata template 변경 사항은 반영되지 않기 때문에 re-render할 필요 없다
+
+```sh
+$ kube-aws apply
+```
+
+#### Full update
+* etcd cluster의 변경 사항 외에 CloudFormation & cloudinit template의 구조적 변경 같은 변경 사항의 반영
+  * kube-aws version upgrade
+  * cloutinit, CloudFormation template 수정
+
+```sh
+$ kube-aws render stack
+
+$ kube-aws render credentials
+
+$ git diff  # view changes to rendered assets
+
+$ kube-aws apply
+```
+
+> render 전에 credentials/, cluster.yaml, stack templates를 backup하는게 좋다
+
+
+<br>
+
+### Certificate and access token rotation
+* `parameter-level update` mechanism을 사용해 TLS credentials과 access token을 rotation
+* kube-aws가 하는 일
+  * 선택적으로 cluster.yaml에서 externalDNSName attribute 수정
+  * 실제로 업데이트가 없을 때 `불필요한 Node 교체를 방지`하기 위한 캐시된 암호화된 certs/keys/tokens인 `credentials/*.enc` 제거
+
+#### 새로운 credentials 생성하고 적용하기
+```sh
+$ kube-aws render credentials
+
+$ kube-aws apply
+```
+
+* credentials update한 후 system pods(kube-dns..)에서 사용하는 service account token이 유효하지 않게 되어 중지되는 issue가 있다
+  * [Rotate/update TLS cert key issu](https://github.com/kubernetes-incubator/kube-aws/issues/1057)에 나와 있듯이 이전 certs로 생성된 `secrets`을 삭제하면 해결된다
+
+```sh
+## regenerate kube-dns token
+$ kubectl delete secret kube-dns-token-xxx -n kube-system
+
+## restart kube-dns pods
+$ kubectl delete pod -l k8s-app=kube-dns -n kube-system
+```
+
+* etcd cert 교체시 참고
+[dist-upated-tls-certs-etcd-nodes.sh](https://github.com/kubernetes-incubator/kube-aws/issues/1126#issuecomment-384772378)
+
+
+<br>
+
+### The etcd caveat
+* cluster가 생성된 후 etcd ec2 instance에 대한 정보는 업데이트할 수 없다
+  * 쉽게 update할 수있는 방식으로 etcd cluster를 hosting할 수 있는 솔루션이 없어서
+* CoreOS update engine은 etcd cluster member를 최신 상태로 유지하지만 운영자는 할 수 없다
+* etcd가 k8s에서 hosting되면 해당 issue는 해결
+
 
 <br>
 
