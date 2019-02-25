@@ -31,10 +31,10 @@
 * [AWS CLI](https://docs.aws.amazon.com/ko_kr/cli/latest/userguide/cli-chap-install.html)
 * [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 * [EC2 Key Pair](https://docs.aws.amazon.com/ko_kr/AWSEC2/latest/UserGuide/ec2-key-pairs.html)
-  * ??
+  * EC2 instance에 ssh access를 위한 인증키로 사용
 * Route53의 hosted-zone-id, DNS Name
 * [KMS Key](https://docs.aws.amazon.com/ko_kr/kms/latest/developerguide/create-keys.html)의 ARN
-  * ??
+  * Cluster의 TLS asset을 암호화하는데 사용
 * [S3 Bucket](https://docs.aws.amazon.com/ko_kr/AmazonS3/latest/gsg/CreatingABucket.html)
   * kube-aws의 asset이 저장될 위치
 * EC2 instance type은 t2.medium 이상을 사용
@@ -438,7 +438,7 @@ subnets:
 * Auto Scaling Group의 `DesiredCapacity`가 증가할 때 Node를 추가할 AZ와 subnet을 선택한다는 의미
 
 ##### cluster-autoscaler가 필요한 cluster
-* `[Node Pool](https://github.com/kubernetes-incubator/kube-aws/blob/master/docs/getting-started/step-5-add-node-pool.md)`을 사용해야 한다
+* [Node Pool](https://github.com/kubernetes-incubator/kube-aws/blob/master/docs/getting-started/step-5-add-node-pool.md)을 사용해야 한다
 
 
 #### Certificates and Keys
@@ -509,15 +509,15 @@ generating assets for control-plane, etcd, network, default-pool, private-pool
 Validation Report: {
   Capabilities: ["CAPABILITY_NAMED_IAM","CAPABILITY_AUTO_EXPAND"],
   CapabilitiesReason: "The following resource(s) require capabilities: [AWS::CloudFormation::Stack]",
-  Description: "kube-aws Kubernetes cluster stage"
+  Description: "kube-aws Kubernetes cluster mycluster"
 }
 {
-  Description: "kube-aws network stack for stage"
+  Description: "kube-aws network stack for mycluster"
 }
 {
   Capabilities: ["CAPABILITY_IAM"],
   CapabilitiesReason: "The following resource(s) require capabilities: [AWS::IAM::ManagedPolicy]",
-  Description: "kube-aws control plane stack for stage",
+  Description: "kube-aws control plane stack for mycluster",
   Parameters: [{
       Description: "The name of a network stack used to import values into this stack",
       NoEcho: false,
@@ -528,44 +528,8 @@ Validation Report: {
       ParameterKey: "EtcdStackName"
     }]
 }
-{
-  Capabilities: ["CAPABILITY_IAM"],
-  CapabilitiesReason: "The following resource(s) require capabilities: [AWS::IAM::ManagedPolicy]",
-  Description: "kube-aws etcd stack for stage",
-  Parameters: [{
-      Description: "The name of a network stack used to import values into this stack",
-      NoEcho: false,
-      ParameterKey: "NetworkStackName"
-    }]
-}
-{
-  Capabilities: ["CAPABILITY_IAM"],
-  CapabilitiesReason: "The following resource(s) require capabilities: [AWS::IAM::ManagedPolicy]",
-  Description: "kube-aws node pool stack for stage default-pool",
-  Parameters: [{
-      Description: "The name of a network stack used to import values into this stack",
-      NoEcho: false,
-      ParameterKey: "NetworkStackName"
-    },{
-      Description: "The name of an etcd stack used to import values into this stack",
-      NoEcho: false,
-      ParameterKey: "EtcdStackName"
-    }]
-}
-{
-  Capabilities: ["CAPABILITY_IAM"],
-  CapabilitiesReason: "The following resource(s) require capabilities: [AWS::IAM::ManagedPolicy]",
-  Description: "kube-aws node pool stack for stage private-pool",
-  Parameters: [{
-      Description: "The name of a network stack used to import values into this stack",
-      NoEcho: false,
-      ParameterKey: "NetworkStackName"
-    },{
-      Description: "The name of an etcd stack used to import values into this stack",
-      NoEcho: false,
-      ParameterKey: "EtcdStackName"
-    }]
-}
+...
+
 stack template is valid.
 
 Validation OK!
@@ -695,6 +659,132 @@ $ kubectl delete pod -l k8s-app=kube-dns -n kube-system
   * 쉽게 update할 수있는 방식으로 etcd cluster를 hosting할 수 있는 솔루션이 없어서
 * CoreOS update engine은 etcd cluster member를 최신 상태로 유지하지만 운영자는 할 수 없다
 * etcd가 k8s에서 hosting되면 해당 issue는 해결
+
+
+<br>
+
+## 5. Node Pool
+* 별도의 구성으로 Worker Node Pool을 설정할 수 있다
+  * Instance Type
+  * Storage Type/Size/IOPS
+  * Instance Profile
+  * Additional, User-Provided Security Groups
+  * Spot Price
+  * Auto Scaling or Spot Fleet
+  * [Node labels](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/)
+  * [Taints](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/)
+
+
+<br>
+
+### Deploying a Multi-AZ cluster with cluster-autoscaler support with Node Pools
+* default로 single AZ cluster를 구성
+* 다른 AZ에 하나 이상의 Node Pool을 추가해 Multi-AZ로 구성할 수 있다
+
+#### 기존에 subnet과 subnet에 node pool이 있을 경우
+* before
+```yaml
+subnets:
+- name: managedPublicSubnetIn1a
+  availabilityZone: us-west-1a
+  instanceCIDR: 10.0.0.0/24
+
+worker:
+  nodePools:
+    - name: pool-1
+      subnets:
+      - name: managedPublicSubnetIn1a
+```
+
+* after
+```yaml
+subnets:
+- name: managedPublicSubnetIn1a
+  availabilityZone: us-west-1a
+  instanceCIDR: 10.0.0.0/24
+- name: managedPublicSubnetIn1c
+  availabilityZone: us-west-1c
+  instanceCIDR: 10.0.1.0/24
+
+worker:
+  nodePools:
+    - name: pool-1
+      subnets:
+      - name: managedPublicSubnetIn1a
+    - name: pool-2
+      subnets:
+      - name: managedPublicSubnetIn1c
+```
+
+* cluster.yaml 변경사항 적용
+```sh
+$ kube-aws apply
+```
+* Node Pool에 `1개의 AZ만 연결`해야 한다
+  * Node Pool에 여러 AZ를 연결하면 cluster-autoscaler가 Node를 안정적으로 추가할 수 없다
+  * cluster-autoscaler가 `desired capacity`를 조정하는데 원하는 AZ에 선택적으로 Node를 추가할 방법이 없기 때문
+
+
+<br>
+
+### Customizing min/max size of the auto scaling group
+* Auto Scaling Group이 있는 Node Pool이면 `minSize`, `maxSize`, `rollingUpdateMinInstancesInService` 설정 가능
+
+```yaml
+worker:
+  nodePools:
+  - name: pool-1
+    autoScalingGroup:
+      minSize: 1
+      maxSize: 3
+      rollingUpdateMinInstanceInService: 1
+...
+```
+
+
+<br>
+
+### Deploying a node pool powered by Spot Fleet
+* `Spot Fleet`을 활용하면 합리적인 가용성과 EC2 instance의 비용 절감을 달성할 수 있다
+* Sport Fleet의 targetCapacity를 조정하면 downtime 발생
+  * CloudFormation이 Spot Fleet를 update하는 방식 때문
+    * [AWS CloudFormation EC2::SpotFleet](https://docs.aws.amazon.com/ko_kr/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-spotfleet.html#d0e60520) 참고
+  * cluster의 가용성을 위해 임시 Node Pool을 사용해 Spot Fleet 교체를 권장
+* `arn:aws:iam::youraccountid:role/aws-ec2-spot-fleet-role`과 같은 IAM role 필요
+  * [Spot Fleet Pre-requisites](https://docs.aws.amazon.com/ko_kr/AWSEC2/latest/UserGuide/spot-fleet-requests.html#spot-fleet-prerequisites) 참고
+* experimental feature라서 호환성을 보장하지 않는다
+
+#### Configuration
+* simple configuration
+```yaml
+worker:
+  nodePools:
+  - name: pool-1
+    spotFleet:
+      targetCapacity: 3
+```
+
+* `launch specifications`을 통해 instance type 다양화 
+```yaml
+worker:
+  nodePools:
+  - name: pool-1
+    spotFleet:
+      targetCapacity: 5
+      launchSpecifications:
+      - weightedCapacity: 1
+        instanceType: t2.medium
+      - weightedCapacity: 2
+        instanceType: m3.large
+      - weightedCapacity: 2
+        instanceType: m4.large
+```
+* 위의 설정은 다음의 instance를 가져온다
+  * 1 x t2.midium = 1 capacity
+  * 1 x m3.large = 2 capacity
+  * 1 x m4.large = 2 capacity
+
+> [Spot Fleet Allocation Strategy](https://docs.aws.amazon.com/ko_kr/AWSEC2/latest/UserGuide/spot-fleet.html#spot-fleet-allocation-strategy) 참고
 
 
 <br>
