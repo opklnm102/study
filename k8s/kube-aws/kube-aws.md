@@ -789,6 +789,136 @@ worker:
 
 <br>
 
+## 6. Configure Add-ons
+* 몇가지 kubernetes add-ons를 built-in으로 지원
+
+### [cluster-autoscaler](https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler)
+* Node 당 리소스 사용량에 따라 Worker Node를 추가/제거하여 cluster의 scale in/out을 한다
+
+```yaml
+# IAM 권한을 Controller Node에 제공해 cluster-autoscaler에서 필요한 AWS API를 호출
+# cluster-autoscaler가 IAM 권한을 활용할 수 있도록 Controller Node 중 하나에서 cluster-autoscaler를 실행하기 위한 deployment 생성
+addons:
+  clusterAutoscaler:
+    enabled: true
+worker:
+  nodePools:
+
+  # resource 부족으로 pending인 pod이 있다면 최대 10까지 Node를 추가
+  # pending인 pod이 없고, 하나 이상의 Node가 사용량이 적다면 최소 1개까지 Node를 제거
+  - name: scaled
+    autoScalingGroup:
+      minSize: 1
+      maxSize: 10
+    autoscaling:
+      clusterAutoscaler:
+        enabled: true
+
+  # 수동으로 scaling
+  - name: notScaled
+    autoScalingGroup:
+      minSize: 2
+      maxSize: 4
+```
+
+
+<br>
+
+### [kube2iam](https://github.com/jtblin/kube2iam) / [kiam](https://github.com/uswitch/kiam)
+* annotation을 기반으로 k8s cluster의 Pod의 IAM role에 대한 IAM credentials을 제공하는 기능
+* Woker/Controller Node의 kube2iam/kiam이 동작하려면 아래의 설정 필요
+
+#### 1. Work/Controller Node의 IAM role에 IAM Policy 필요
+```json
+{
+  "Action": "sts:AssumeRole",
+  "Resource": "*",
+  "Effect": "Allow"
+}
+```
+
+```yaml
+# for controller nodes
+experimental:
+  kiamSupport:
+    enabled: false
+    ...
+
+  kube2IamSupport:
+    enabled: false
+...
+
+# for worker nodes
+worker:
+  nodePools:
+    - name: nodepool1
+      kube2IamSupport:
+        enabled: true
+```
+
+#### 2. target IAM role이 worker/controller IAM role이 targe role을 맡을 수 있도록 trust relationship 변경 필요
+* CloudFormation은 기본적으로 임의의 ID로 예측할 수 없는 role을 생성
+  * 처음부터 예측할 수 있게 생성하여 relationship 구성을 쉽게 자동화할 수 있게 하는 것이 좋다
+* worker/controller role name에 suffix로 `iam.role.names`가 붙는다
+* target role의 relationship 설정은 kube-aws를 벗어난다
+  * 자세한건 kube2iam, kiam doc 참고
+* 기본적으로 `Principal`을 worker/controller IAM role의 ARN(arn:aws:iam::<your aws account id>:role/<stack-name>-<managed iam role name>)으로 지정해야 한다
+
+```yaml
+# for controller nodes
+controller:
+  iam:
+    role:
+      name: my-controller-role
+
+experimental:
+  kube2IamSupport:
+    enabled: true
+
+# for worker nodes
+worker:
+  nodePools:
+  - name: my-pool
+    iam:
+      role:
+        name: my-worker-role
+    kube2IamSupport:
+      enabled: true
+```
+> 자세한 내용은 [kube2iam doc](https://github.com/jtblin/kube2iam#iam-roles), [kiam doc](https://github.com/uswitch/kiam/blob/master/docs/IAM.md) 참고
+
+* Worker/Controller IAM role을 별도의 CloudFormation Stack에서 참조할 수 있다
+```yaml
+...
+Parameters:
+  KubeAWSStackName:
+    Type: String
+  Resources:
+    IAMRole:
+      Type:
+      Properties:
+        AssimeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                Service: ec2.amazonaws.com
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                AWS:
+                  Fn::ImportValue: !Sub "${KubeAWSStackName}-ControllerIAMRoleArn"
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                AWS:
+                  Fn::ImportValue: !Sub "${KubeAWSStackName}-NodePool<>Node Pool Name>WorkerIAMRoleArn"
+...
+```
+
+
+<br>
+
 ## Tear Down
 * cluster가 내려가고 CloudFormation stack 제거된다
 ```sh
@@ -805,3 +935,5 @@ $ kube-aws destroy
 > * [cloud-init](https://github.com/coreos/coreos-cloudinit)
 > * [Persistent Volume - k8s docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims)
 > * [Multiple Zones - k8s docs](https://kubernetes.io/docs/setup/multiple-zones/)
+> * [kube2iam](https://github.com/jtblin/kube2iam)
+> * [kiam](https://github.com/uswitch/kiam)
