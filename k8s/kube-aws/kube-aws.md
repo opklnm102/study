@@ -919,10 +919,16 @@ Parameters:
 
 <br>
 
-## Tear Down
+## Destroy the cluster
 * cluster가 내려가고 CloudFormation stack 제거된다
+* k8s `type=LoadBalancer` service를 사용하는 경우 CloudFormation stack을 제거하기 위해 외부에서 관리하는 리소스를 먼저 제거해야 한다
 ```sh
 $ kube-aws destroy
+```
+
+* 확인 단계를 skip하고 싶으면
+```sh
+$ kube-aws destroy --force
 ```
 
 
