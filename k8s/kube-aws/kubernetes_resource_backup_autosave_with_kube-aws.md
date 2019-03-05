@@ -234,7 +234,45 @@ template:
   * probe-token이 생성된지 25시간 이상지나면 upload에 이상이 발생한걸로 판단하고 container를 kill하기 위해 사용
 
 
+<br>
+
+## Resotre
+* backup data를 기반으로 script를 실행하는 프로세스
+* namespace 당 k8s resource 생성
+  * kube-system, default 제외
+  * `BUCKET_URI` argument 다음에 원하는 namespace를 포함
+  * BUCKET_URI는 timestamp 디렉토리의 S3 URI
+
+```sh
+$ kube-aws/contrib/cluster-backup/restore.sh s3://my-bucket/my-cluster/backup/2019-02-13_00-49-2
+...
+```
+
+
+<br>
+
+### Pre-Requisites
+* kubectl - k8s CLI
+* aws - AWS CLI
+* jq - json parser
+* cluster is reachable
+  * kubeconfig
+
+
+<br>
+
+### Restore Process
+1. 복원할 namespace가 존재하는지 확인
+2. 모든 namespace에 common k8s resource(ex. StorageClass)가 생성
+3. 복원할 각 namespace마다 namespace 내부의 k8s resource를 생성
+
+#### 고려사항
+* PersistentVolumes를 복원시 AWS에 Volume이 있다고 가정하기 때문에 새롭게 Provisioning하지 않는다
+* 특정 요구에 따라 script를 custom 가능
+
+
 <br><br>
 
 > #### Reference
 > * [Kubernetes Resource Backup / Autosave - kube-aws docs](https://kubernetes-incubator.github.io/kube-aws/add-ons/cluster-resource-backup-to-s3.html)
+> * [Restore - kube-aws](https://github.com/kubernetes-incubator/kube-aws/tree/master/contrib/cluster-backup)
