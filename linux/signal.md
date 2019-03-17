@@ -37,12 +37,13 @@ HUP INT QUIT ILL TRAP ABRT EMT FPE KILL BUS SEGV SYS PIPE ALRM TERM URG STOP TST
 | 4 | ILL | terminate & core dump | 잘못된 명령 사용 |
 | 5 | TRAP | terminate & core dump | trace, breakpoint에서 TRAP 발생 |
 | 6 | ABRT | terminate & core dump | abort()에 의해 발생, 비정상 종료 |
-| 9 | KILL | terminate | process 강제 종료 |
+| 9 | KILL | terminate | process 강제 종료. 무시, 추적 처리 불가 |
 | 10 | BUS | terminate & core dump | bus 오류 |
 | 11 | SEGV | terminate & core dump | segmentation fault(잘못된 메모리 참조) |
 | 12 | SYS | terminate & core dump | system call 오류 |
 | 13 | PIPE | terminate & core dump | pipe 오류(단절된 pipe에 write...) |
 | 14 | ALRM | terminate & core dump | 알람에 의해 발생 |
+| 15 | TERM | terminate | termination signal. KILL과 같지만 무시, 추적 처리 가능 |
 | 16 | USR1 | terminate | 사용자 정의 signal 1 |
 | 17 | USR2 | terminate | 사용자 정의 signal 2 |
 | 18 | CHLD | ignore | child process 상태 변화 |
