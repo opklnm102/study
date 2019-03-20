@@ -79,6 +79,42 @@ trap "cp $HISTFILE $HOME/old_hist.bak; exit" ALRM
 ```
 
 
+<br>
+
+### shell script runtime error trace
+```sh
+#!/bin/bash
+
+set -e
+
+trapper() {
+  echo "ERROR: ${LINENO}"
+  echo "ERROR: ${BASH_SOURCE[1]} ${BASH_LINENO[0]}"
+  exit 1
+}
+
+trap trapper INT
+
+while true; do
+  sleep 1s
+  echo "a"
+done
+```
+
+* result
+```sh
+a
+a
+...
+a
+ERROR: 6
+ERROR: ./line-test.sh 16
+```
+* `LINENO` - script의 라인 번호
+* `BASH_SOURCE` - script source 이름
+* `BASH_LINENO` - 실행 중이던 라인 번호
+
+
 <br><br>
 
 > #### Reference
