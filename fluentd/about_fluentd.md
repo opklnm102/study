@@ -49,9 +49,12 @@
 <br>
 
 ## Internal Architecture
-![fluentd internal architecture](./images/fluentd_internal_architecture.png)
+![fluentd internal architecture detail](./images/fluentd_internal_architecture_detail.png)
+* Input, Parser, Filter, Formatter, Storage, Buffer, Output plugin을 자유롭게 활용
 
 ### Fluentd가 읽어들인 Data는 tag, time, record로 구성된 Event로 처리
+![fluentd internal architecture](./images/fluentd_internal_architecture.png)
+
 ```
 tag="event.user_sign_in" 
 time=#<Fluent::EventTime:0x007fb6f4b80788 @sec=1544426167, @nsec=575908560> 
@@ -102,7 +105,7 @@ record={
   * AWS S3(out_s3)
   * MongoDB(out_mongo)
 
-### Buffer plugins
+### Buffer plugins(optional)
 ![fluentd buffer flow](./images/fulentd_buffer_flow.png)
 
 * improve performance
@@ -111,6 +114,31 @@ record={
 * plugins
   * memory(buf_memory)
   * file(buf_file)
+
+### Parser plugin(optional)
+* 전달 받은 데이터를 파싱하기 위해 `<parse>` section 사용
+* `<source>`(input plugin), `<match>`(output plugin), `<filter>`(filter plugin) 내부에 정의
+* plugins
+  * regexp
+  * apache2
+  * nginx
+  * syslog
+  * csv
+  * tsv
+  * json
+  * none
+
+### Formatter plugin(optional)
+* output plugin을 사용시 저장될 data format 정의
+* input에서 parser로 format에 맞게 읽고, output에서 formatter로 format에 맞게 쓴다
+
+### Filter plugin(optional)
+* 특정 필드에 대해 필터링 조건 적용
+* 새로운 필드를 추가
+  * 데이터를 전송한 host name 등을 추가
+* 필드를 삭제하거나 값을 숨김
+  * 불필요한 필드 삭제
+  * 개인 정보 같은 민감 정보 삭제 or 암호화
 
 
 <br>
