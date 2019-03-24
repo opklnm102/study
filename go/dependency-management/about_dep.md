@@ -370,6 +370,89 @@ cache:
 ```
 
 
+<br>
+
+## Models and Mechanisms
+TODO: 2019.01.07 https://golang.github.io/dep/docs/ensure-mechanics.html
+
+
+<br>
+
+## Glossary
+
+### Atom
+* 특정 버전의 소스
+* project root와 version을 의미
+  * github.com/foo/bar@master
+* solver 내부에서 사용되며 다른곳에서는 거의 사용되지 않는다
+
+### Cache lock
+* `sm.lock`이라는 파일은 1번에 1개의 dep process가 local cache에 대해 접근하도록 하는데 사용
+* 아직 dep이 multi process에 대해 안전하지 않기 때문
+
+### Current Project
+* Gopkg.lock과 vendor에 대해 dep이 작업하는 project
+* root project라고도 함
+
+### Deduction
+* source root에 해당하는 import path를 결정하는 프로세스
+* 일부는 선언(static), 일부는 network를 통해(dynamic) 발견되야 한다
+
+### Direct Dependency
+* 하나 이상의 package를 import하거나 Gopkg.toml의 `required`에 선언된 것들
+* A -> B -> C -> D로 단일 package만 가져오는 경우
+  * B는 A의 `direct Dependency`
+  * C, D는 A의 `transitive dependencies`
+
+### External Import
+* 다른 package를 가리키는 import
+`import github/foo/bar`는 stdlib 또는 github/foo/bar/*가 아닌 다른 package면 external import
+
+### GPS
+* Go packaging solver
+* dep 하위의 library-style package
+
+### Local cache
+* dep이 관리하는 upstream source
+* `$GOPATH/pkg/dep`
+
+### Lock
+* `Gopkg.lock`에서 관리
+
+### Manifest
+* `Gopkg.toml`에서 관리
+
+### Project Root
+* current project면 `Gopkg.toml`이 위치한 곳
+* dependency project면 VCS의 root
+
+### Solver
+* `GPS`내부의 domain-specific SAT solver에 대한 reference
+* [The Solver](https://golang.github.io/dep/docs/the-solver.html) 참고
+
+### Source
+* versioning된 remote entities
+* code를 포함하는 entity며 code의 특정버전이 아니다
+
+### Source Root
+* Source를 network에서 import하기 위한 location
+* Projetc Root와 비슷하지만 network-oriented
+
+### Sync
+* dep은 4가지 상태 사이의 잘 정의된 관계를 중심으로 설계
+  * .go 파일의 `import` statements
+  * `Gopkg.toml`
+  * `Gopkg.lock`
+  * `vendor` directory
+* 충족되지 않은 경우 `out of sync`
+
+### Vendor Verification
+* dependency package를 hashing한 digest를 `Gopkg.lock`에 저장해 `vendor/`의 정확성을 보장
+* digest는 `vendor/`의 내용을 `dep ensure`시 재생성해야 하는지 결정하는데 사용
+* `dep check`는 digest로 `Gopkg.lock`과 `vendor/`가 sync되었는지 확인
+* Gopkg.toml의 `noverify`는 vendor verification을 회피하는데 사용
+
+
 <br><br>
 
 > #### Reference
