@@ -443,7 +443,7 @@ type SolveParameters struct {
     일시적으로 project가 sync되지 않을 수 있다
 
 #### -no-vendor and -vendor-only
-<img src="./images/dep_no_vendor_and_vendor_only.png" alt="dep no-verdor and vendor-only" width="500" height="400"/>
+![dep no-verdor and vendor-only](./images/dep_no_vendor_and_vendor_only.png)
 
 * `-no-vendor`
   * solving만을 무조건 수행하여 Gopkg.lock 생성하기 때문에 기존에 생성된 Gopkg.lock을 검증할 수 있다
