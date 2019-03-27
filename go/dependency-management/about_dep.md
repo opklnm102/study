@@ -373,7 +373,138 @@ cache:
 <br>
 
 ## Models and Mechanisms
-TODO: 2019.01.07 https://golang.github.io/dep/docs/ensure-mechanics.html
+
+### States and flows
+* package manager가 상호작용하는 disk의 state를 4가지로 분류한 **4 state system** 기반으로 동작
+  * `current project`의 source code
+  * current project의 dependency requirements가 정의된 `manifest`인 `Gopkg.toml`
+  * dependency graph의 transitively-complete, reproducible description이 담긴 `lock`인 `Gopkg.lock`
+  * dependency의 source code인 `vendor/`
+
+
+<br>
+
+### Functional flow
+* `dep`은 state 사이의 관계에 대한 단방향, functional flow를 부과하는 시스템
+
+![dep functional flow](./images/dep_functional_flow.png)
+
+#### solving
+* current project의 import set과 `Gopkg.toml`의 rule로 **transitive-complete, immutable dependency grpah**인 `Gopkg.lock` 생성
+* 코드에서는 `Solver` type을 생성한 후 `Solve()`를 호출, input으로는 `SolveParameters` 사용
+```go
+type SolveParameters struct {
+    RootPackageTree pkgtree.PackageTree  // Parsed project src; contains lists of imports
+    Manifest gps.RootManifest  // Gopkg.toml
+    ...
+}
+```
+
+* `Gopkg.toml`이 없다면 `dep init`으로 생성할 수 있다
+  * `GOPATH`와 다른 tool의 metadata로 부터 정보를 가져오기 때문에 migration할 수 있다
+
+#### vendoring
+* 컴파일러가 `Gopkg.lock`에 지정된 버전을 사용할 수 있도록 소스파일의 배치를 보장
+* 코드에서는 `gps.WriteDepTree()`에 `gps.Lock`을 input으로 사용
+  * gps.Lock - `Gopkg.lock`을 추상화한 interface
+
+
+<br>
+
+### Staying in sync
+* function이 모두 자신이 수행하는 작업과 출력해서 유도하는 변경을 최소화
+* 두기능 모두 pre-existing output을 보고 실제로 수행할 작업을 이해
+* `solving`
+  * Gopkg.lock을 검사해 모든입력이 만족하는지 확인
+  * 그럴 경우 solving을 패스
+  * 아니라면 solving이 진행되고 Gopkg.lock에서 선택항목을 변경 시도
+* `vendoring`
+  * disk의 코드가 Gopkg.lock에 있는것을 확인하기 위해 `verdor/`의 프로젝트들을 hashing
+  * hash가 불일치한 프로젝트만 재작성
+
+| Sync invariant | Resolution when desynced | func |
+|:--|:--|:--|
+| Gopkg.toml의 모든 `required`는 Gopkg.lock의 `input-imports`에 존재 | Re-solve, Gopkg.lock, vendor/를 업데이트 | Solving |
+| current project의 non-ignored, non-hidden package의 모든 `import`는 Gopkg.lock의 input-imports에 존재  | Re-solve, Gopkg.lock, vendor/를 업데이트 | Solving |
+| Gopkg.lock의 모든 `version`은 Gopkg.toml의 `[[constraint]]`, `[[override]]`를 허용 해야 한다 | Re-solve, Gopkg.lock, verdor/를 업데이트 | Solving |
+| Gopkg.lock의 각`[[project]]`의 `pruneopts`는 Gopkg.toml과 같아야 한다 | Gopkg.lock, verdor/를 업데이트 | Vendoring |
+| Gopkg.lock의 각`[[project]]`의 `digest`는 `verdor/`의 hashing과 같아야 한다 | vendor/를 regenerate 후 새로운 hash digest로 Gopkg.lock을 업데이트 | Vendoring |
+
+* sync invariant가 이미 충족되었는지 알면, dep은 해당 function을 skip
+* `dep ensure`가 끝나면 모든 sync invariants가 유지된 **known good state**를 보장
+* `dep check`는 위의 모든 관계를 평가 후 invariant가 충족되지 않으면 desync와 exit 1을 출력
+  * Gopkg.toml의 `noverifty`로 project별로 해제 가능
+
+
+<br>
+
+### dep ensure flags and behavior variations
+`dep ensure`의 flag는 solving, vendoring function에 영향을 준다
+    일시적으로 project가 sync되지 않을 수 있다
+
+#### -no-vendor and -vendor-only
+<img src="./images/dep_no_vendor_and_vendor_only.png" alt="dep no-verdor and vendor-only" width="500" height="400"/>
+
+* `-no-vendor`
+  * solving만을 무조건 수행하여 Gopkg.lock 생성하기 때문에 기존에 생성된 Gopkg.lock을 검증할 수 있다
+* `-vendor-only`
+  * solving을 skip하고 vendoring만 수행하여 vendor/ 생성
+
+#### -add
+* depgraph에 새로운 dependency 추가
+* `-update`는 project root(e.g. github.com/foo/bar)로 제한되지만, `-add`는 package import path(e.g. github.com/foo/bar/baz)를 argument로 사용할 수 있다
+* `dep ensure -add`를 사용하는 경우
+  * 새로운 dependency로 solving을 수행해 Gopkg.lock 생성할 때
+  * Gopkg.toml에 version constraint 추가할 때
+* `dep ensure -add`를 사용하기 위한 조건
+  * current project에 import가 없고, Gopkg.toml에 required로 없을 때
+  * Gopkg.toml의 `[[constraint]]`가 없을 때
+
+```sh
+## Gopkg.toml에 있는 경우
+$ dep ensure -add github.com/foo/bar
+Fetching sources...
+
+Failed to add the dependencies:
+
+  ✗ nothing to -add, github.com/foo/bar is already in Gopkg.toml and the project's direct imports or required list
+
+adding dependencies failed
+
+## import path가 있는 경우
+$ dep ensure -add github.com/foo/bar
+Fetching sources...
+
+Failed to add the dependencies:
+
+  ✗ github.com/foo/bar is already imported or required, so -add is only valid with a constraint
+
+adding dependencies failed
+```
+
+* version 명시 가능
+  * 명시된 version이 없으면 최신 버전 사용
+
+```sh
+$ dep ensure -add github.com/foo/bar@v1.0.0
+```
+
+#### -update
+* solver의 동작과 밀접하게 연결
+* solving function은 기존 Gopkg.lock을 고려
+* solver가 이전에 선택한 버전을 보존하려면 Gopkg.lock이 필요
+
+```go
+type SolverParameters struct {
+    ...
+    Lock gps.Lock  // Gopkg.lock
+    ToChange []gps.ProjectRoot  // args to -update
+    ChangeAll bool  // true if no -update args passed
+    ...
+}
+```
+
+> -update는 중간에서 중지...
 
 
 <br>
