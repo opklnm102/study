@@ -10,7 +10,7 @@
 * Container cluster의 compute resource 사용량 analysis and monitoring
   * compute resource 사용량, lifesycle events 등과 같은 다양한 신호를 수집하고 해석
 * 수집된 metrics을 저장하기 위해 다양한 data sink 지원
-  * InfluxDBB
+  * InfluxDB
   * Stackdriver Monitoring and Logging for GCP
   * [Configuring sinks](https://github.com/kubernetes-retired/heapster/blob/master/docs/sink-configuration.md) 참고
 
