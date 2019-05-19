@@ -19,7 +19,7 @@ Created symlink from
 ## systemctl이란?
 * 오랫동안 daemon이라는 background 프로그램은 inits cript를 사용해 구동해왔다
   * init script는 읽고 해석, 변경에 어려움이 있다
-* RHEL 7/CentOS 7에 도입된 `Systemd`라는 서비스 관리 애플리케이션이 init script를 대체
+* RHEL 7/CentOS 7에 도입된 [Systemd](https://github.com/systemd/systemd)라는 서비스 관리 애플리케이션이 init script를 대체
   * 최신 리눅스 배포판에서는 필요한 서비스를 시작하는 역할은 systemd가 맡고 있을 가능성이 높다
 * systemd를 관리하는 명령어가 `systemctl`
 
@@ -1152,3 +1152,5 @@ $ journalctl --vacuum-time=1years
 > * [RHEL/CentOS 7 systemctl 사용법](https://www.lesstif.com/pages/viewpage.action?pageId=24445064)
 > * [Do systemd unit files have to be reloaded when modified?](https://serverfault.com/questions/700862/do-systemd-unit-files-have-to-be-reloaded-when-modified)
 > * [How To Use Journalctl to View and Manipulate Systemd Logs](https://www.digitalocean.com/community/tutorials/how-to-use-journalctl-to-view-and-manipulate-systemd-logs#active-process-monitoring)
+* [systemd - System and Service Manager - Github](https://github.com/systemd/systemd)
+* [Systemd Wiki](https://www.freedesktop.org/wiki/Software/systemd/)
