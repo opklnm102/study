@@ -9,7 +9,7 @@
 * 각자 name server를 사용
 
 <div align="center">
-<img src="./images/domain_connecting1.png" alt="images..." width="350" height="350"/>
+<img src="./images/domain_connecting1.png" alt="images..." width="450" height="350"/>
 </div>
 
 
@@ -24,7 +24,7 @@
 * 구입한 도메인이 사용하는 name server를 변경한다
 
 <div align="center">
-<img src="./images/domain_connecting2.png" alt="images..." width="350" height="350"/>
+<img src="./images/domain_connecting2.png" alt="images..." width="450" height="350"/>
 </div>
 
 * 일정 시간동안 도메인 연결이 원활하지 않을 수 있다
@@ -39,7 +39,7 @@
 * 구입한 도메인이 사용하는 name server를 변경하지 않고, 기존에 사용하던 name server 정보를 추가
 
 <div align="center">
-<img src="./images/domain_connecting3.png" alt="images..." width="350" height="350"/>
+<img src="./images/domain_connecting3.png" alt="images..." width="450" height="350"/>
 </div>
 
 * 도메인 연결 문제는 없다
