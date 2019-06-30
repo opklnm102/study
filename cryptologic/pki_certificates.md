@@ -119,14 +119,14 @@
 ### In Real World
 * `Symmetric Key Algorithm`이 느리기 때문에 현실에서는 복잡한 구조를 이용
 
-[pki](./images/pki.png)
+![pki](./images/pki.png)
 
 <br>
 
 ### 전자 서명
 **보낸 당사자가 보냈다는 것을 확인하는 절차**이기 때문에 Plain Text를 자체를 encrypt할 필요가 없다
 
-[digital sign](./images/digital_sign.png)
+![digital sign](./images/digital_sign.png)
 
 
 <br>
