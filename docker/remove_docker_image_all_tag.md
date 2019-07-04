@@ -20,10 +20,10 @@ $ docker rmi fnproject/fn-java-fdk
 ## 특정 이미지의 모든 tag 삭제하기
 * tag별로 일일이 삭제하기는 불편하니...
 ```sh
-$ docker images | grep <repository name>/<image name> | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} docker rmi <repository name>/<image name>:{}
+$ docker image ls <repository name>/<image name> | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} docker rmi <repository name>/<image name>:{}
 
 # example
-$ docker images | grep fnproject/fn-java-fdk | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} docker rmi fnproject/fn-java-fdk:{}
+$ docker images ls fnproject/fn-java-fdk | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} docker rmi fnproject/fn-java-fdk:{}
 ```
 
 
