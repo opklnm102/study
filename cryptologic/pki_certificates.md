@@ -249,9 +249,341 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQD595gYahIzB7oV
 ```
 
 
+<br>
+
+## Example
+* Root CA certificate와 Root CA certificate로 sign된 SSL certificate 생성해보자
+
+<br>
+
+### 1. Root CA certificate 생성
+```sh
+$ openssl genrsa -aes256 -out <destination path> <bit>
+
+## example
+$ openssl genrsa -aes256 -out rootca.key 2048
+Generating RSA private key, 2048 bit long modulus
+.......................................................+++
+.......................+++
+e is 65537 (0x10001)
+Enter pass phrase for rootca.key: xxxxxx
+Verifying - Enter pass phrase for rootca.key: xxxxxx
+
+## 최소한의 permission 할당
+$ chmod 600 rootca.key
+```
+* private key 탈취에 대비해 **AES256으로 암호화**
+* `pass phrase` 분실시 private key를 얻을 수 없으므로 주의!
+
+<br>
+
+### 2. CSR(Certificate Singing Request)을 위한 설정 생성
+```sh
+## rootca_openssl.conf
+
+[ req ]
+default_bits            = 2048
+default_md              = sha1
+default_keyfile         = rootca.key
+distinguished_name      = req_distinguished_name
+extensions              = v3_ca
+req_extensions          = v3_ca
+  
+[ v3_ca ]
+basicConstraints       = critical, CA:TRUE, pathlen:0
+subjectKeyIdentifier   = hash
+# authorityKeyIdentifier = keyid:always, issuer:always
+keyUsage               = keyCertSign, cRLSign
+nsCertType             = sslCA, emailCA, objCA
+
+[req_distinguished_name ]
+countryName                     = Country Name (2 letter code)
+countryName_default             = KR
+countryName_min                 = 2
+countryName_max                 = 2
+
+organizationName                = Organization Name (eg, company)
+organizationName_default        = My Inc.
+
+organizationalUnitName          = Organizational Unit Name (eg, section)
+organizationalUnitName_default  = Condor Project
+
+# SSL 서비스할 domain 명 입력
+commonName                      = Common Name (eg, your name or your server's hostname)
+commonName_default              = My Self Signed CA
+commonName_max                  = 64 
+```
+
+<br>
+
+### 3. CSR(Certificate Singing Request) 생성
+```sh
+$ openssl req -new -key <private key> -out <destination path> -config <csr config>
+
+## example
+$ openssl req -new -key rootca.key -out rootca.csr -config rootca_openssl.conf
+Enter pass phrase for rootca.key:
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [KR]:KR
+Organization Name (eg, company) [My Inc.]:.
+Common Name (eg, your name or your servers hostname) [My Self Signed CA]:.
+
+## 생성 확인
+$ ls
+rootca_openssl.conf rootca.csr          rootca.key
+```
+
+<br>
+
+### 4. Self signed certificate 생성
+```sh
+## expierd 1 year
+$ openssl x509 -req \
+-sha256 \
+-days 365 \
+-extensions v3_ca \
+-set_serial 1 \
+-in rootca.csr \
+-signkey rootca.key \
+-out rootca.crt \
+-extfile rootca_openssl.conf
+Signature ok
+subject=/C=KR
+Getting Private key
+Enter pass phrase for rootca.key:
+
+## Certificate 생성 확인
+$ openssl x509 -text -in rootca.crt
+
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 1 (0x1)
+    Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C=KR, O=lesstif Inc., CN=lesstifs Self Signed CA
+        Validity
+            Not Before: Jul  7 03:41:07 2019 GMT
+            Not After : Jul  6 03:41:07 2020 GMT
+        Subject: C=KR, O=lesstif Inc., CN=lesstifs Self Signed CA
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+...
+```
+
+<br>
+
+### 5. SSL certificate 생성
+* RSA key pair 생성
+```sh
+$ open genrsa -aes256 -out my.key 2048
+
+Generating RSA private key, 2048 bit long modulus
+........................................................................................................+++
+............+++
+e is 65537 (0x10001)
+Enter pass phrase for my.key:
+Verifying - Enter pass phrase for my.key:
+```
+
+### 6. Pass phrase 제거
+* SSL certificate는 암호화가 걸려있으면 매번 `pass phrase`를 입력해야 하는 불편함이 있으므로 제거
+
+```sh
+$ cp my.key my.key.enc
+$ openssl rsa -in my.key.enc -out my.key
+
+Enter pass phrase for my.key.enc:
+writing RSA key
+
+## 최소한의 permission 할당
+$ chmod 600 my.key*
+```
+
+* my.key
+```sh
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpQIBAAKCAQEAwfnA3/QlsoVk+stz5wnmvnkXqWaFCztK5P845InAgoGC0CL3
+vdkoNloMBeo/35AoHsUL15lmroE5JjdfgFW3QhM5gYmw7ByfBJc385bhSHnMgkQY
+J+m4sNDi5EaasFQEHatA6/MqOnySVB671tSSFL4n5qZyN6Rwk3p8THOaRgJdURSo
+gyUWUbvfxgtzNLLtMkzza0gn+RjhTdgHA4IH2uviKg73XSw9GFRk+irjnwH8PxXT
+F/dEOWL122OylQxdMeBPtahZSGXAlV3xv6U0gDZ6UIkchUFDhXKbzgUTrJuUieZ1
+/CqXQK0LvIP4TrUGQPdl5ECppztzYcgxGNSk7QIDAQABAoIBAQCJ1xvLSWh8arRu
+T6NmG7AfzFcXJuYGLDU1c3QPWyA03SmDFEYuX6FmtihzD5oiGQOZkfavV7AS83sU
+ACdaQA8A4j5sIddagaAyl+7Hp4EhioPcUd1Eh56Z72Y8Rzvnb1yZZLe2s85fT2SA
+aHKc3+OK3/HkwoTJq43gDxtDDKcldYvRL8xk1upDX9whieZfyBWjeNJtI9oZjCWA
+LCt1u8654opR6zrjr1IJE2ElAgWB1LhcOhLkRRDXVfjTMW5RWWQlirTY7dTqEZZv
+h2re3jNwnJTu4OuNm6d5yxNlnefRlJEEIfRAx0DHcvFZfmUdyySHo+SYmjrGf/pj
+2nYy56mVAoGBAPp1DsuZeiWDb1aA3WqD8gwlY3cBFvUkEtwNxwfCptGxnWtShX3z
+LyC0TM7lsXZlebUsYorDhOIGxHhvmrPhumo2DALCTXhn2ZyNmeP2XwUFHalXzF1r
+r/Iz6/fPkzxpY/Hun/poUV6VsX/9VQ/evSaXpD/byBCKwL2Tg6EKlXk7AoGBAMZE
+tD2URqGSHKCR22jGIllrmb3n9MTXPjGkY12riOcYLSr5veDJBl/2hZ6vpdKtiK7w
+V3+uvvjx3Zxj36JaNGI3LO/y+6N4jBgQESyg07Qfw7KxFFVCEBJ2p6/6ojTYlbDX
+At4iaPV626iz2Cgeb4IcBcQoFc9KfvW/YJdvozf3AoGBAJD+9crPFpTjK7Djt8uz
+iYyYlKXPnq/a64Q0AbavbQ5XCnCYfKn3AKCpYRIijgOiKbzGbmIxYRvNmS60Rda/
+5sEYewmZ3WnIjYYBwEbmWgo49PwV1T18W4cXohN8O5ws02y7nihE/l6IwRL84aLn
+a5ANGEzT+1YATicyYHD6BKEDAoGBAJEr6RVVpknTZCal5ZNXz/rNcGq+llgyihVr
+Gl6RpNIgv6HB7yfRyVsmdDv2vGIAMh51WHvjBW3eGrfR4QNNLSHk6IBg16OgNmPA
+D/MvZxNyVqZWRl8O2hnKy4ls6KvtEd3D8ROY+mUTqhZiaJknf9oyjn5MI3v+PevO
+TvlTAp2NAoGAJvoyWmmuGVd5KPBwVn3H3wkwext399Vv5Tf6BwG6wT7vjB4oKOCM
+Q3zFdu/yMu9JyHeSky6lXWPymysuAWejFhlS32ab9p5zLLwe/0u9SzVojVRxjEBr
+Ypw42/iwEdBnpCh8OJOU/Tb3Y2GdCURVopp/YYWHKZ+clgh8DQYWdQk=
+-----END RSA PRIVATE KEY-----
+```
+
+* my.key.enc
+```sh
+-----BEGIN RSA PRIVATE KEY-----
+Proc-Type: 4,ENCRYPTED
+DEK-Info: AES-256-CBC,92BF5E8F15A81E064C5B27D47DDCE54D
+
+UUF/6p/63/zNaSViEWh1aGbp+mdf7RWQH192Hdq3iQG9REX0bgkIP08HV2fRxHrW
+9yIbhpJWcJttLDTpOEkx7+MFflDP1rEJaG0sLrgYWbZaQjpReXAGAYfmx3+O1cEi
+VOQO2vwAnEdaOWmKVucLDG6uC33HhfzmqGlEL3PS006FZvuFoxH5FHSw952dcvC/
+67l8Y4v9TA5vUFVY7vCNSXldOLKOj3uXEyEjlw70E/jCEufzn6bv8T7tL+bucP/V
+Q2MOguN9riRdI7ifoExVYMblKiXqF5F2UXh5NWLvpx03lpwFD9ojUnq80eacoggo
+GQ0fHe8mkkiZ7hvqfwfBJpUWP5SQmGypLJ1Uz+njfG8FLLeOKQ6plzpZJ5KxWm7x
+pqW7dmQJ1nZI+lMXFDjRZOqMrZF7b7Zlc/jt/ayl35ipbmxaIhjAbADkchAXqWwa
+7fVfxgFvLENV3EWlOMMo5BOiHBtkfMOKLSh7WTWidyeq16v13lVL0XXA0VUqNrFM
+9bWEaCqhkbzRLGGRYVxfbj0B93LY4Rqo4q47G5RMPYuCFfr0K66sKdEocxMJw0zt
+Cs/lydjBp5nUjnLrNteE9mh2AylzUR6gvOyU6BKAc/l3iTf/qG4QKVbtWOrPACfz
+y8lyHwl1KuKY5qqLhl0DNZhz+pN8rJiNXLOo1zWb0chRNGgm2uxJX+r44GFllXiA
+FY/4EtcH42winEm1QYKy2Tv2yA2PYBCbZjmh0OsHwjEZC/6/5+9/kdua2E+QPJI3
+zO4hfiqoO5GRk2ZWt7ucJIuIbFmr0BaHds5dE7naH+H94rdYcjClQ5Vjl0c92ssR
+bIDnVqQrutzKlw9mabCEmoPR2rJ61/5B81Cf+lgafn4+YMX75R4eDkbI7ejDOTtU
+7mcYMR+RzhiV5jGhZ6gzvE54+8XO4B3ncnDCccEbAKfhFJIlsd0I7LR+Yu4Ru5Ov
+W2+u3ZT+AOv41Tv/lCidstH8acam933TSb18eEKS+oNBGYnppiwVBem5JTqfXPwt
+jQXHaO2Pxi0P0SgxnKnZL3msXE8EmRGAGcWSNKImj4JECP6I9RSeFXRss9ox1ALg
+IdC5FHaYsQYuGwKNmqV0wokoqFuCL0knlrCvh3UWurObDN/huZdZciztGwHSnpft
+zk75z9O+99mEsJ+XQIzBM4lEgOirNSFnuBI0PwoSoOJt1Y9iq5Ate6SKvDI74Ndt
+N6WlyrNYdtmG1gehTmo49jUsb8lFZ8z0Vw8xXRCH9KdRCyxD01udV/BoPDxsV4fo
+KP9XmoZe681xJBuxNOOr+MrABGvcuL7SOMiIqKX2fN4zY+f+JgSihjcfjfVt3w/M
+XtGW6Z+HYc+WmlGJJQx77p5cpsdgVbU7nFR8ftzsyjW5i2KPfav4a3+fjRqGp9Wm
+1lTkSBhsCYT1wTbaSbtgkcUFBf1Kv1NkIX1pLZ6AmnmVHFw3moXVRusq5DM/ocR2
+QcApFWHYCkvyfJP7qdsqvu+u76BC2bPTqA2CKM4N9vLZQQ5OGcoseaW/J+h1x9qg
+F742E6Kr1iSaPQLJ+Tou8PH4847cK9XOkEKDiiEClzDa91UVLAwTFXWYb/ExXXnn
+-----END RSA PRIVATE KEY-----
+```
+
+<br>
+
+### 7. CSR(Certificate Singing Request)을 위한 설정 생성
+```sh
+## my_openssl.conf
+
+[ req ]
+default_bits            = 2048
+default_md              = sha1
+default_keyfile         = rootca.key
+distinguished_name      = req_distinguished_name
+extensions              = v3_user
+## 인증서 요청시에도 extension이 들어가면 authorityKeyIdentifier 를 찾지 못해 에러가 나므로 막아둔다.
+## req_extensions = v3_user
+ 
+[ v3_user ]
+# Extensions to add to a certificate request
+basicConstraints        = CA:FALSE
+authorityKeyIdentifier  = keyid,issuer
+subjectKeyIdentifier    = hash
+keyUsage                = nonRepudiation, digitalSignature, keyEncipherment
+## SSL 용 확장키 필드
+extendedKeyUsage        = serverAuth,clientAuth
+subjectAltName          = @alt_names
+
+[ alt_names]
+## Subject AltName의 DNSName field에 SSL Host 의 도메인 이름을 적어준다
+DNS.1                   = www.my.com
+DNS.2                   = my.com
+DNS.3                   = *.my.com  # multi domain
+ 
+[req_distinguished_name ]
+countryName                     = Country Name (2 letter code)
+countryName_default             = KR
+countryName_min                 = 2
+countryName_max                 = 2
+
+organizationName                = Organization Name (eg, company)
+organizationName_default        = My Inc.
+
+organizationalUnitName          = Organizational Unit Name (eg, section)
+organizationalUnitName_default  = My SSL Project
+
+# SSL 서비스할 domain 명 입력
+commonName                      = Common Name (eg, your name or your server's hostname)
+commonName_default              = my.com
+commonName_max                  = 64
+```
+
+### 8. CSR(Certificate Singing Request) 생성
+```sh
+$ openssl req -new -key <private key> -out <destination path> -config <csr config>
+
+## example
+$ openssl req -new -key my.key -out my.csr -config my_openssl.conf
+
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [KR]: KR
+Organization Name (eg, company) [My Inc.]: My Self Signed CA
+Organizational Unit Name (eg, section) [My SSL Project]:
+Common Name (eg, your name or your servers hostname) [my.com]: *.my.com
+```
+
+### 9. Certificate 생성
+* Root CA private key로 signing
+```sh
+## expierd 1 year
+$ openssl x509 -req \
+-sha256 \
+-days 365 \
+-extensions v3_user \
+-in my.csr \
+-CA rootca.crt \
+-CAcreateserial \
+-CAkey rootca.key \
+-out my.crt \
+-extfile my_openssl.conf
+
+Signature ok
+subject=/C=KR/O=My Inc./OU=My SSL Project/CN=my.com
+Getting CA Private Key
+Enter pass phrase for rootca.key:
+
+## 생성 확인
+$ openssl x509 -text -in my.crt
+
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 12919331681305346756 (0xb34aafb6efa7c2c4)
+    Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C=KR
+        Validity
+            Not Before: Jul  7 03:06:41 2019 GMT
+            Not After : Jul  6 03:06:41 2020 GMT
+        Subject: C=KR, O=My Inc., OU=My SSL Project, CN=my.com
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+...
+```
+
+
 <br><br>
 
 > #### Reference
 > * [PKI - Wiki](http://wiki.wikisecurity.net/wiki:pki)
 > * [[PKI] 보안에서 말하는 PKI 의 기본 개념 간단 설명](https://crazia.tistory.com/entry/PKI-PKI-%EC%9D%98-%EA%B8%B0%EB%B3%B8-%EA%B0%9C%EB%85%90-%EA%B0%84%EB%8B%A8-%EC%84%A4%EB%AA%85)
 > * [RSA 인증서(Certification)와 전자서명(Digital Sign)의 원리](https://rsec.kr/?p=426)
+> * [OpenSSL 로 ROOT CA 생성 및 SSL 인증서 발급](https://www.lesstif.com/pages/viewpage.action?pageId=6979614)
