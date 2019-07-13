@@ -181,7 +181,7 @@ $ java -XX:+PrintFlagsFinal -version | grep ParallelGCThreads
 
 <br>
 
-### Code로 화인
+### Code로 확인
 ```java
 public class JDKChecker {
 
