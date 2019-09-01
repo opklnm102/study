@@ -129,6 +129,26 @@ $ ls -al | less
 * `ng` - n번째 행으로 이동(default. 처음 행)
 * `nG` - n번째 행으로 이동(default. 마지막 행)
 
+<br>
+
+### n번째 행부터 출력
+```sh
+$ less +n -N [file or stdin]
+
+## example
+$ less +10 -N test.log
+10 
+11 ll
+12 
+...
+
+$ less +10 test.log
+
+ll
+
+...
+```
+* `-N` - enable show line number
 
 
 <br>
