@@ -1,7 +1,11 @@
-# go tips
+# [Go] Go Tips
+> date - 2017.06.13  
+> keyword - go, tip  
+> Go에 관련된 tip을 정리
+
+<br>
 
 ## 실행
-
 ```sh
 # 코드 실행 - <file name> 생략시 현재 패키지
 $ go run <file name>  # $ go run ex
@@ -16,85 +20,172 @@ $ ./ex
 $ go clean <file name>  # $ go clean ex
 ```
 
-### go vet
-```sh
-$ go vet
-```
-* 코드상 발생할 수 있는 에러 검사
-* 검출할 수 있는 에러 종류
-   * Printf 스타일의 함수 호출 시 잘못된 매개변수 지정
-   * 메소드 정의시 signature 관련 에러
-   * 잘못 구성된 tag
-   * composite literal(조합 리터럴) 사용시 누락된 key
 
-### go fmt
-* 코드 정리
+<br>
+
+## Go Tools
+* `작은 부품을 조합해 고기능적인 구조를 실현한다` unix의 사고 방식과 같은 방향성을 가지고 구성되어 있다
+
+### gofmt
+* code의 들여쓰기, 정렬 등 코드 정리를 위한 tool
+* commit 전에 code formatter를 적용하는게 일반적
+  * 보통 파일 저장시 formatter가 실행되도록 에디터에 설정
+
+```sh
+$ gofmt -w main.go
+```
+
 ```go
 // before
 func main() {
-	num := 3
-
-	if num != 1 { fmt.Println("not 1") }
+    num := 3
+    
+    if num != 1 { fmt.Println("not 1") }
 }
 
-// $ go fmt
-// after
+// $ gofmt after
 func main() {
-	num := 3
-
-	if num != 1 {
-		fmt.Println("not 1")
-	}
+    num := 3
+    
+    if num != 1 {
+        fmt.Println("not 1")
+    }
 }
 ```
 
-### Go 문서화
-* 터미널에서 접근하기
+<br>
+
+### goimports
+* code formatter + `import`문 정리 tool
+* gofmt의 호환 tool
 ```sh
-$ go doc tar
+$ go imports -w main.go
 ```
 
-* 웹사이트로 접근하기
+#### install
+```sh
+$ go get golang.org/x/tools/cmd/goimports
+```
+
+<br>
+
+### [go vet](https://golang.org/cmd/vet/)
+* Go의 표준 패키지에 포함된 code static analysis tool
+  * 코드상 발생할 수 있는 에러 검사
+* 검출된 에러는 **반드시 수정할 필요가 있다**
+* 검출할 수 있는 에러 종류
+  * unreachable code
+  * shadowed variables
+  * bad syntax for struct tag value
+  * no args in Error Call
+  * mutex lock
+  * unsafe pointer
+  * Printf 스타일의 함수 호출 시 잘못된 매개변수 지정
+  * 메소드 정의시 signature 관련 에러
+  * composite literal(조합 리터럴) 사용시 누락된 key
+
+```sh
+$ go vet [target]
+
+## example
+$ go vet main.go
+
+## 현재 디렉토리
+$ go vet .
+
+## 현재 디렉토리 하위의 모든 디렉토리
+$ go vet ./...
+
+## test 디렉토리 하위의 모든 디렉토리
+$ go vet test/...
+```
+
+<br>
+
+### [golint](https://godoc.org/golang.org/x/lint/golint)
+* Go 답지 않은 코드 경고
+```sh
+$ golint [target]
+
+## example
+$ golint main.go
+
+## 현재 디렉토리
+$ golint .
+
+## 현재 디렉토리 하위의 모든 디렉토리
+$ golint ./...
+
+## go vet 후 golint 실행
+$ go vet ./...; golint ./...
+```
+
+> go vet, golint는 CI pipeline에 포함시켜 정기적으로 수행 권장
+
+<br>
+
+### godoc
+* 문서 검색 tool
+
+#### 터미널에서 접근하기
+```sh
+$ go doc [package]
+
+## example
+$ go doc fmt
+$ godoc github.com/xxx/yyy
+```
+
+#### 웹사이트로 접근하기
+* 오프라인에서의 개발이나 local private package의 문서에 빠르게 접근할 수 있어서 유용
 ```sh
 $ godoc -http=:6060  # localhost:6060으로 접속
 ```
 
+
+<br>
 
 ## 환경 변수
 ```go
 package main
 
 import (
-	"fmt"
-	"os"
+    "fmt"
+    "os"
 )
 
 func main() {
-	// 모든 환경 변수 출력
-	for index, env := range os.Environ() {
-		fmt.Println(index, env)
-	}
+    // 모든 환경 변수 출력
+    for index, env := range os.Environ() {
+        fmt.Println(index, env)
+    }
 }
 ```
 
-#### 환경변수 R/W
+<br>
+
+### 환경변수 R/W
 ```go
 package main
 
 import (
-	"fmt"
-	"os"
+    "fmt"
+    "os"
 )
 
 func main() {
-	// 환경변수 읽기
-	usr := os.Getenv("GOPATH")
-	fmt.Println(usr)
-	// 환경변수 쓰기
-	os.Setenv("TestEnv", "ABC")
-	fmt.Println(os.Getenv("TestEnv"))
+    // 환경변수 읽기
+    usr := os.Getenv("GOPATH")
+    fmt.Println(usr)
+    
+    // 환경변수 쓰기
+    os.Setenv("TestEnv", "ABC")
+    fmt.Println(os.Getenv("TestEnv"))
 }
 ```
+
+
+<br>
 
 ## Command Line Argument 사용
 * `os.Args()`
@@ -108,48 +199,50 @@ var Args []string  // slice
 package main
 
 import (
-	"fmt"
-	"os"
+    "fmt"
+    "os"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		panic("error: 2개 미만의 argument")
-	}
-
-	programName := os.Args[0:1]
-	firstArg := os.Args[1:2]
-	secondArg := os.Args[2:3]
-	allArgs := os.Args[1:]
-
-	fmt.Println(programName, firstArg, secondArg)
-	fmt.Println(allArgs)
+    if len(os.Args) < 2 {
+        panic("error: 2개 미만의 argument")
+    }
+    
+    programName := os.Args[0:1]
+    firstArg := os.Args[1:2]
+    secondArg := os.Args[2:3]
+    allArgs := os.Args[1:]
+    
+    fmt.Println(programName, firstArg, secondArg)
+    fmt.Println(allArgs)
 }
 ```
 
-#### Command Line Flag 사용
-* `flag` 패키지
-   * `flag.String(name, default, help text)`
-   * `flag.Int()`
-   * `flag.Bool()`
+<br>
+
+### Command Line Flag 사용
+* `flag` package
+  * `flag.String(name, default, help text)`
+  * `flag.Int()`
+  * `flag.Bool()`
 
 ```go
 package main
 
 import (
-	"flag"
-	"fmt"
+    "flag"
+    "fmt"
 )
 
 func main() {
-	file := flag.String("file", "default.txt", "Input file")
-	trials := flag.Int("maxtrial", 10, "Max Trial Count")
-	isroot := flag.Bool("root", false, "Run as root")
-
-	// option을 parsing하고 pointer var에 저장
-	flag.Parse()
-
-	fmt.Println(*file, *trials, *isroot)
+    file := flag.String("file", "default.txt", "Input file")
+    trials := flag.Int("maxtrial", 10, "Max Trial Count")
+    isroot := flag.Bool("root", false, "Run as root")
+    
+    // option을 parsing하고 pointer var에 저장
+    flag.Parse()
+    
+    fmt.Println(*file, *trials, *isroot)
 }
 ```
 
@@ -169,191 +262,203 @@ Usage of ./ex:
         Run as root
 ```
 
+
+<br>
+
 ## container
 
 ### 이중 연결 리스트
 * 리스트 중간에 요소를 `동적으로 추가, 삭제하는 일이 빈번한` 경우 slice보다 유용
-* `list.New(`)
-   * 리스트를 만들고 포인터를 리턴
+* `list.New()`
+  * 리스트를 만들고 포인터를 리턴
 * element에 `모든 타입을 혼용`
-   * Element.Value가 `interface{}`로 정의되어 있기 때문
-   * `strongly typed container`라 할 수 있음
+  * Element.Value가 `interface{}`로 정의되어 있기 때문
+  * `strongly typed container`라 할 수 있음
 
 ```go
 package main
 
 import (
-	"container/list"
-	"fmt"
+    "container/list"
+    "fmt"
 )
 
 func main() {
-	// 새 이중 연결 리스트 생성
-	mylist := list.New()
-
-	// 요소 추가
-	mylist.PushBack("A")
-	mylist.PushBack(100)
-	mylist.PushBack(true)
-	mylist.PushFront("A")
-
-	for e := mylist.Front(); e != nil; e = e.Next() {
-		fmt.Println(e.Value)
-	}
+    // 새 이중 연결 리스트 생성
+    mylist := list.New()
+    
+    // 요소 추가
+    mylist.PushBack("A")
+    mylist.PushBack(100)
+    mylist.PushBack(true)
+    mylist.PushFront("A")
+    
+    for e := mylist.Front(); e != nil; e = e.Next() {
+        fmt.Println(e.Value)
+    }
 }
 ```
 
+<br>
+
 ### Heap
 * container/heap
-   * heap.Interface를 구현하는 모든 Type에 대해 `MinHeap` 기능을 제공
-   * MinHeap은 tree로서 `최소값이 Root`에 위치
-   * MinHeap에서 Root로부터 차례로 Pop하게 되면, 가장 작은 값부터 올림차순으로 sort된 값들을 얻게 된다
+  * heap.Interface를 구현하는 모든 Type에 대해 `MinHeap` 기능을 제공
+  * MinHeap은 tree로서 `최소값이 Root`에 위치
+  * MinHeap에서 Root로부터 차례로 Pop하게 되면, 가장 작은 값부터 올림차순으로 sort된 값들을 얻게 된다
 * heap.Interface를 구현한 새로운 사용자 Type을 만들어야 한다
-   * `Len() int` 
-      * element의 수
-   * `Less(i, j int) bool`
-      * 두 element를 비교 e[i] < e[j]
-   * `Swap(i, j int)`
-      * 두 element를 교체
-   * `Push(x interface{})`
-      * 새로운 element 추가
-   * `Pop() interface{}`
-      * 루트로부터 한 element를 읽고 삭제
+  * `Len() int` 
+    * element의 수
+  * `Less(i, j int) bool`
+    * 두 element를 비교 e[i] < e[j]
+  * `Swap(i, j int)`
+    * 두 element를 교체
+  * `Push(x interface{})`
+    * 새로운 element 추가
+  * `Pop() interface{}`
+    * 루트로부터 한 element를 읽고 삭제
 ```go
 package main
 
 import (
-	"container/heap"
-	"fmt"
+    "container/heap"
+    "fmt"
 )
 
 type IntHeap []int
 
 func (h IntHeap) Len() int {
-	return len(h)
+    return len(h)
 }
 
 func (h IntHeap) Less(i, j int) bool {
-	return h[i] < h[j]
+    return h[i] < h[j]
 }
 
 func (h IntHeap) Swap(i, j int) {
-	h[i], h[j] = h[j], h[i]
+    h[i], h[j] = h[j], h[i]
 }
 
 func (h *IntHeap) Push(element interface{}) {
-	*h = append(*h, element.(int))
+    *h = append(*h, element.(int))
 }
 
 func (h *IntHeap) Pop() interface{} {
-	old := *h
-	n := len(old)
-	element := old[n-1]
-	*h = old[0 : n-1]
-	return element
+    old := *h
+    n := len(old)
+    element := old[n-1]
+    *h = old[0 : n-1]
+    return element
 }
 
 func main() {
-	h := &IntHeap{2, 1, 7}
-	heap.Init(h)
-	fmt.Println(*h) // 1 2 7
-
-	heap.Push(h, 4)
-	heap.Push(h, 10)
-
-	fmt.Println(*h) // 1 2 7 4 10
-
-	// 1 2 4 7 10
-	for h.Len() > 0 {
-		m := heap.Pop(h)  // pop시 위치가 재정렬
-		fmt.Print(m, " ")
-	}
+    h := &IntHeap{2, 1, 7}
+    heap.Init(h)
+    fmt.Println(*h) // 1 2 7
+    
+    heap.Push(h, 4)
+    heap.Push(h, 10)
+    
+    fmt.Println(*h) // 1 2 7 4 10
+    
+    // 1 2 4 7 10
+    for h.Len() > 0 {
+        m := heap.Pop(h)  // pop시 위치가 재정렬
+        fmt.Print(m, " ")
+    }
 }
 ```
+
+
+<br>
 
 ## 프로그램 실행시간 측정
 ```go
 package main
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 )
 
 func main() {
-	// 시작 시간
-	startTime := time.Now()
-
-	// Task 실행
-	for i := 0; i < 1000; i++ {
-		println("Hello")
-	}
-
-	// 경과시간
-	elapsedTime := time.Since(startTime)
-	// elapsedTime := time.Now().Sub(startTime)
-
-	fmt.Printf("실행시간 %s\n", elapsedTime)
+    // 시작 시간
+    startTime := time.Now()
+    
+    // Task 실행
+    for i := 0; i < 1000; i++ {
+        println("Hello")
+    }
+    
+    // 경과시간
+    elapsedTime := time.Since(startTime)
+    // elapsedTime := time.Now().Sub(startTime)
+    
+    fmt.Printf("실행시간 %s\n", elapsedTime)
 }
 ```
 
-## 체널을 이용한 비동기 로깅
+<br>
+
+## Asynchronous logging with channel
 ```go
 package main
 
 import (
-	"os"
-	"strconv"
-	"time"
+    "os"
+    "strconv"
+    "time"
 )
 
-// 비동기 로깅
+// asynchronous logging
 var logChannel chan string
 
 func logSetup(logFile string) {
-	// 로그 파일이 없으면, 생성
-	if _, err := os.Stat(logFile); os.IsNotExist(err) {
-		f, _ := os.Create(logFile)
-		f.Close()
-	}
-
-	logChannel = make(chan string, 100)
-
-	// 체널을 통한 비동기 로깅
-	go func() {
-		// 체널이 닫힐 때까지 메시지를 받으면 로깅
-		for msg := range logChannel {
-			f, _ := os.OpenFile(logFile, os.O_WRONLY|os.O_APPEND, 0666)
-			f.WriteString(time.Now().String() + " " + msg + "\n")
-			f.Close()
-		}
-	}()
+    // 로그 파일이 없으면, 생성
+    if _, err := os.Stat(logFile); os.IsNotExist(err) {
+        f, _ := os.Create(logFile)
+        f.Close()
+    }
+    
+    logChannel = make(chan string, 100)
+    
+    // asynchronous logging with channel
+    go func() {
+        // channel이 닫힐 때까지 메시지를 받으면 로깅
+        for msg := range logChannel {
+            f, _ := os.OpenFile(logFile, os.O_WRONLY|os.O_APPEND, 0666)
+            f.WriteString(time.Now().String() + " " + msg + "\n")
+            f.Close()
+        }
+    }()
 }
 
 func main() {
-	logSetup("./logfile.txt")
-
-	go func() {
-		for i := 1; i < 20; i++ {
-			n := strconv.Itoa(i)
-			logChannel <- n
-		}
-	}()
-
-	go func() {
-		for i := 100; i < 120; i++ {
-			logChannel <- strconv.Itoa(i)
-		}
-	}()
-
-	time.Sleep(1 * time.Second)
-	close(logChannel)
+    logSetup("./logfile.txt")
+    
+    go func() {
+        for i := 1; i < 20; i++ {
+            n := strconv.Itoa(i)
+            logChannel <- n
+        }
+    }()
+    
+    go func() {
+        for i := 100; i < 120; i++ {
+            logChannel <- strconv.Itoa(i)
+        }
+    }()
+    
+    time.Sleep(1 * time.Second)
+    close(logChannel)
 }
 ```
 
 
+<br>
+
 ## Timers
-* 미래의 한 시점에 `무언가를 하고싶을 때` 사용
+* 미래의 한 시점에 `무언가를 하고 싶을 때` 사용
 * timer는 미래의 한 이벤트를 나타낸다
 * 해당 시각에 알림을 주는 `channel`을 반환
 * timer가 만료되기 전에 취소 가능
@@ -362,28 +467,30 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 )
 
 func main() {
-	timer1 := time.NewTimer(time.Second * 2)
-
-	<-timer1.C
-	fmt.Println("Timer 1 expired")
-
-	timer2 := time.NewTimer(time.Second)
-	go func() {
-		<-timer2.C
-		fmt.Println("Timer 2 expired")
-	}()
-	stop2 := timer2.Stop()
-	if stop2 {
-		fmt.Println("Timer 2 stopped")
-	}
+    timer1 := time.NewTimer(time.Second * 2)
+    
+    <-timer1.C
+    fmt.Println("Timer 1 expired")
+    
+    timer2 := time.NewTimer(time.Second)
+    go func() {
+        <-timer2.C
+        fmt.Println("Timer 2 expired")
+    }()
+    stop2 := timer2.Stop()
+    if stop2 {
+        fmt.Println("Timer 2 stopped")
+    }
 }
 ```
 
+
+<br>
 
 ## Tickers
 * 일정한 간격으로 `무언가를 반복하고자 할 때` 사용
@@ -392,29 +499,33 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 )
 
 func main() {
-	ticker := time.NewTicker(time.Millisecond * 500)
-	go func() {
-		for t := range ticker.C {
-			fmt.Println("Tick at", t)
-		}
-	}()
-
-	time.Sleep(time.Millisecond * 1600)
-	ticker.Stop()
-	fmt.Println("Tiker stopped")
+    ticker := time.NewTicker(time.Millisecond * 500)
+    go func() {
+        for t := range ticker.C {
+            fmt.Println("Tick at", t)
+        }
+    }()
+    
+    time.Sleep(time.Millisecond * 1600)
+    ticker.Stop()
+    fmt.Println("Tiker stopped")
 }
 ```
 
+
+<br>
 
 ## Go에서 상태를 관리하는 법
 * channel을 통한 통신
 * atomic counters
 * mutex
+
+<br>
 
 ### channel을 통한 통신
 * 가장 기본적인 메커니즘
@@ -457,6 +568,8 @@ func main() {
 }
 ```
 
+<br>
+
 ### atomic counters
 * 여러개의 고루틴에서 접근되는 atomic counters를 위한 `sync/atomic 패키지` 사용
 
@@ -490,6 +603,8 @@ func main() {
 	fmt.Println("ops:", opsFinal)
 }
 ```
+
+<br>
 
 ### mutex
 * `좀 더 복잡한 상태`에 대해서 여러개의 고루틴이 데이터에 안전하게 접근할 수 있는 메커니즘
@@ -554,6 +669,8 @@ func main() {
 	mutex.Unlock()
 }
 ```
+
+<br>
 
 ### 동일한 상태 관리 작업을 `고루틴과 channel의 내장 동기화 기능`만을 가지고 구현
 * `channel기반 접근법`은 `통신을 통한 메모리 공유`와 `정확히 한 고루틴이 각 데이터의 일부를 소유`한다는 아이디어에 기반
@@ -645,6 +762,8 @@ func main() {
 ```
 
 
+<br>
+
 ## Rate limiting
 * 리소스 이용을 제어하고 서비스의 품질을 유지하기위한 중요한 메커니즘
 * Go는 고루틴, channel, tickers로 지원
@@ -700,6 +819,8 @@ func main() {
 ```
 
 
+<br>
+
 ## 정렬
 * sort 패키지는 `내장 타입`, `사용자 정의 타입`을 위한 정렬을 구현하고 있다
 ```go
@@ -724,6 +845,8 @@ func main() {
 	fmt.Println("Sorted:  ", s)
 }
 ```
+
+<br>
 
 ### 함수를 사용한 정렬
 * 해당하는 Type 필요
@@ -756,6 +879,8 @@ func main() {
 }
 ```
 
+
+<br>
 
 ## 컬렉션 함수
 * Go에서는 제네릭을 지원하지 않는다
@@ -844,6 +969,8 @@ func main() {
 ```
 
 
+<br>
+
 ## 문자열 함수
 ```go
 package main
@@ -893,6 +1020,8 @@ Len:  5
 Char:  101
 ```
 
+
+<br>
 
 ## 문자열 포맷팅
 ```go
@@ -966,6 +1095,8 @@ func main() {
 ```
 
 
+<br>
+
 ## 정규 표현식
 ```go
 package main
@@ -1023,6 +1154,8 @@ func main() {
 ```
 
 
+<br>
+
 ## 시간
 * times, durations에 대한 광범위한 지원 제공
 ```go
@@ -1077,6 +1210,8 @@ func main() {
 }
 ```
 
+<br>
+
 ### 타임 스탬프
 ```go
 package main
@@ -1102,6 +1237,8 @@ func main() {
 	fmt.Println(time.Unix(0, nanos)) // 2017-06-24 14:35:15.246434365 +0900 KST
 }
 ```
+
+<br>
 
 ### 시간 포맷팅 / 파싱
 * 패턴 기반의 `레이아웃`을 통해 지원
@@ -1139,6 +1276,8 @@ func main() {
 }
 ```
 
+
+<br>
 
 ## 난수
 * `math/rand` 패키지 사용
@@ -1187,6 +1326,9 @@ func main() {
 }
 ```
 
+
+<br>
+
 ## 숫자 파싱
 * strconv 패키지 사용
 ```go
@@ -1218,6 +1360,9 @@ func main() {
 	fmt.Println(e) // strconv.Atoi: parsing "wat": invalid syntax
 }
 ```
+
+
+<br>
 
 ## URL 파싱
 ```go
@@ -1260,215 +1405,229 @@ func main() {
 ```
 
 
+<br>
+
 ## SHA-1 Hash
 * binary나 TLOB에 대해 짧은 식별자를 계산하기 위해 자주 사용
-* ex
-   * git revision control system에서 버저닝된 파일과 디렉토리를 식별하기 위해 사용
-* `crypto/*` 패키지에서 여러가지 해시 함수를 구현
+* e.g. git revision control system에서 versioning된 파일과 디렉토리를 식별하기 위해 사용
+* `crypto/*` package에 여러 hash function이 구현되어 있다
 * 해시 생성 패턴
-   1. sha1.New()
-   2. sha1.Write(bytes)
-   3. sha1.Sum([]byte{})
+  1. sha1.New()
+  2. sha1.Write(bytes)
+  3. sha1.Sum([]byte{})
+
 ```go
 package main
 
 import (
-	"crypto/sha1"
-	"fmt"
+    "crypto/sha1"
+    "fmt"
 )
 
 func main() {
-	s := "sha1 this string"
-
-	h := sha1.New()
-
-	h.Write([]byte(s))
-
-	bs := h.Sum(nil) // 기존 byte slice에 덧붙이기 위해 사용, 보통은 필요X
-
-	fmt.Println(s)
-	fmt.Printf("%x\n", bs) // 16진수로 출력
+    s := "sha1 this string"
+    h := sha1.New()
+    
+    h.Write([]byte(s))
+    
+    bs := h.Sum(nil) // 기존 byte slice에 덧붙이기 위해 사용, 보통은 필요X
+    
+    fmt.Println(s)
+    fmt.Printf("%x\n", bs) // 16진수로 출력
 }
 ```
 
+
+<br>
 
 ## Base64 인코딩
 ```go
 package main
 
 import (
-	b64 "encoding/base64"
-	"fmt"
+    b64 "encoding/base64"
+    "fmt"
 )
 
 func main() {
-	data := "abc123!?$*&()'-=@~"
-
-	// 표준 base64
-	sEnc := b64.StdEncoding.EncodeToString([]byte(data))
-	fmt.Println(sEnc) // YWJjMTIzIT8kKiYoKSctPUB+
-
-	sDec, _ := b64.StdEncoding.DecodeString(sEnc)
-	fmt.Println(string(sDec)) // abc123!?$*&()'-=@~
-	fmt.Println()
-
-	// URL 호환 base64로 인코딩, 디코딩
-	uEnc := b64.URLEncoding.EncodeToString([]byte(data))
-	fmt.Println(uEnc) // YWJjMTIzIT8kKiYoKSctPUB-. 후미가 다름
-	uDec, _ := b64.URLEncoding.DecodeString(uEnc)
-	fmt.Println(string(uDec)) // abc123!?$*&()'-=@~
+    data := "abc123!?$*&()'-=@~"
+    
+    // 표준 base64
+    sEnc := b64.StdEncoding.EncodeToString([]byte(data))
+    fmt.Println(sEnc) // YWJjMTIzIT8kKiYoKSctPUB+
+    
+    sDec, _ := b64.StdEncoding.DecodeString(sEnc)
+    fmt.Println(string(sDec)) // abc123!?$*&()'-=@~
+    fmt.Println()
+    
+    // URL 호환 base64로 인코딩, 디코딩
+    uEnc := b64.URLEncoding.EncodeToString([]byte(data))
+    fmt.Println(uEnc) // YWJjMTIzIT8kKiYoKSctPUB-. 후미가 다름
+    uDec, _ := b64.URLEncoding.DecodeString(uEnc)
+    fmt.Println(string(uDec)) // abc123!?$*&()'-=@~
 }
 ```
 
 
+<br>
+
 ## Line Filter
 * stdin으로 입력을 읽고, 처리한 후, 결과를 stdout으로 출력하는 프로그램
-* ex. grep, sed
+  * e.g. grep, sed
+
 ```go
 // 입력받은 소문자를 대문자로 출력
 package main
 
 import (
-	"bufio"
-	"fmt"
-	"os"
-	"strings"
+    "bufio"
+    "fmt"
+    "os"
+    "strings"
 )
 
 func check(e error) {
-	if e != nil {
-		panic(e)
-	}
+    if e != nil {
+        panic(e)
+    }
 }
 
 func main() {
-
-	scanner := bufio.NewScanner(os.Stdin)
-
-	for scanner.Scan() {
-		ucl := strings.ToUpper(scanner.Text())
-		fmt.Println(ucl)
-	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
-		os.Exit(1)
-	}
+    scanner := bufio.NewScanner(os.Stdin)
+    
+    for scanner.Scan() {
+        ucl := strings.ToUpper(scanner.Text())
+        fmt.Println(ucl)
+    }
+    
+    if err := scanner.Err(); err != nil {
+        fmt.Fprintln(os.Stderr, "error:", err)
+        os.Exit(1)
+    }
 }
 ```
 
-## 프로세스
 
-### 프로세스 생성
-* `exec.Command()` - 외부 프로세스 표현
-* `exec.Output()` - 커맨드 실행, 종료 대기, output을 가져온다
+<br>
+
+## Process
+
+### Process 생성
+* `exec.Command()`
+  * 외부 프로세스 표현
+* `exec.Output()`
+  * 커맨드 실행, 종료 대기, output을 가져온다
+
 ```go
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os/exec"
+    "fmt"
+    "io/ioutil"
+    "os/exec"
 )
 
 func main() {
-	dateCmd := exec.Command("date")
-
-	dateOut, err := dateCmd.Output()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("> date")
-	fmt.Println(string(dateOut))
-
-	// stdin으로 pipe하여 stdout에서 output을 가져오는 복잡한 케이스
-	grepCmd := exec.Command("grep", "hello")
-
-	grepIn, _ := grepCmd.StdinPipe()   // stdin pipe
-	grepOut, _ := grepCmd.StdoutPipe() // stdout pipe
-	grepCmd.Start()
-	grepIn.Write([]byte("hello grep\ngoodbye grep"))
-	grepIn.Close()
-	grepBytes, _ := ioutil.ReadAll(grepOut)
-	grepCmd.Wait()
-
-	fmt.Println("> grep hello")
-	fmt.Println(string(grepBytes))
-
-	// bash -c. 전체 커맨드를 담은 문자열을 하나로 프로세스 생성
-	lsCmd := exec.Command("bash", "-c", "ls -a -l -h")
-	lsOut, err := lsCmd.Output()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("> ls -a -l -h")
-	fmt.Println(string(lsOut))
+    dateCmd := exec.Command("date")
+    
+    dateOut, err := dateCmd.Output()
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println("> date")
+    fmt.Println(string(dateOut))
+    
+    // stdin으로 pipe하여 stdout에서 output을 가져오는 복잡한 케이스
+    grepCmd := exec.Command("grep", "hello")
+    
+    grepIn, _ := grepCmd.StdinPipe()   // stdin pipe
+    grepOut, _ := grepCmd.StdoutPipe() // stdout pipe
+    grepCmd.Start()
+    grepIn.Write([]byte("hello grep\ngoodbye grep"))
+    grepIn.Close()
+    grepBytes, _ := ioutil.ReadAll(grepOut)
+    grepCmd.Wait()
+    
+    fmt.Println("> grep hello")
+    fmt.Println(string(grepBytes))
+    
+    // bash -c. 전체 커맨드를 담은 문자열을 하나로 프로세스 생성
+    lsCmd := exec.Command("bash", "-c", "ls -a -l -h")
+    lsOut, err := lsCmd.Output()
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println("> ls -a -l -h")
+    fmt.Println(string(lsOut))
 }
 ```
 
-### 프로세스 실행
-* 프로세스 전체를 다른 프로세스로 대체하고 싶을 때
-* `os/exec` 사용
+<br>
+
+### Process 실행
+* process 전체를 다른 process로 대체하고 싶을 때 `os/exec` 사용
 * Unix의 fork를 제공하지 않는다
-* 고루틴을 이용하여 프로세스를 생성하거나 exec하여 fork의 대부분의 use case를 다룰 수 있다
+* goroutine을 이용하여 process를 생성하거나 exec하여 fork의 대부분의 use case를 다룰 수 있다
 ```go
 package main
 
 import (
-	"os"
-	"os/exec"
-	"syscall"
+    "os"
+    "os/exec"
+    "syscall"
 )
 
 func main() {
-	// 절대 경로 찾기
-	binary, lookErr := exec.LookPath("ls")
-	if lookErr != nil {
-		panic(lookErr)
-	}
-
-	args := []string{"ls", "-a", "-l", "-h"}
-
-	env := os.Environ()
-
-	// 프로세스가 대체된다
-	execErr := syscall.Exec(binary, args, env)
-	if execErr != nil {
-		panic(execErr)
-	}
+    // 절대 경로 찾기
+    binary, lookErr := exec.LookPath("ls")
+    if lookErr != nil {
+        panic(lookErr)
+    }
+    
+    args := []string{"ls", "-a", "-l", "-h"}
+    
+    env := os.Environ()
+    
+    // 프로세스가 대체된다
+    execErr := syscall.Exec(binary, args, env)
+    if execErr != nil {
+        panic(execErr)
+    }
 }
 ```
+
+<br>
 
 ### Unix signal 처리
-* signal 알림은 os.Signal값을 channel에 보내는 방식으로 동작
+* signal 알림은 os.Signal 값을 channel에 보내는 방식으로 동작
 ```go
 package main
 
 import (
-	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
+    "fmt"
+    "os"
+    "os/signal"
+    "syscall"
 )
 
 func main() {
-	sigs := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
-
-	// 지정한 signal을 받을 수 있는 channel을 받고 등록
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	// signal을 받기 위한 blocking gorutine
-	go func() {
-		sig := <-sigs
-		fmt.Println()
-		fmt.Println(sig)
-		done <- true
-	}()
-
-	fmt.Println("awaiting signal")
-	<-done
-	fmt.Println("exiting")
+    sigs := make(chan os.Signal, 1)
+    done := make(chan bool, 1)
+    
+    // 지정한 signal을 받을 수 있는 channel을 받고 등록
+    signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+    
+    // signal을 받기 위한 blocking gorutine
+    go func() {
+        sig := <-sigs
+        fmt.Println()
+        fmt.Println(sig)
+        done <- true
+    }()
+    
+    fmt.Println("awaiting signal")
+    <-done
+    fmt.Println("exiting")
 }
 ```
 
@@ -1480,6 +1639,8 @@ interrupt
 exiting
 ```
 
+<br>
+
 ### 종료
 * `os.Exit`를 이용하여 프로그램을 지정된 status로 즉시 종료
 * 0이 아닌 다른 status로 종료하고 싶다면 사용
@@ -1487,15 +1648,15 @@ exiting
 package main
 
 import (
-	"fmt"
-	"os"
+    "fmt"
+    "os"
 )
 
 func main() {
-	// defer는 os.Exit()를 이용할 때에는 작동하지 않는다
-	defer fmt.Println("!")
-
-	os.Exit(3)
+    // defer는 os.Exit()를 이용할 때에는 작동하지 않는다
+    defer fmt.Println("!")
+    
+    os.Exit(3)
 }
 ```
 
