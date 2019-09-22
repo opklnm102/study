@@ -521,50 +521,50 @@ func main() {
 <br>
 
 ## Go에서 상태를 관리하는 법
-* channel을 통한 통신
-* atomic counters
-* mutex
+* `channel`을 통한 통신
+* `atomic counters`
+* `mutex`
 
 <br>
 
 ### channel을 통한 통신
 * 가장 기본적인 메커니즘
-* ex. 고루틴 + channel을 이용한 `worker pool` 구현
+* e.g. goroutine + channel을 이용한 `worker pool` 구현
 ```go
 // 총 작업시간은 5초지만, worker가 동시에 실행되고 있기 때문에 전체작업은 2초
 package main
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 )
 
 func worker(id int, jobs <-chan int, results chan<- int) {
-	for j := range jobs {
-		fmt.Println("worker", id, "started job", j)
-		time.Sleep(time.Second)
-		fmt.Println("worker", id, "finished job", j)
-		results <- j * 2
-	}
+    for j := range jobs {
+        fmt.Println("worker", id, "started job", j)
+        time.Sleep(time.Second)
+        fmt.Println("worker", id, "finished job", j)
+        results <- j * 2
+    }
 }
 
 func main() {
-	// worker에 작업을 보내고 결과값을 받을 channel
-	jobs := make(chan int, 100)
-	results := make(chan int, 100)
+    // worker에 작업을 보내고 결과값을 받을 channel
+    jobs := make(chan int, 100)
+    results := make(chan int, 100)
 
-	for w := 1; w <= 3; w++ {
-		go worker(w, jobs, results) // 처음에는 job이 없어서 blocking
-	}
+    for w := 1; w <= 3; w++ {
+        go worker(w, jobs, results) // 처음에는 job이 없어서 blocking
+    }
 
-	for j := 1; j <= 5; j++ {
-		jobs <- j
-	}
-	close(jobs)
+    for j := 1; j <= 5; j++ {
+        jobs <- j
+    }
+    close(jobs)
 
-	for a := 1; a <= 5; a++ {
-		<-results
-	}
+    for a := 1; a <= 5; a++ {
+        <-results
+    }
 }
 ```
 
@@ -577,30 +577,30 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"sync/atomic"
-	"time"
+    "fmt"
+    "sync/atomic"
+    "time"
 )
 
 func main() {
-	var ops uint64 = 0 // 항상 양수인 counter
+    var ops uint64 = 0 // 항상 양수인 counter
 
-	// 동시 업데이트 시뮬레이션 - 1ms마다 counter를 증가시키는 고루틴 50개
-	for i := 0; i < 50; i++ {
-		go func() {
-			for {
-				atomic.AddUint64(&ops, 1) // 원자적으로 증가
+    // 동시 업데이트 시뮬레이션 - 1ms마다 counter를 증가시키는 고루틴 50개
+    for i := 0; i < 50; i++ {
+        go func() {
+            for {
+                atomic.AddUint64(&ops, 1) // 원자적으로 증가
 
-				time.Sleep(time.Millisecond)
-			}
-		}()
-	}
+                time.Sleep(time.Millisecond)
+            }
+        }()
+    }
 
-	time.Sleep(time.Second) // ops가 누적되도록 기다림
+    time.Sleep(time.Second) // ops가 누적되도록 기다림
 
-	// counter가 다른 고루틴에 의해 증가되는 도중에 안전하게 사용하기 위해 복사
-	opsFinal := atomic.LoadUint64(&ops)
-	fmt.Println("ops:", opsFinal)
+    // counter가 다른 고루틴에 의해 증가되는 도중에 안전하게 사용하기 위해 복사
+    opsFinal := atomic.LoadUint64(&ops)
+    fmt.Println("ops:", opsFinal)
 }
 ```
 
@@ -612,152 +612,153 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"math/rand"
-	"sync"
-	"sync/atomic"
-	"time"
+    "fmt"
+    "math/rand"
+    "sync"
+    "sync/atomic"
+    "time"
 )
 
 func main() {
-	var state = make(map[int]int)
+    var state = make(map[int]int)
 
-	var mutex = &sync.Mutex{} // state에 대한 접근을 동기화
+    var mutex = &sync.Mutex{} // state에 대한 접근을 동기화
 
-	// read, write가 얼마나 이루어지는지 tracking
-	var readOps uint64 = 0
-	var writeOps uint64 = 0
+    // read, write가 얼마나 이루어지는지 tracking
+    var readOps uint64 = 0
+    var writeOps uint64 = 0
 
-	for r := 0; r < 1000; r++ {
-		go func() {
-			total := 0
-			for {
-				key := rand.Intn(5)
-				mutex.Lock() // 상호배제 접근 보장을 위한 Lock
-				total += state[key]
-				mutex.Unlock() // 상호배제 접근 보장을 위한 Unlock
-				atomic.AddUint64(&readOps, 1)
+    for r := 0; r < 1000; r++ {
+        go func() {
+            total := 0
+            for {
+                key := rand.Intn(5)
+                mutex.Lock() // 상호배제 접근 보장을 위한 Lock
+                total += state[key]
+                mutex.Unlock() // 상호배제 접근 보장을 위한 Unlock
+                atomic.AddUint64(&readOps, 1)
 
-				time.Sleep(time.Millisecond)
-			}
-		}()
-	}
+                time.Sleep(time.Millisecond)
+            }
+        }()
+    }
 
-	for w := 0; w < 10; w++ {
-		go func() {
-			for {
-				key := rand.Intn(5)
-				val := rand.Intn(100)
-				mutex.Lock()
-				state[key] = val
-				mutex.Unlock()
-				atomic.AddUint64(&writeOps, 1)
-				time.Sleep(time.Millisecond)
-			}
-		}()
-	}
+    for w := 0; w < 10; w++ {
+        go func() {
+            for {
+                key := rand.Intn(5)
+                val := rand.Intn(100)
+                mutex.Lock()
+                state[key] = val
+                mutex.Unlock()
+                atomic.AddUint64(&writeOps, 1)
+                time.Sleep(time.Millisecond)
+            }
+        }()
+    }
 
-	time.Sleep(time.Second)
+    time.Sleep(time.Second)
 
-	readOpsFinal := atomic.LoadUint64(&readOps)
-	fmt.Println("readOps:", readOpsFinal)
-	writeOpsFinal := atomic.LoadUint64(&writeOps)
-	fmt.Println("writeOps:", writeOpsFinal)
+    readOpsFinal := atomic.LoadUint64(&readOps)
+    fmt.Println("readOps:", readOpsFinal)
+    writeOpsFinal := atomic.LoadUint64(&writeOps)
+    fmt.Println("writeOps:", writeOpsFinal)
 
-	mutex.Lock()
-	fmt.Println("state:", state)
-	mutex.Unlock()
+    mutex.Lock()
+    fmt.Println("state:", state)
+    mutex.Unlock()
 }
 ```
 
 <br>
 
-### 동일한 상태 관리 작업을 `고루틴과 channel의 내장 동기화 기능`만을 가지고 구현
-* `channel기반 접근법`은 `통신을 통한 메모리 공유`와 `정확히 한 고루틴이 각 데이터의 일부를 소유`한다는 아이디어에 기반
+### 동일한 상태 관리 작업을 `goroutine과 channel의 내장 동기화 기능`만을 가지고 구현
+* `channel 기반 접근법`은 `통신을 통한 메모리 공유`와 `정확히 한 고루틴이 각 데이터의 일부를 소유`한다는 아이디어에 기반
 * 상태는 `1개의 고루틴`이 소유
-   * 데이터가 동시 접근으로인해 손상되지 않음을 보장
+  * 데이터가 동시 접근으로인해 손상되지 않음을 보장
 * 상태의 R/W를 위해 소유중인 고루틴으로 메시지를 보내고 응답을 받는다
 * mutex 기반보다 조금 더 복잡
 * 유용한 경우
-   * 다른 channel들이 관련되어 있는 경우
-   * error가 발생하기 쉬운 `다중 mutex`들을 관리하는 
+  * 다른 `channel`들이 관련되어 있는 경우
+  * error가 발생하기 쉬운 `다중 mutex`들을 관리하는 
+
 ```go
 package main
 
 import (
-	"fmt"
-	"math/rand"
-	"sync/atomic"
-	"time"
+    "fmt"
+    "math/rand"
+    "sync/atomic"
+    "time"
 )
 
 // 상태를 소유한 고루틴이 응답하기 위한 방법을 캡슐화
 type readOp struct {
-	key  int
-	resp chan int
+    key  int
+    resp chan int
 }
 
 type writeOp struct {
-	key  int
-	val  int
-	resp chan bool
+    key  int
+    val  int
+    resp chan bool
 }
 
 func main() {
-	var readOps uint64 = 0
-	var writeOps uint64 = 0
+    var readOps uint64 = 0
+    var writeOps uint64 = 0
 
-	reads := make(chan *readOp)
-	writes := make(chan *writeOp)
+    reads := make(chan *readOp)
+    writes := make(chan *writeOp)
 
-	go func() {
-		var state = make(map[int]int)
-		for {
-			select {
-			case read := <-reads:
-				read.resp <- state[read.key]
-			case write := <-writes:
-				state[write.key] = write.val
-				write.resp <- true
-			}
-		}
-	}()
+    go func() {
+        var state = make(map[int]int)
+        for {
+            select {
+            case read := <-reads:
+                read.resp <- state[read.key]
+            case write := <-writes:
+                state[write.key] = write.val
+                write.resp <- true
+            }
+        }
+    }()
 
-	for r := 0; r < 100; r++ {
-		go func() {
-			for {
-				read := &readOp{
-					key:  rand.Intn(5),
-					resp: make(chan int)}
-				reads <- read                 // read request
-				<-read.resp                   // read response
-				atomic.AddUint64(&readOps, 1) // 연산 횟수 count
-				time.Sleep(time.Millisecond)
-			}
-		}()
-	}
+    for r := 0; r < 100; r++ {
+        go func() {
+            for {
+                read := &readOp{
+                    key:  rand.Intn(5),
+                    resp: make(chan int)}
+                reads <- read                 // read request
+                <-read.resp                   // read response
+                atomic.AddUint64(&readOps, 1) // 연산 횟수 count
+                time.Sleep(time.Millisecond)
+            }
+        }()
+    }
 
-	for w := 0; w < 10; w++ {
-		go func() {
-			for {
-				write := &writeOp{
-					key:  rand.Intn(5),
-					val:  rand.Intn(100),
-					resp: make(chan bool)}
-				writes <- write // write request
-				<-write.resp    // write response
-				atomic.AddUint64(&writeOps, 1)
-				time.Sleep(time.Millisecond)
-			}
-		}()
-	}
+    for w := 0; w < 10; w++ {
+        go func() {
+            for {
+                write := &writeOp{
+                    key:  rand.Intn(5),
+                    val:  rand.Intn(100),
+                    resp: make(chan bool)}
+                writes <- write // write request
+                <-write.resp    // write response
+                atomic.AddUint64(&writeOps, 1)
+                time.Sleep(time.Millisecond)
+            }
+        }()
+    }
 
-	time.Sleep(time.Second)
+    time.Sleep(time.Second)
 
-	readOpsFinal := atomic.LoadUint64(&readOps)
-	fmt.Println("readOps:", readOpsFinal)
-	writeOpsFinal := atomic.LoadUint64(&writeOps)
-	fmt.Println("writeOps:", writeOpsFinal)
+    readOpsFinal := atomic.LoadUint64(&readOps)
+    fmt.Println("readOps:", readOpsFinal)
+    writeOpsFinal := atomic.LoadUint64(&writeOps)
+    fmt.Println("writeOps:", writeOpsFinal)
 }
 ```
 
@@ -766,55 +767,55 @@ func main() {
 
 ## Rate limiting
 * 리소스 이용을 제어하고 서비스의 품질을 유지하기위한 중요한 메커니즘
-* Go는 고루틴, channel, tickers로 지원
+* Go는 `goroutine`, `channel`, `tickers`로 지원
 
 ```go
 // example. request handling을 제한
 package main
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 )
 
 func main() {
-	requests := make(chan int, 5)
-	for i := 1; i <= 5; i++ {
-		requests <- i
-	}
-	close(requests)
+    requests := make(chan int, 5)
+    for i := 1; i <= 5; i++ {
+        requests <- i
+    }
+    close(requests)
 
-	limiter := time.Tick(time.Millisecond * 200) // rate limiter
+    limiter := time.Tick(time.Millisecond * 200) // rate limiter
 
-	for req := range requests {
-		<-limiter // channel 수신으로 blocking, rate limit가 된다
-		fmt.Println("request", req, time.Now())
-	}
-	burstyLimiter := make(chan time.Time, 3)
+    for req := range requests {
+        <-limiter // channel 수신으로 blocking, rate limit가 된다
+        fmt.Println("request", req, time.Now())
+    }
+    burstyLimiter := make(chan time.Time, 3)
 
-	// 전반적으로는 rate limit를 유지하면서 bursts of requests하고 싶은 경우
-	// limiter channel을 버퍼링
-	for i := 0; i < 3; i++ { // 최대 3개의 이벤트를 bursting
-		burstyLimiter <- time.Now()
-	}
+    // 전반적으로는 rate limit를 유지하면서 bursts of requests하고 싶은 경우
+    // limiter channel을 버퍼링
+    for i := 0; i < 3; i++ { // 최대 3개의 이벤트를 bursting
+        burstyLimiter <- time.Now()
+    }
 
-	go func() {
-		for t := range time.Tick(time.Millisecond * 200) {
-			burstyLimiter <- t
-		}
-	}()
+    go func() {
+        for t := range time.Tick(time.Millisecond * 200) {
+            burstyLimiter <- t
+        }
+    }()
 
-	burstyRequests := make(chan int, 5)
-	for i := 1; i <= 5; i++ {
-		burstyRequests <- i
-	}
-	close(burstyRequests)
+    burstyRequests := make(chan int, 5)
+    for i := 1; i <= 5; i++ {
+        burstyRequests <- i
+    }
+    close(burstyRequests)
 
-	// 처음 3개는 bursting의 이점 가진다
-	for req := range burstyRequests {
-		<-burstyLimiter
-		fmt.Println("request", req, time.Now())
-	}
+    // 처음 3개는 bursting의 이점 가진다
+    for req := range burstyRequests {
+        <-burstyLimiter
+        fmt.Println("request", req, time.Now())
+    }
 }
 ```
 
@@ -827,22 +828,22 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"sort"
+    "fmt"
+    "sort"
 )
 
 func main() {
-	strs := []string{"c", "a", "b"}
-	sort.Strings(strs)
-	fmt.Println("Strings:", strs)
+    strs := []string{"c", "a", "b"}
+    sort.Strings(strs)
+    fmt.Println("Strings:", strs)
 
-	ints := []int{7, 2, 4}
-	sort.Ints(ints)
-	fmt.Println("Ints:   ", ints)
+    ints := []int{7, 2, 4}
+    sort.Ints(ints)
+    fmt.Println("Ints:   ", ints)
 
-	// 정렬 여부 확인
-	s := sort.IntsAreSorted(ints)
-	fmt.Println("Sorted:  ", s)
+    // 정렬 여부 확인
+    s := sort.IntsAreSorted(ints)
+    fmt.Println("Sorted:  ", s)
 }
 ```
 
@@ -851,31 +852,32 @@ func main() {
 ### 함수를 사용한 정렬
 * 해당하는 Type 필요
 * sort.Interface - Len, Less, Swap를 구현
-   * Len, Swap은 일반적으로 Type에 따라 유사
-   * Less가 실제 커스텀 `정렬 로직을 갖는다`
+  * Len, Swap은 일반적으로 Type에 따라 유사
+  * Less가 실제 커스텀 `정렬 로직을 갖는다`
+
 ```go
 package main
 
 import (
-	"fmt"
-	"sort"
+    "fmt"
+    "sort"
 )
 
 type ByLength []string
 
 func (s ByLength) Len() int {
-	return len(s)
+    return len(s)
 }
 func (s ByLength) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
+    s[i], s[j] = s[j], s[i]
 }
 func (s ByLength) Less(i, j int) bool {
-	return len(s[i]) < len(s[j])
+    return len(s[i]) < len(s[j])
 }
 func main() {
-	fruits := []string{"peach", "banana", "kiwi"}
-	sort.Sort(ByLength(fruits)) // casting하고 사용
-	fmt.Println(fruits)
+    fruits := []string{"peach", "banana", "kiwi"}
+    sort.Sort(ByLength(fruits)) // casting하고 사용
+    fmt.Println(fruits)
 }
 ```
 
@@ -893,78 +895,78 @@ import "strings"
 
 // 문자열 t의 1번째 index 반환
 func Index(vs []string, t string) int {
-	for i, v := range vs {
-		if v == t {
-			return i
-		}
-	}
-	return -1
+    for i, v := range vs {
+        if v == t {
+            return i
+        }
+    }
+    return -1
 }
 
 // 문자열 t가 존재하면 true
 func Include(vs []string, t string) bool {
-	return Index(vs, t) >= 0
+    return Index(vs, t) >= 0
 }
 
 // 슬라이스의 문자열중 하나가 조건 f를 만족하면 true
 func Any(vs []string, f func(string) bool) bool {
-	for _, v := range vs {
-		if f(v) {
-			return true
-		}
-	}
-	return false
+    for _, v := range vs {
+        if f(v) {
+            return true
+        }
+    }
+    return false
 }
 
 // 슬라이스의 문자열 모두가 조건 f를 만족하면 true
 func All(vs []string, f func(string) bool) bool {
-	for _, v := range vs {
-		if !f(v) {
-			return false
-		}
-	}
-	return true
+    for _, v := range vs {
+        if !f(v) {
+            return false
+        }
+    }
+    return true
 }
 
 // 슬라이스에서 조건 f를 만족하는 모든 문자열을 포함하는 새로운 슬라이스 반환
 func Filter(vs []string, f func(string) bool) []string {
-	vsf := make([]string, 0)
-	for _, v := range vs {
-		if f(v) {
-			vsf = append(vsf, v)
-		}
-	}
-	return vsf
+    vsf := make([]string, 0)
+    for _, v := range vs {
+        if f(v) {
+            vsf = append(vsf, v)
+        }
+    }
+    return vsf
 }
 
 // 기존 슬라이스에 있는 각각의 문자열에 함수 f를 적용한 결과값드을 포함하는 새로운 슬라이스 반환
 func Map(vs []string, f func(string) string) []string {
-	vsm := make([]string, len(vs))
-	for i, v := range vs {
-		vsm[i] = f(v)
-	}
-	return vsm
+    vsm := make([]string, len(vs))
+    for i, v := range vs {
+        vsm[i] = f(v)
+    }
+    return vsm
 }
 
 func main() {
-	var strs = []string{"peach", "apple", "pear", "plum"}
+    var strs = []string{"peach", "apple", "pear", "plum"}
 
-	fmt.Println(Index(strs, "pear"))
-	fmt.Println(Include(strs, "grape"))
+    fmt.Println(Index(strs, "pear"))
+    fmt.Println(Include(strs, "grape"))
 
-	fmt.Println(Any(strs, func(v string) bool {
-		return strings.HasPrefix(v, "p")
-	}))
+    fmt.Println(Any(strs, func(v string) bool {
+        return strings.HasPrefix(v, "p")
+    }))
 
-	fmt.Println(All(strs, func(v string) bool {
-		return strings.HasPrefix(v, "p")
-	}))
+    fmt.Println(All(strs, func(v string) bool {
+        return strings.HasPrefix(v, "p")
+    }))
 
-	fmt.Println(Filter(strs, func(v string) bool {
-		return strings.Contains(v, "e")
-	}))
+    fmt.Println(Filter(strs, func(v string) bool {
+        return strings.Contains(v, "e")
+    }))
 
-	fmt.Println(Map(strs, strings.ToUpper))
+    fmt.Println(Map(strs, strings.ToUpper))
 }
 ```
 
@@ -976,29 +978,29 @@ func main() {
 package main
 
 import (
-	"fmt"
-	s "strings"
+    "fmt"
+    s "strings"
 )
 
 var p = fmt.Println
 
 func main() {
-	p("Contains: ", s.Contains("test", "es"))
-	p("Count: ", s.Count("test", "t"))
-	p("HasPrefix: ", s.HasPrefix("test", "te"))
-	p("HashSuffix: ", s.HasSuffix("test", "st"))
-	p("Index: ", s.Index("test", "e"))
-	p("Join: ", s.Join([]string{"a", "b", "c"}, "-"))
-	p("Repeat: ", s.Repeat("a", 5))
-	p("Replace: ", s.Replace("foo", "o", "0", -1))
-	p("Replace: ", s.Replace("foo", "o", "0", 1))
-	p("Split: ", s.Split("a-b-c-d-e", "-"))
-	p("ToLower: ", s.ToLower("TEST"))
-	p("ToUpper: ", s.ToUpper("test"))
-	p()
+    p("Contains: ", s.Contains("test", "es"))
+    p("Count: ", s.Count("test", "t"))
+    p("HasPrefix: ", s.HasPrefix("test", "te"))
+    p("HashSuffix: ", s.HasSuffix("test", "st"))
+    p("Index: ", s.Index("test", "e"))
+    p("Join: ", s.Join([]string{"a", "b", "c"}, "-"))
+    p("Repeat: ", s.Repeat("a", 5))
+    p("Replace: ", s.Replace("foo", "o", "0", -1))
+    p("Replace: ", s.Replace("foo", "o", "0", 1))
+    p("Split: ", s.Split("a-b-c-d-e", "-"))
+    p("ToLower: ", s.ToLower("TEST"))
+    p("ToUpper: ", s.ToUpper("test"))
+    p()
 
-	p("Len: ", len("hello"))
-	p("Char: ", "hello"[1])
+    p("Len: ", len("hello"))
+    p("Char: ", "hello"[1])
 }
 ```
 
@@ -1028,69 +1030,69 @@ Char:  101
 package main
 
 import (
-	"fmt"
-	"os"
+    "fmt"
+    "os"
 )
 
 type point struct {
-	x, y int
+    x, y int
 }
 
 func main() {
-	p := point{1, 2}
-	// 구조체 출력
-	fmt.Printf("%v\n", p) // {1 2}
+    p := point{1, 2}
+    // 구조체 출력
+    fmt.Printf("%v\n", p) // {1 2}
 
-	// 구조체의 필드명까지
-	fmt.Printf("%+v\n", p) // {x:1 y:2}
+    // 구조체의 필드명까지
+    fmt.Printf("%+v\n", p) // {x:1 y:2}
 
-	// 해당 값을 생성하는 코드 스니펫
-	fmt.Printf("%#v\n", p) // main.point{x:1, y:2}
+    // 해당 값을 생성하는 코드 스니펫
+    fmt.Printf("%#v\n", p) // main.point{x:1, y:2}
 
-	// type 출력
-	fmt.Printf("%T\n", p) // main.point
+    // type 출력
+    fmt.Printf("%T\n", p) // main.point
 
-	// boolean
-	fmt.Printf("%t\n", true) // true
+    // boolean
+    fmt.Printf("%t\n", true) // true
 
-	// 10진수
-	fmt.Printf("%d\n", 123) // 123
+    // 10진수
+    fmt.Printf("%d\n", 123) // 123
 
-	// binary
-	fmt.Printf("%b\n", 14) // 1110
+    // binary
+    fmt.Printf("%b\n", 14) // 1110
 
-	// character
-	fmt.Printf("%c\n", 33) // !
+    // character
+    fmt.Printf("%c\n", 33) // !
 
-	// 16진수
-	fmt.Printf("%x\n", 456) // 1c8
+    // 16진수
+    fmt.Printf("%x\n", 456) // 1c8
 
-	// 10진수 실수
-	fmt.Printf("%f\n", 78.9) // 78.900000
+    // 10진수 실수
+    fmt.Printf("%f\n", 78.9) // 78.900000
 
-	fmt.Printf("%e\n", 123400000.0) // 1.234000e+08
-	fmt.Printf("%E\n", 123400000.0) // 	1.234000E+08
+    fmt.Printf("%e\n", 123400000.0) // 1.234000e+08
+    fmt.Printf("%E\n", 123400000.0) // 	1.234000E+08
 
-	fmt.Printf("%s\n", "\"stirng\"") // "stirng"
+    fmt.Printf("%s\n", "\"stirng\"") // "stirng"
 
-	// 쌍따음표로 묶을 때
-	fmt.Printf("%q\n", "\"stirng\"") // "\"stirng\""
-	fmt.Printf("%x\n", "hex this")   // 6865782074686973
+    // 쌍따음표로 묶을 때
+    fmt.Printf("%q\n", "\"stirng\"") // "\"stirng\""
+    fmt.Printf("%x\n", "hex this")   // 6865782074686973
 
-	// 포인터의 표현
-	fmt.Printf("%p\n", &p) // 0xc42000e260
+    // 포인터의 표현
+    fmt.Printf("%p\n", &p) // 0xc42000e260
 
-	fmt.Printf("|%6d|%6d|\n", 12, 345) // |    12|   345|
+    fmt.Printf("|%6d|%6d|\n", 12, 345) // |    12|   345|
 
-	fmt.Printf("|%6.2f|%6.2f|\n", 1.2, 3.45)   // |  1.20|  3.45|
-	fmt.Printf("|%-6.2f|%-6.2f|\n", 1.2, 3.45) // |1.20  |3.45  |
-	fmt.Printf("|%6s|%6s|\n", "foo", "b")      // |   foo|     b|
-	fmt.Printf("|%-6s|%-6s|\n", "foo", "b")    // |foo   |b     |
+    fmt.Printf("|%6.2f|%6.2f|\n", 1.2, 3.45)   // |  1.20|  3.45|
+    fmt.Printf("|%-6.2f|%-6.2f|\n", 1.2, 3.45) // |1.20  |3.45  |
+    fmt.Printf("|%6s|%6s|\n", "foo", "b")      // |   foo|     b|
+    fmt.Printf("|%-6s|%-6s|\n", "foo", "b")    // |foo   |b     |
 
-	s := fmt.Sprintf("a %s", "string")
-	fmt.Println(s) // a string
+    s := fmt.Sprintf("a %s", "string")
+    fmt.Println(s) // a string
 
-	fmt.Fprintf(os.Stderr, "an %s\n", "error") // an error
+    fmt.Fprintf(os.Stderr, "an %s\n", "error") // an error
 }
 ```
 
@@ -1102,54 +1104,54 @@ func main() {
 package main
 
 import (
-	"bytes"
-	"fmt"
-	"regexp"
+    "bytes"
+    "fmt"
+    "regexp"
 )
 
 func main() {
-	// 패턴이 문자열과 일치하는지?
-	match, _ := regexp.MatchString("p([a-z]+)ch", "peach")
-	fmt.Println(match) // true
+    // 패턴이 문자열과 일치하는지?
+    match, _ := regexp.MatchString("p([a-z]+)ch", "peach")
+    fmt.Println(match) // true
 
-	// compile된 regexp 구조체를 사용하는게 좋다
-	r, _ := regexp.Compile("p([a-z]+)ch")
+    // compile된 regexp 구조체를 사용하는게 좋다
+    r, _ := regexp.Compile("p([a-z]+)ch")
 
-	fmt.Println(r.MatchString("peach")) // true
+    fmt.Println(r.MatchString("peach")) // true
 
-	// 정규식과 일치하는 문자열 찾기
-	fmt.Println(r.FindString("peach punch")) // peach
+    // 정규식과 일치하는 문자열 찾기
+    fmt.Println(r.FindString("peach punch")) // peach
 
-	// 1번째로 매칭되는 문자열의 1번째, 마지막 inedx return
-	fmt.Println(r.FindStringIndex("peach punh")) // [0 5]
+    // 1번째로 매칭되는 문자열의 1번째, 마지막 inedx return
+    fmt.Println(r.FindStringIndex("peach punh")) // [0 5]
 
-	// 전체 패턴, 부분 일치 정보 모두 포함 ex. p([a-z]+)ch, ([a-z]+)의 정보
-	fmt.Println(r.FindStringSubmatch("peach punch")) // [peach ea]
+    // 전체 패턴, 부분 일치 정보 모두 포함 ex. p([a-z]+)ch, ([a-z]+)의 정보
+    fmt.Println(r.FindStringSubmatch("peach punch")) // [peach ea]
 
-	// index return
-	fmt.Println(r.FindStringSubmatchIndex("peach punch")) // [0 5 1 3]
+    // index return
+    fmt.Println(r.FindStringSubmatchIndex("peach punch")) // [0 5 1 3]
 
-	// 모든 일치 항목 찾기
-	fmt.Println(r.FindAllString("peach punch pinch", -1)) // [peach punch pinch]
+    // 모든 일치 항목 찾기
+    fmt.Println(r.FindAllString("peach punch pinch", -1)) // [peach punch pinch]
 
-	fmt.Println(r.FindAllStringSubmatchIndex("peach punch pinch", -1)) // [[0 5 1 3] [6 11 7 9] [12 17 13 15]]
+    fmt.Println(r.FindAllStringSubmatchIndex("peach punch pinch", -1)) // [[0 5 1 3] [6 11 7 9] [12 17 13 15]]
 
-	// 일치 항목의 갯수 제한
-	fmt.Println(r.FindAllString("peach punch pinch", 2)) // [peach punch]
+    // 일치 항목의 갯수 제한
+    fmt.Println(r.FindAllString("peach punch pinch", 2)) // [peach punch]
 
-	// byte도 사용 가능
-	fmt.Println(r.Match([]byte("peach"))) // true
+    // byte도 사용 가능
+    fmt.Println(r.Match([]byte("peach"))) // true
 
-	// 정규식으로 상수를 만들 때
-	r = regexp.MustCompile("p([a-z]+)ch")
-	fmt.Println(r) // p([a-z]+)ch
+    // 정규식으로 상수를 만들 때
+    r = regexp.MustCompile("p([a-z]+)ch")
+    fmt.Println(r) // p([a-z]+)ch
 
-	fmt.Println(r.ReplaceAllString("a peach", "<fruit>")) //a <fruit>
+    fmt.Println(r.ReplaceAllString("a peach", "<fruit>")) //a <fruit>
 
-	// 일치된 항목을 변형
-	in := []byte("a peach")
-	out := r.ReplaceAllFunc(in, bytes.ToUpper)
-	fmt.Println(string(out)) // a PEACH
+    // 일치된 항목을 변형
+    in := []byte("a peach")
+    out := r.ReplaceAllFunc(in, bytes.ToUpper)
+    fmt.Println(string(out)) // a PEACH
 }
 ```
 
@@ -1162,51 +1164,51 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 )
 
 func main() {
-	p := fmt.Println
+    p := fmt.Println
 
-	now := time.Now()
-	p(now) // 2017-06-24 14:20:53.252012036 +0900 KST
+    now := time.Now()
+    p(now) // 2017-06-24 14:20:53.252012036 +0900 KST
 
-	then := time.Date(
-		2009, 11, 17, 20, 34, 58, 651387237, time.UTC)
-	p(then) // 2009-11-17 20:34:58.651387237 +0000 UTC
+    then := time.Date(
+        2009, 11, 17, 20, 34, 58, 651387237, time.UTC)
+    p(then) // 2009-11-17 20:34:58.651387237 +0000 UTC
 
-	p(then.Year())       // 2009
-	p(then.Month())      // November
-	p(then.Day())        // 17
-	p(then.Hour())       // 20
-	p(then.Minute())     // 34
-	p(then.Second())     // 58
-	p(then.Nanosecond()) // 651387237
-	p(then.Location())   // UTC
+    p(then.Year())       // 2009
+    p(then.Month())      // November
+    p(then.Day())        // 17
+    p(then.Hour())       // 20
+    p(then.Minute())     // 34
+    p(then.Second())     // 58
+    p(then.Nanosecond()) // 651387237
+    p(then.Location())   // UTC
 
-	p(then.Weekday()) // Tuesday
+    p(then.Weekday()) // Tuesday
 
-	// 1번째값이 2번째 값보다 어떤지 검사
-	p(then.Before(now)) // true
-	p(then.After(now))  // false
-	p(then.Equal(now))  // false
+    // 1번째값이 2번째 값보다 어떤지 검사
+    p(then.Before(now)) // true
+    p(then.After(now))  // false
+    p(then.Equal(now))  // false
 
-	// duration
-	diff := now.Sub(then)
-	p(diff) // 66608h49m31.34521462s
+    // duration
+    diff := now.Sub(then)
+    p(diff) // 66608h49m31.34521462s
 
-	// 다양한 단위로 계산
-	p(diff.Hours())       // 66608.82537367073
-	p(diff.Minutes())     // 3.996529522420244e+06
-	p(diff.Seconds())     // 2.397917713452146e+08
-	p(diff.Nanoseconds()) // 239791771345214620
+    // 다양한 단위로 계산
+    p(diff.Hours())       // 66608.82537367073
+    p(diff.Minutes())     // 3.996529522420244e+06
+    p(diff.Seconds())     // 2.397917713452146e+08
+    p(diff.Nanoseconds()) // 239791771345214620
 
-	// 미래로
-	p(then.Add(diff)) // 2017-06-24 05:24:29.996601857 +0000 UTC
+    // 미래로
+    p(then.Add(diff)) // 2017-06-24 05:24:29.996601857 +0000 UTC
 
-	// 과거로
-	p(then.Add(-diff)) // 2002-04-13 11:45:27.306172617 +0000 UTC
+    // 과거로
+    p(then.Add(-diff)) // 2002-04-13 11:45:27.306172617 +0000 UTC
 }
 ```
 
@@ -1217,24 +1219,24 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 )
 
 func main() {
-	now := time.Now()
-	secs := now.Unix()        // timestamp sec
-	nanos := now.UnixNano()   // timestamp ns
-	millis := nanos / 1000000 // timestamp ms는 없기 때문에 계산
+    now := time.Now()
+    secs := now.Unix()        // timestamp sec
+    nanos := now.UnixNano()   // timestamp ns
+    millis := nanos / 1000000 // timestamp ms는 없기 때문에 계산
 
-	fmt.Println(now)    // 2017-06-24 14:35:15.246434365 +0900 KST
-	fmt.Println(secs)   // 1498282515
-	fmt.Println(millis) // 1498282515246
-	fmt.Println(nanos)  // 1498282515246434365
+    fmt.Println(now)    // 2017-06-24 14:35:15.246434365 +0900 KST
+    fmt.Println(secs)   // 1498282515
+    fmt.Println(millis) // 1498282515246
+    fmt.Println(nanos)  // 1498282515246434365
 
-	// timestamp time으로 변환
-	fmt.Println(time.Unix(secs, 0))  // 2017-06-24 14:35:15 +0900 KST
-	fmt.Println(time.Unix(0, nanos)) // 2017-06-24 14:35:15.246434365 +0900 KST
+    // timestamp time으로 변환
+    fmt.Println(time.Unix(secs, 0))  // 2017-06-24 14:35:15 +0900 KST
+    fmt.Println(time.Unix(0, nanos)) // 2017-06-24 14:35:15.246434365 +0900 KST
 }
 ```
 
@@ -1246,33 +1248,33 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"time"
+    "fmt"
+    "time"
 )
 
 func main() {
-	p := fmt.Println
+    p := fmt.Println
 
-	t := time.Now()
-	p(t.Format(time.RFC3339)) // 2017-06-24T14:59:39+09:00
+    t := time.Now()
+    p(t.Format(time.RFC3339)) // 2017-06-24T14:59:39+09:00
 
-	t1, _ := time.Parse(time.RFC3339, "2012-11-01T22:08:41+00:00")
-	p(t1) // 2012-11-01 22:08:41 +0000 +0000
+    t1, _ := time.Parse(time.RFC3339, "2012-11-01T22:08:41+00:00")
+    p(t1) // 2012-11-01 22:08:41 +0000 +0000
 
-	p(t.Format("3:04PM"))                           // 2:59PM
-	p(t.Format("Mon Jan _2 15:04:05 2006"))         // Sat Jun 24 14:59:39 2017
-	p(t.Format("2006-01-02T15:04:05.999999-07:00")) // 2017-06-24T14:59:39.534068+09:00
-	form := "3 04 PM"
-	t2, _ := time.Parse(form, "8 41 PM")
-	p(t2) // 0000-01-01 20:41:00 +0000 UTC
+    p(t.Format("3:04PM"))                           // 2:59PM
+    p(t.Format("Mon Jan _2 15:04:05 2006"))         // Sat Jun 24 14:59:39 2017
+    p(t.Format("2006-01-02T15:04:05.999999-07:00")) // 2017-06-24T14:59:39.534068+09:00
+    form := "3 04 PM"
+    t2, _ := time.Parse(form, "8 41 PM")
+    p(t2) // 0000-01-01 20:41:00 +0000 UTC
 
-	fmt.Printf("%d-%02d-%02dT%02d:%02d-00:00\n",
-		t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second()) // 2017-06-24T14:59-00:00
+    fmt.Printf("%d-%02d-%02dT%02d:%02d-00:00\n",
+        t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second()) // 2017-06-24T14:59-00:00
 
-	// 잘못된 형식의 input이면 error return
-	ansic := "Mon Jan _2 15:04:05 2006"
-	_, e := time.Parse(ansic, "8:41PM")
-	p(e) // %!(EXTRA int=39)parsing time "8:41PM" as "Mon Jan _2 15:04:05 2006": cannot parse "8:41PM" as "Mon"
+    // 잘못된 형식의 input이면 error return
+    ansic := "Mon Jan _2 15:04:05 2006"
+    _, e := time.Parse(ansic, "8:41PM")
+    p(e) // %!(EXTRA int=39)parsing time "8:41PM" as "Mon Jan _2 15:04:05 2006": cannot parse "8:41PM" as "Mon"
 }
 ```
 
@@ -1285,44 +1287,44 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"math/rand"
-	"time"
+    "fmt"
+    "math/rand"
+    "time"
 )
 
 func main() {
-	// 0 <= n < 100 사이의 난수
-	fmt.Print(rand.Intn(100), ",")
-	fmt.Print(rand.Intn(100))
-	fmt.Println() // 81, 87
+    // 0 <= n < 100 사이의 난수
+    fmt.Print(rand.Intn(100), ",")
+    fmt.Print(rand.Intn(100))
+    fmt.Println() // 81, 87
 
-	// 0.0 <= f < 1.0 사이의 난수
-	fmt.Println(rand.Float64()) // 0.6645600532184904
+    // 0.0 <= f < 1.0 사이의 난수
+    fmt.Println(rand.Float64()) // 0.6645600532184904
 
-	// 5.0 <= f < 10.0 사이의 난수
-	fmt.Print((rand.Float64()*5)+5, ",")
-	fmt.Print((rand.Float64() * 5) + 5)
-	fmt.Println() // 7.1885709359349015,7.123187485356329
+    // 5.0 <= f < 10.0 사이의 난수
+    fmt.Print((rand.Float64()*5)+5, ",")
+    fmt.Print((rand.Float64() * 5) + 5)
+    fmt.Println() // 7.1885709359349015,7.123187485356329
 
-	// 변화하는 seed 필요
-	// 안전하려면 srypto/rand 사용
-	s1 := rand.NewSource(time.Now().UnixNano())
-	r1 := rand.New(s1)
+    // 변화하는 seed 필요
+    // 안전하려면 srypto/rand 사용
+    s1 := rand.NewSource(time.Now().UnixNano())
+    r1 := rand.New(s1)
 
-	fmt.Print(r1.Intn(100), ",")
-	fmt.Print(r1.Intn(100))
-	fmt.Println() // 30,82
+    fmt.Print(r1.Intn(100), ",")
+    fmt.Print(r1.Intn(100))
+    fmt.Println() // 30,82
 
-	s2 := rand.NewSource(42)
-	r2 := rand.New(s2)
-	fmt.Print(r2.Intn(100), ",")
-	fmt.Print(r2.Intn(100))
-	fmt.Println() // 5,87
-	s3 := rand.NewSource(42)
-	r3 := rand.New(s3)
-	fmt.Print(r3.Intn(100), ",")
-	fmt.Print(r3.Intn(100))
-	fmt.Println() // 5, 87
+    s2 := rand.NewSource(42)
+    r2 := rand.New(s2)
+    fmt.Print(r2.Intn(100), ",")
+    fmt.Print(r2.Intn(100))
+    fmt.Println() // 5,87
+    s3 := rand.NewSource(42)
+    r3 := rand.New(s3)
+    fmt.Print(r3.Intn(100), ",")
+    fmt.Print(r3.Intn(100))
+    fmt.Println() // 5, 87
 }
 ```
 
@@ -1335,29 +1337,29 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"strconv"
+    "fmt"
+    "strconv"
 )
 
 func main() {
-	f, _ := strconv.ParseFloat("1.234", 64) // 64는 어느 bit까지의 정밀도를 의미
-	fmt.Println(f)                          // 1.234
+    f, _ := strconv.ParseFloat("1.234", 64) // 64는 어느 bit까지의 정밀도를 의미
+    fmt.Println(f)                          // 1.234
 
-	i, _ := strconv.ParseInt("123", 0, 64) // 0은 문자열을 파싱함을 의미
-	fmt.Println(i)                         // 123
+    i, _ := strconv.ParseInt("123", 0, 64) // 0은 문자열을 파싱함을 의미
+    fmt.Println(i)                         // 123
 
-	d, _ := strconv.ParseInt("0x1c8", 0, 64) // 16진수
-	fmt.Println(d)                           // 456
+    d, _ := strconv.ParseInt("0x1c8", 0, 64) // 16진수
+    fmt.Println(d)                           // 456
 
-	u, _ := strconv.ParseUint("789", 0, 64)
-	fmt.Println(u) // 789
+    u, _ := strconv.ParseUint("789", 0, 64)
+    fmt.Println(u) // 789
 
-	// 10진수 int parsing
-	k, _ := strconv.Atoi("135")
-	fmt.Println(k) // 135
+    // 10진수 int parsing
+    k, _ := strconv.Atoi("135")
+    fmt.Println(k) // 135
 
-	_, e := strconv.Atoi("wat")
-	fmt.Println(e) // strconv.Atoi: parsing "wat": invalid syntax
+    _, e := strconv.Atoi("wat")
+    fmt.Println(e) // strconv.Atoi: parsing "wat": invalid syntax
 }
 ```
 
@@ -1369,38 +1371,38 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"net"
-	"net/url"
+    "fmt"
+    "net"
+    "net/url"
 )
 
 func main() {
-	s := "postgres://user:pass@host.com:5432/path?k=v#f"
+    s := "postgres://user:pass@host.com:5432/path?k=v#f"
 
-	u, err := url.Parse(s)
-	if err != nil {
-		panic(err)
-	}
+    u, err := url.Parse(s)
+    if err != nil {
+        panic(err)
+    }
 
-	fmt.Println(u.Scheme) // postgres
+    fmt.Println(u.Scheme) // postgres
 
-	fmt.Println(u.User)            // user:pass
-	fmt.Println(u.User.Username()) // user
-	p, _ := u.User.Password()
-	fmt.Println(p) // pass
+    fmt.Println(u.User)            // user:pass
+    fmt.Println(u.User.Username()) // user
+    p, _ := u.User.Password()
+    fmt.Println(p) // pass
 
-	fmt.Println(u.Host) // host.com:5432
-	host, port, _ := net.SplitHostPort(u.Host)
-	fmt.Println(host) // host.com
-	fmt.Println(port) // 5432
+    fmt.Println(u.Host) // host.com:5432
+    host, port, _ := net.SplitHostPort(u.Host)
+    fmt.Println(host) // host.com
+    fmt.Println(port) // 5432
 
-	fmt.Println(u.Path)     // /path
-	fmt.Println(u.Fragment) // f
+    fmt.Println(u.Path)     // /path
+    fmt.Println(u.Fragment) // f
 
-	fmt.Println(u.RawQuery) // k=v
-	m, _ := url.ParseQuery(u.RawQuery)
-	fmt.Println(m)         // map[k:[v]]
-	fmt.Println(m["k"][0]) // v
+    fmt.Println(u.RawQuery) // k=v
+    m, _ := url.ParseQuery(u.RawQuery)
+    fmt.Println(m)         // map[k:[v]]
+    fmt.Println(m["k"][0]) // v
 }
 ```
 
