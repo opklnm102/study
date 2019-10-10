@@ -28,7 +28,6 @@ limit] [-o ssh_option] [-P port] [-S program] [[user@]host1:]file1 ... [[user@]h
 | -q | Quiet mode <br> ssh의 경고, 진단 메시지, 진행 상태 표시를 비활성화 |
 | -v | Verbose mode <br> 진행 상황에 대한 디버깅 메시지 표시 <br> 연결, 인증, 설정 문제를 디버깅하는데 유용 |
 
----
 
 <br>
 
@@ -43,20 +42,28 @@ $ scp test.txt ec2-user@172.11.2.113:/home/ec2-user/
 ```
 * test.txt를 172.11.2.113 서버의 /home/ec2-user/ 폴더에 업로드
 
+<br>
+
 ### 다른 서버에서 복사(가져오기)
 ```sh
 $ scp user@host:/path/to/source-file /path/to/destination-folder/
 ```
+
+<br>
 
 ### 여러 파일 보내기
 ```sh
 $ scp /path/to/file1 /path/to/file2 user@host:/path/to/destination-folder/
 ```
 
+<br>
+
 ### 특정 타입의 파일 보내기
 ```sh
 $ scp /path/to/folder/*.txt user@host:/path/to/destination-folder/
 ```
+
+<br>
 
 ### 폴더 보내기
 ```sh
@@ -66,10 +73,14 @@ $ scp -r user@host:/path/to/source-folder/ /path/to/destination-folder/
 $ scp -r ec2-user@172.11.2.113:/home/ec2-user/test/ /var/test
 ```
 
+<br>
+
 ### 다른 포트 사용
 ```sh
 $ scp -P port user@host:/path/to/source-file /path/to/destination-folder/
 ```
+
+<br>
 
 ### Increase Speed
 * scp는 AES-128을 사용하기 때문에 안전하지만 느리다
@@ -82,11 +93,15 @@ $ scp -c blowfish user@host:/path/to/source-file /path/to/destination-folder/
 $ scp -c arcfour user@host:/path/to/source-file /path/to/destination-folder/
 ```
 
+<br>
+
 ### Increase Security
 * 속도는 더 느리지만, 보안성을 향상시키고 싶은 경우
 ```sh
 $ scp -c 3des user@host:/path/to/source-file /path/to/destination-folder/
 ```
+
+<br>
 
 ### Limit Bandwidth
 * scp가 사용하는 bandwidth(대역폭)을 제한하고 싶은 경우
@@ -97,11 +112,15 @@ $ scp -l <limit> user@host:/path/to/source-file /path/to/destination-folder/
 $ scp -l 150 user@host:/path/to/source-file /path/to/destination-folder/
 ```
 
+<br>
+
 ### Save Bandwidth
 * 파일을 압축해서 bandwidth를 절약하고 싶은 경우
 ```sh
 $ scp -C user@host:/path/to/source-file/ /path/to/destination-folder/
 ```
+
+<br>
 
 ### Use IPv4 or IPv6
 * IPv4 또는 IPv6를 사용할 경우
@@ -111,10 +130,17 @@ $ scp -4 user@host:/path/to/source-file/ /path/to/destination-folder/
 $ scp -6 user@host:/path/to/source-file/ /path/to/destination-folder/
 ```
 
----
-
 <br>
 
-> #### 참고
+### Permission denied (publickey) 발생시
+* `-i` 사용
+```sh
+$ scp -i [public key path] user@host:/path/to/source-file/ /path/to/destination-folder/
+```
+
+
+<br><br>
+
+> #### Reference
 > * [리눅스 scp 사용법](https://zetawiki.com/wiki/%EB%A6%AC%EB%88%85%EC%8A%A4_scp_%EC%82%AC%EC%9A%A9%EB%B2%95)
 > * [scp command Tutorial](https://www.garron.me/en/articles/scp.html)
