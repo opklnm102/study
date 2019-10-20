@@ -9,7 +9,6 @@
 ## Installing Elasticsearch
 TODO:
 
-
 <br>
 
 ## Configuring Elasticsearch
@@ -25,10 +24,92 @@ TODO:
 <br>
 
 ## Important System Configuration
-TODO:
+* 이상적으로 Elasticsearch는 서버에서 단독으로 실행되어 사용 가능한 모든 리소스를 사용해야 한다
+* 기본적으로 허용되는 리소스보다 더 많은 리소스에 엑세스할 수 있도록 OS를 설정해야 한다
+
+<br>
+
+### Production 운영 전 필수 설정
+* Disable **swapping**
+* Increase **file descriptors**
+* Ensure sufficient **threads**
+* **JVM DNS cache** settings
+* **Temporary directory** not mounted with `noexec`
+
+<br>
+
+### Development mode vs production mode
+* `development mode`
+  * default
+  * 필수 설정을 하지 않아도 warn log만 출력되고, 실행 가능
+* `production mode`
+  * `network.host` 같은 network 설정시 `production mode`가 된다
+  * 필수 설정을 하지 않으면 exception이 발생하여 실행할 수 없다
+
+<br>
 
 ### Configuration system settings
-TODO:
+* system setting은 설치 방법과 OS에 따라 다르다
+
+<br>
+
+#### ulimit
+* 일시적으로 resource limit 변경
+* `.zip`, `.tag.gz` package를 사용했을 때 system setting 방법
+* `ulimit -n` - open files
+  * current session부터 바로 적용된다
+
+```sh
+## change max number of open files
+$ sudo ulimit -n 65535  
+
+## check currently applied limits
+$ ulimit -a
+...
+max memory size         (kbytes, -m) unlimited
+open files                      (-n) 106553524
+...
+```
+
+<br>
+
+#### `/etc/security/limits.conf`
+* 영구적으로 resource limit 변경
+  * 파일 수정 후 new session부터 적용된다
+* `.zip`, `.tag.gz` package를 사용했을 때 system setting 방법
+* e.g. elasticsearch user의 open files limit를 변경
+```sh
+## add below content to /etc/security/limits.conf
+elasticsearch - nofile 65535
+```
+
+<br>
+
+#### system configuration 
+* `RPM`, `Debian` package인 경우 system setting 방법
+  * `systmed`를 사용한다면 `systemd`를 통해 system setting을 수정해야 한다
+* system setting 파일을 수정
+  * RPM - `/etc/sysconfig/elasticsearch`
+  * Debian - `/etc/default/elasticsearch`
+
+<br>
+
+#### systmed
+* default limit는 systemd service file(`/usr/lib/systemd/system/elasticsearch.service`)에 정의되어 있다
+* override하기 위해 `/etc/systemd/system/elasticsearch.service.d/override.conf` 파일 추가하거나, `sudo systemctl edit elasticsearch` 명령어 사용 후 아래 내용 추가
+```
+[Service]
+LimitMEMLOCK=infinity
+```
+
+* 수정한 설정 적용
+```sh
+$ sudo systemctl daemon-reload
+```
+
+<br>
+
+> 요즘은 `init.d`보다 `systemd`를 많이 사용하므로 이 방법으로만 설정하면 통일성을 가지므로 관리에 용이할 듯
 
 <br>
 
@@ -130,6 +211,31 @@ $ sudo systemctl daemon-reload
 $ export ES_JAVA_OPTS="ES_JAVA_OPTS -Djna.tmpdir=<path>"
 $ ./bin/elasticsearch
 ```
+
+<br>
+
+### File Descriptors
+TODO:
+
+<br>
+
+### Virtual memory
+TODO:
+
+<br>
+
+### number of threads
+TODO:
+
+<br>
+
+### DNS cache settings
+TODO:
+
+<br>
+
+### JNA temporary directory not mounted with `noexec`
+TODO:
 
 
 <br>
