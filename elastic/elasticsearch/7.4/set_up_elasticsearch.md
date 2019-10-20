@@ -215,7 +215,58 @@ $ ./bin/elasticsearch
 <br>
 
 ### File Descriptors
-TODO:
+> * Linux, macOS에만 설정 필요
+> * Windows에서 JVM은 사용 가능한 리소스에서 제한된 [API](https://docs.microsoft.com/ko-kr/windows/win32/api/fileapi/nf-fileapi-createfilea?redirectedfrom=MSDN)를 사용하므로 설정 불필요
+
+<br>
+
+* Elasticsearch는 많은 `file descriptor` or `file handles`를 사용
+* `file descriptor`가 부족하면 data loss가 발생할 수 있기 때문에 open files descriptors limit를 65,536 이상으로 설정해야 한다
+
+<br>
+
+#### .zpi, .tar.gz
+* `ulimit` 명령어를 사용
+```sh
+$ ulimit -n 65535
+```
+
+* 또는 `/etc/security/limits.conf` 파일 수정
+```sh
+$ vi /etc/security/limits.conf
+
+## add below content to /etc/security/limits.conf
+elasticsearch - nofile 65535
+```
+
+<br>
+
+#### macOS
+* `-XX:-MaxFDLimit` JVM option 설정
+
+<br>
+
+#### RPM, Debian
+* default로 65535가 설정되어 있으므로 추가 설정 불필요
+
+<br>
+
+#### Check file descriptors
+* [Nodes Stats API](https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-nodes-stats.html)를 사용
+```json
+GET /_nodes/stats/process?filter_path=**.max_file_descriptors&pretty
+
+{
+  "nodes": {
+    "M8XNNm5-Rf2IbXaVdbpwkg": {
+      "process": {
+        "max_file_descriptors": 1048576
+      }
+    },
+    ...
+  }
+}
+```
 
 <br>
 
