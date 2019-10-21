@@ -309,7 +309,15 @@ elasticsearch - nproc 4096
 <br>
 
 ### DNS cache settings
-TODO:
+* Elasticsearch는 security manager와 함께 실행
+* JVM은 기본적으로 DNS를 cacheing
+  * positive hostname resolution - **무한정**
+  * negative hostname resolution - **10초 동안**
+
+* Elasticsearch는 default positive hostname resolution을 **override하여 60초 동안 caching**
+  * DNS resolution이 시간에 따라 변하는 환경을 포함하여 대부분의 환경에도 적합해야 한다
+  * 그렇지 않은 경우, JVM option에서 `es.networkaddress.cache.ttl`, `es.networkaddress.cache.negative.ttl`를 수정
+* `es.networkaddress.cache.ttl`, `es.networkaddress.cache.negative.ttl`를 제거하지 않으면 Java security policy의 `networkaddress.cache.ttl`, `networkaddress.cache.negative.ttl`이 무시 된다
 
 <br>
 
