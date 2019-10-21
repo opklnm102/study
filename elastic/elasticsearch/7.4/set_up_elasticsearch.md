@@ -271,12 +271,40 @@ GET /_nodes/stats/process?filter_path=**.max_file_descriptors&pretty
 <br>
 
 ### Virtual memory
-TODO:
+* Elasticsearch는 default로 [mmapfs](https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules-store.html#mmapfs) directory에 index를 저장
+* default mmap count OS limit가 낮아서 out of memory exception이 발생할 수 있기 때문에 증가 필요
+```sh
+$ sysctl -w vm.max_map_count=262144
+
+## check 
+$ sysctl vm.max_map_count
+```
+* 영구적으로 설정할려면 `/etc/sysctl.conf`에서 설정
+* `RPM`, `Debian` package는 설정 불필요
 
 <br>
 
 ### number of threads
-TODO:
+* Elasticsearch는 **operation별로 thread pool을 사용**
+  * 필요할 때마다 thread를 생성할 수 있어야 한다
+* Elasticsearch가 생성할 수 있는 **thread는 최소 4096개**
+
+<br>
+
+#### nproc 설정 필요
+* `ulimit` 사용
+```sh
+$ ulimit -u 4096
+```
+
+* 또는 `/etc/security/limits.conf` 파일 수정
+```sh
+$ vi /etc/security/limits.conf
+
+## add below content to /etc/security/limits.conf
+elasticsearch - nproc 4096
+```
+* `systemd`에서 service로 실행했다면 설정 불필요
 
 <br>
 
