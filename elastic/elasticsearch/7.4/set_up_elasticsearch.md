@@ -322,8 +322,15 @@ elasticsearch - nproc 4096
 <br>
 
 ### JNA temporary directory not mounted with `noexec`
-TODO:
-
+* Elasticsearch는 platform-dependent native code를 위해 JNA(Java Native Access) library를 사용
+* Linux에서 library를 지원하는 native code는 JNA archive에서 runtime시 추출
+  * default로 Elasticsearch temporary directory인 `/tmp`에 추출
+  * JVM flag `Djna.tmpdir=<path>`로 제어 가능
+* native library가 **실행 파일로 JVM virtual address space에 mapping**되는데 code가 추출되는 위치의 mount point는 `noexec`로 mount되면 안된다
+  * JVM process가 code를 실행 파일로 mapping할 수 없기 때문
+* `noexec`로 mount되면 시작시 `faild to map segment from shared object` 메시지와 `java.lang.UnsatisfiedLinkerError`를 볼 수 있다
+  * exception message는 JVM 버전마다 다를 수 있다
+* exception 발생시 **JNA에 사용된 temporary directory를 `noexec`가 아니게 remount** 해야 한다
 
 <br>
 
