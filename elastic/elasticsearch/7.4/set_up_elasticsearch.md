@@ -375,10 +375,24 @@ discovery.type: single-node
 <br>
 
 ### Heap size check
-TODO:
+* initial heap과 max heap size가 다르게 설정된 경우 JVM heap resizing시에 pause 발생
+* pause를 피하기 위해 **initial heap과 max heap size를 동일**하게 시작하는게 좋다
+* `bootstrap.memory_lock`을 사용하면 시작시 JVM이 initial heap size를 memory locking
+  * 만약 initial heap과 max heap이 같지 않으면 모든 JVM heap이 memory lock되지 않는다
+* heap size check를 pass하려면 **heap size를 설정**해야 한다
+
+<br>
 
 ### File descriptor check
-TODO:
+* File descriptor는 unix에서 open file tracking을 위해 사용
+  * unix에서는 모든 것이 file
+  * e.g. physical file, virtual file(/prc/loadavg), network socket
+* Elasticsearch는 **많은 file descriptor 필요**
+  * 모든 shard는 여러 segment 및 기타 파일로 구성되므로, 다른 node와의 connection 등
+* file descriptor check는 OS X, Linux에서 수행
+* file descriptor check를 pass하려면 **file descriptor 설정**을 해야한다
+
+<br>
 
 ### Memory lock check
 * JVM에서 Major GC를 수행하면 heap의 모든 page에 닿는다
