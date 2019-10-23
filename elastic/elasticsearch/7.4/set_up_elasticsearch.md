@@ -335,7 +335,44 @@ elasticsearch - nproc 4096
 <br>
 
 ## Bootstrap Checks
-TODO:
+* important configuration를 구성하지 않아서 예측하지 못한 문제가 발생하는 경우가 많다
+* configuration 중 잘못된 것은 warning level로 logging
+* configuration에 주의를 기울일 수 있게 **bootstrap check**를 수행한다
+* bootstrap check로 다양한 Elasticsearch setting과 system setting을 검사
+
+<br>
+
+### Development mode vs production mode
+* Elasticsearch는 default로 HTTP 및 transport(internal) communication을 위해 loopback address에 binding
+* Cluster에 join하려면 transport communication을 통해 node에 도달해야 한다
+  * non-loopback address binding
+  * single-node discovery 미사용
+* `development mode`
+  * default
+  * 필수 설정을 하지 않아도 warn log만 출력되고, 실행 가능
+* `production mode`
+  * **non-loopback address**를 통해 cluster join이 가능한 경우
+  * `http.host`, `transport.host`로 HTTP와 transport를 독립적으로 설정 가능
+  * 필수 설정을 하지 않으면 exception이 발생하여 실행할 수 없다
+
+<br>
+
+### Single-node discovery
+* Transport client testing을 위해 external transport에 binding해야 하는 경우 `single-node discovery` 사용
+```yml
+discovery.type: single-node
+...
+```
+* `single-node discovery`는 자체적으로 master election하고, 다른 node를 cluster에 join 시키지 않는다
+
+<br>
+
+### Forcing the bootstrap checks
+* Single node를 production에서 사용 중인 경우 bootstrap check skip하는데, 이런 경우 `es.enforce.bootstrap.checks: true`로 bootstrap check 가능
+  * external interface를 transport에 binding하지 않거나, `single-node discovery`를 사용하는 경우
+  * 환경 변수로 설정하려면 `ES_JAVA_OPTS=Des.enforce.bootstrap.checks=true` 사용
+
+<br>
 
 ### Heap size check
 TODO:
