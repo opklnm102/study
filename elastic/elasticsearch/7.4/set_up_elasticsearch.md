@@ -404,21 +404,47 @@ discovery.type: single-node
   * elasticsearch를 시작한 user에게 memlock unlimited가 없는 경우처럼 Elasticsearch가 heap을 lock할 수 없을 수 있다
 * memory lock check는 `bootstrap.memory_lock`이 enabled인 경우 JVM이 heap을 lock할 수 있는지 확인
 
-
 <br>
 
 ### Maximum number of threads check
-TODO:
+* Elasticsearch는 request를 여러 stage로 나누고, 각 stage별로 `thread pool executors`를 사용
+* 다양한 작업을 위한 `thread pool executors`가 있어서 많은 thread를 생성할 수 있어야 한다
+* maximum number of threads check는 충분한 thread를 생성할 수 있는지 검사
+  * Linux에서만 수행
+  * 최소 4096개의 thread를 생성할 수 있어야 한다
+  * `/etc/security/limits.conf`에 `nproc` 설정
+  * root user의 limit도 증가시켜야할 수도 있다
 
 <br>
 
 ### Max file size check
-TODO:
+* shard의 component인 `segment file`과 translog의 component `translog generations`이 GB 이상으로 커질 수 있다
+* Elasticsearch process가 생성할 수 있는 max size limit 때문에 file write가 실패할 수 있다
+* max file size check로 max file size가 unlimited인지 검사
+  * `/etc/security/limits.conf`에 `fsize` 설정
+  * root user의 limit도 증가 필요
 
 <br>
 
 ### Maximum size virtual memory check
-TODO:
+* Elasticsearch와 Lucene는 `mmap`을 사용해 index를 Elasticsearch address space에 mapping
+* Index data를 JVM heap에서 유지하지만, **빠른 access를 위해 memory에 유지하기 때문에 Elasticsearch는 unlimited address space가 필요**
+* maximum size virtual memory check는 Elasticsearch process에 limited address space를 검사
+  * Linux에서만 수행
+  * `/etc/security/limits.conf`에 `as` 설정
+  * root user의 limit도 증가시켜야할 수도 있다
+
+<br>
+
+### Maximum map count check
+* `mmap`을 효과적으로 사용하기 위해 Elasticsearch에서 **많은 memory-mapped area를 생성**할 수 있어야한다
+* maximum map count check는 **최소 262,144개의 memory-mapped area를 허용**하는지 검사
+  * Linux에서만 수행
+  * index에 `mmapfs`, `hybridfs`를 [store type](https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules-store.html)으로 사용하는 경우에만 필요
+
+```sh
+$ sysctl vm.max_map_count=262144
+```
 
 <br>
 
