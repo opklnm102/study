@@ -367,7 +367,7 @@ discovery.type: single-node
 
 <br>
 
-### Forcing the bootstrap checks
+### Forcing the bootstrap check
 * Single node를 production에서 사용 중인 경우 bootstrap check skip하는데, 이런 경우 `es.enforce.bootstrap.checks: true`로 bootstrap check 가능
   * external interface를 transport에 binding하지 않거나, `single-node discovery`를 사용하는 경우
   * 환경 변수로 설정하려면 `ES_JAVA_OPTS=Des.enforce.bootstrap.checks=true` 사용
@@ -449,27 +449,49 @@ $ sysctl vm.max_map_count=262144
 <br>
 
 ### Client JVM check
-TODO:
+* OpenJDK는 client JVM과 server JVM, 2가지 JVM을 제공
+* Java bytecode에서 executable machine code를 생성하기 위해 다른 compiler를 사용
+  * client JVM - startup time 및 memory footprint에 맞게 조정
+  * server JVM - performance를 최대화하도록 조정
+  * 두 JVM간에 성능차이가 상당할 수 있다
+* client JVM check을 pass하려면 **server JVM으로 실행**해야 한다
+* modern system과 OS에서는 server JVM이 default
 
 <br>
 
 ### Use serial collector check
-TODO:
+* OpenJDK는 서로 다른 workload를 대상으로하는 다양한 garbage collector를 제공
+* Elasticsearch에 serial collector는 적합하지 않다
+  * 성능이 저하될 수 있다
+  * single logical CPU 또는 small heap에 적합
+* use serial collector check는 `-XX:+UseSerialGC`를 사용했는지 검사
+* Elasticsearch는 default로 CMS collector를 사용하도록 설정되어 있다
 
 <br>
 
 ### System call filter check
-TODO:
+* OS에 따라 다양한 system call filter를 설치
+  * e.g. seccomp(Linux)
+* Elasticsearch의 `arbitrary code execution attack`에 대한 defense mechanism으로 fork와 관련된 system call을 방지하기 위함
+* system call filter check는 system call filter가 enable인 경우 **system call filter가 설치**되었는지 검사
+* system call filter check를 pass하려면 system call filter 설치를 막는 오류를 수정하거나 `bootstrap.system_call_filter: false`로 disable
 
 <br>
 
-### OnError and OnOutOfMemoryError checks
-TODO:
+### OnError and OnOutOfMemoryError check
+* JVM option인 `OnError`, `OnOutOfMemoryError`로 faital error(`OnError`)나 OutOfMemoryError(`OnOutOfMemoryError`) 발생시 임의의 명령을 실행할 수 있다
+* Elasticsearch는 default로 system call filters(seccomp)는 enable고 forking을 막는다
+* `OnError`, `OnOutOfMemoryError` 사용시 system call filter가 호환되지 않는다
+* OnError and OnOutOfMemoryError check는 `OnError`, `OnOutOfMemoryError` JVM option이 사용되고, system call filter가 enable인 경우 Elasticsearch start를 막는다
+  * 항상 실행
+* OnError and OnOutOfMemoryError check를 pass하려면 `OnError`, `OnOutOfMemoryError`를 enable 하지말고, Java 8u92로 업그레이드 후 JVM flag `ExitOnOutOfMemoryError`를 사용
 
 <br>
 
 ### Early-access check
-TODO:
+* OpenJDK는 다음 release의 early-access snapshot을 제공
+* early-access check를 pass하려면 JVM release build를 사용
+  * early-access는 production에 적합하지 않기 때문
 
 <br>
 
@@ -480,12 +502,19 @@ TODO:
 <br>
 
 ### All permission check
-TODO:
+* all permission check는 bootstrap에서 사용된 security policy가 java.security.AllPermission을 Elasticsearch에 부여하지 않도록 한다
+* all permission으로 start하는 것은 security manager를 disable하는 것과 같다
 
 <br>
 
 ### Discovery configuration check
-TODO:
+* Elasticsearch는 default로 first start up시 same host에서 다른 node를 찾는다
+  * elected master를 찾을 수 없으면 검색된 다른 node와 clustering
+  * multiple cluster가 생성되어 data loss가 발생할 수 있으므로 production에 적합하지 않다
+ * discovery configuration check를 pass하려면 아래 중 하나 이상을 설정
+   * `discovery.seed_hosts`
+   * `discovery_seed_providers`
+   * `cluster.initial_master_nodes`
 
 <br>
 
