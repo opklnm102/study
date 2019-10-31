@@ -41,12 +41,12 @@ $ tail -500f <file name> | grep "xxx"
 <br>
 
 ### Usage
-* stdout을 file로 redirection. file이 없으면 만들고, 있으면 overwrite
+* stdout을 file로 redirection. file이 없으면 만들고, 있으면 **overwrite**
 ```sh
  > file
 ```
 
-* stdout을 file로 redirection. file이 없으면 만들고, 있으면 append
+* stdout을 file로 redirection. file이 없으면 만들고, 있으면 **append**
 ```sh
  >> file
 ```
@@ -60,6 +60,16 @@ $ tail -500f <file name> | grep "xxx"
 ```sh
  < file
 ```
+
+* stderr를 stdout으로 redirection. stdout은 `/dev/null`로 redirection -> **stdout, stderr를 둘다 버린다**
+```sh
+ > /dev/null 2>&1
+```
+
+<br>
+
+> #### /dev/null
+> * 특수 파일로 이 파일로 출력된 데이터는 버려진다
 
 <br>
 
@@ -84,8 +94,10 @@ $ head < ls.txt > ls2.txt
 $ ls -xy 2> /dev/null
 ```
 
-> #### /dev/null
-> * 특수 파일로 이 파일로 출력된 데이터는 버려진다
+* stdout과 stderr 분리해서 file로 저장
+```
+$ ls -alF 1>stdin.log 2>stderr.log
+```
 
 
 <br><br>
@@ -94,3 +106,9 @@ $ ls -xy 2> /dev/null
 > * [리눅스 리다이렉션 & 파이프(Linux redirection & pipe)](https://jdm.kr/blog/74)
 > * [redirection에 대해 이해](https://gracefulprograming.tistory.com/100)
 > * [pipe에 대한 이해](https://gracefulprograming.tistory.com/92)
+
+
+<br>
+
+> #### Further reading
+> * [Chapter 20. I/O Redirection - Advanced Bash-Scripting Guide](http://www.tldp.org/LDP/abs/html/io-redirection.html)
