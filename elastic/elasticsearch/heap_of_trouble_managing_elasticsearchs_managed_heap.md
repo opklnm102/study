@@ -197,12 +197,12 @@ GET _nodes?filter_path=**.using_compressed_ordinary_object_pointers
 <br>
 
 ## JVM Heap Monitoring
-![heap too small](./heap_too_small.png)
+![heap too small](./images/heap_too_small.png)
 * 너무 작은 heap size를 사용할 때 나타나는 패턴으로 **GC 후에도 heap 사용률이 높다**
 
 <br>
 
-![heap too large](./heap_too_large.png)
+![heap too large](./images/heap_too_large.png)
 * 너무 큰 heap size를 사용할 때 나타나는 패턴으로 **GC 후 heap 사용률이 급감하는 것으로 보아 garbage가 많이 쌓인다**
 * garbage에서 사용하는 memory는 filesystem cache에서 더 잘 활용될 수 있디
 
