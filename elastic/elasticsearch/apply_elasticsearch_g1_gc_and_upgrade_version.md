@@ -92,7 +92,7 @@ RUN bin/elasticsearch-plugin remove --purge x-pack  \
 
 #### 1. Disable shard allocation
 * node shutdown시 발생하는 shard rebalancing을 비활성하여 **I/O가 낭비되지 않도록한다**
-```json
+```http
 PUT _cluster/settings
 {
   "transient": {
@@ -104,7 +104,7 @@ PUT _cluster/settings
 #### 2. Stop-non essential indexing and perform a synced flush(optional)
 * synced flush를 통해 **shard recovery가 빨리되도록 한다**
 * **best effort** operation으로 필요한 경우 여러번 호출한다
-```json
+```http
 POST _flush/synced
 ```
 
@@ -113,13 +113,13 @@ POST _flush/synced
 
 #### 4. Check cluster join to single node
 * upgrade된 버전의 node가 cluster에 join
-```json
+```http
 GET _cat/nodes
 ```
 
 #### 5. Reenable shard allocation
 * node의 cluster join이 확인되면 shard allocation을 활성화
-```json
+```http
 PUT _cluster/settings
 {
   "transient": {
@@ -131,11 +131,11 @@ PUT _cluster/settings
 #### 6. Wait for the node to recover
 * shard의 유실을 방지하기 위해 shard allocation을 기다린다
 * `_cat/health`로 **green**이 될 때까지 기다린다
-```json
+```http
 GET _cat/health
 ```
 * `sync-flushed`되지 않은 shard 복구에는 오래 걸릴 수 있고 `_cat/recovery`로 shard status를 확인
-```json
+```http
 GET _cat/recovery
 ```
 #### 7. Repeat
