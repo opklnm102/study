@@ -402,6 +402,100 @@ sunil peon sales 13000
 satvik director purchase 80000
 ```
 
+<br>
+
+### 2개 단어 사이의 라인 출력
+* trigger lines included
+```sh
+## 1
+$ awk '/first word/{f=1} /last word/{f=0;print} f'
+
+## 2
+$ awk '/first word/{f=1} f; /last word/{f=0}'
+
+## 3
+$ awk '/first word/,/last word/'
+
+## example
+$ cat test.txt
+testing
+
+
+test1
+
+aaa
+bbb
+ccc
+
+test2
+
+## 1
+$ cat test.txt | awk '/test1/{f=1} /test2/{f=0;print} f'
+test1
+
+aaa
+bbb
+ccc
+
+test2
+
+## 2
+$ cat test.txt | awk '/test1/{f=1} f; /test2/{f=0}'
+test1
+
+aaa
+bbb
+ccc
+
+test2
+
+## 3
+$ cat test.txt | awk '/test1/,/test2/'
+test1
+
+aaa
+bbb
+ccc
+
+test2
+```
+
+* trigger lines excluded
+```sh
+## 1
+$ awk '/first word/{f=1;next} /last word/{f=0} f'
+
+## 2
+$ awk '/last word/{f=0} f; /first word/{f=1}'
+
+## example
+$ cat test.txt
+testing
+
+
+test1
+
+aaa
+bbb
+ccc
+
+test2
+
+## 1
+$ cat test.txt | awk '/test1/{f=1;next} /test2/{f=0} f'
+
+aaa
+bbb
+ccc
+
+## 2
+$ cat test.txt | awk '/test2/{f=0} f; /test1/{f=1}'
+
+aaa
+bbb
+ccc
+```
+
 
 <br><br>
 
