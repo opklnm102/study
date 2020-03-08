@@ -279,6 +279,15 @@ Access-Control-Expose-Header: <field-name>[, <field-name>]*
 ### Access-Control-Max-Age
 * preflighted request의 결과를 cache할 수 있는 기간(seconds)
 * cache하는 동안 다른 preflighted request를 하지 않아도 된다
+* preflighted response의 cache는 `origin`이 아닌 [cors-preflight-cache - Fetch Spec](https://fetch.spec.whatwg.org/#cors-preflight-cache)에 따라 아래 5개 필드로 cache entry 구성
+  * `byte-serialized origin` - The result of byte-serializing a request origin with request
+  * `URL` - request’s current URL
+    * URL path(query parameters 포함)가 다르면 preflighted request 발생
+  * `max-age` - max-age
+  * `credentials` - True if request’s credentials mode is "include", and false otherwise
+  * `method` - method
+  * `header name` - headerName
+* 최상의 효율을 위해 가장 긴 시간으로 설정 
 ```
 Access-Control-Max-Age: <delta-seconds>
 ```
@@ -396,3 +405,4 @@ Access-Control-Allow-Header: Authorization
 
 > #### Reference
 > * [Cross-Origin Resource Sharing (CORS) - MDN web docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
+> * [cors-preflight-cache - Fetch Spec](https://fetch.spec.whatwg.org/#cors-preflight-cache)
