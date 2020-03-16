@@ -25,7 +25,7 @@ $ cat example.log | grep -A 3 'example'
 
 ### Regular Expression Meta Character
 | Meta Character | Description | Example | Example Description |
-|:--|:--|:--|
+|:--|:--|:--|:--|
 | . | 1개의 문자 일치 | 'a...e' | a 다음에 2개의 문자 마지막에 e |
 | * | 앞 문자가 0회 이상 일치 | '*apple' | 0 or n개의 공백 문자 후 apple |
 | {n} | 앞 문자가 n회 일치 | 'a{5}' | a가 5회 반복 |
