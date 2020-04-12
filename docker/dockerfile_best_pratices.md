@@ -49,7 +49,7 @@ FROM debian
 # RUN apt-get update  # remove
 # RUN apt-get-y install openjdk-8-jdk ssh vim  # remove
 RUN apt-get update \
-  && apt-get -y instal \
+  && apt-get -y install \
     openjdk-8-jdk ssh vim  # here
 COPY target/app.jar /app
 CMD ["java", "-jar", "/app/target/app.jar"]
@@ -71,11 +71,11 @@ FROM debian
 RUN apt-get update \
 
 # before
-  && apt-get -y instal \
+  && apt-get -y install \
     openjdk-8-jdk ssh vim
 
 # after
-  && apt-get -y instal --no-install-recommends \
+  && apt-get -y install --no-install-recommends \
     openjdk-8-jdk
 ...
 ```
@@ -92,7 +92,7 @@ RUN apt-get update \
 ```dockerfile
 FROM debian
 RUN apt-get update \
-  && apt-get -y instal --no-install-recommends \
+  && apt-get -y install --no-install-recommends \
     openjdk-8-jdk \
   && rm -rf /var/lib/apt/lists/*  # here
 ...
@@ -110,7 +110,7 @@ RUN apt-get update \
 ```dockerfile
 FROM debian  # remove
 RUN apt-get update \  # remove
-  && apt-get -y instal --no-install-recommends \  # remove
+  && apt-get -y install --no-install-recommends \  # remove
     openjdk-8-jdk \  # remove
   && rm -rf /var/lib/apt/lists/*  # remove
 FROM openjdk
@@ -325,9 +325,206 @@ yum install [dependency]-[version]
   * Kubernetes에서 lifecycle에 맞게 동작시킬 수 있다
 
 
+<br>
+
+## A few language-specific best pratices
+
+### Golang
+* Compile, then COPY binary
+```dockerfile
+# build
+FROM golang:1.7.3 AS builder
+WORKDIR /example/
+RUN go get -d -v golang.org/x/net/html
+COPY app.go .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+
+# runtime
+FROM scratch
+WORKDIR /home/app/
+COPY --from=builder /example/main .
+ENTRYPOINT ["/home/app/main"]
+```
+
+* Run build
+```sh
+$ docker build -t my-docker-image:1.0.0 .
+```
+
+<br>
+
+> #### scratch
+> * Special, **empty `Dockerfile`**
+> * Docker 1.5.0부터 `FROM scratch`는 layer를 만들지 않는다
+> * debian, busybox처럼 **base image로 사용**
+> * binary만 실행하는 minimal image build시 사용
+> ```dockerfile
+> FROM scratch
+> COPY hello /
+> CMD ["/hello"]
+> ```
+
+<br>
+
+### Ruby
+```dockerfile
+# Pin your base image version
+# Use only trusted or official base images
+# Minimize image size by opting for small base images when possible
+# Use multi-stage builds to reduce the size of your image
+# Use multi-stage builds to avoid leaking secrets inside your docker history
+FROM ruby:2.5.5-alpine AS builder
+
+# Avoid leaking secrets inside your image
+# Fetching private dependencies via a Github token intected through the gitconfig
+# Use multi-stage builds to aviod leaking secrets inside your docker history
+ARG GITHUB_TOKEN
+
+# Group commands by how likely they are to change individually
+# Place the least likely to change commands at the top
+RUN apk add --update \
+  build-base \
+  libxml2-dev \
+  libxslt-dev \
+  git
+
+# Pin application dependencies (Gemfile.lock)
+COPY Gemfile Gemfile.lock ./
+
+RUN git config --global url."https://${GITHUB_TOKEN}:x-oauth-basic@github.com/some-user".insteadOf git@github.com:some-user \
+  && git config --global --add url."https://${GITHUB_TOKEN}:x-oauth-basic@github.com/some-user".insteadOf ssh://git@github \
+  && bundle install --without development test \
+  && rm ~/.gitconfig
+
+FROM ruby:2.5.5-alpine
+COPY --from=builder /usr/local/bundle/ /usr/local/bundle/
+
+# Avoid running your application as root
+RUN adduser -D app
+USER app
+WORKDIR /home/app
+
+# When running COPY or ADD (as a different user) use --chown
+COPY --chown=app . ./
+
+# When setting the CMD instruction, prefer the exec format over the shell format
+CMD ["bundle", "exec", "rackup"]
+```
+
+* Run build
+```sh
+$ docker build --build-arg GITHUB_TOKEN=xxx -t my-docker-image:1.0.0 .
+```
+
+<br>
+
+### Python
+```dockerfile
+FROM python:3.8.2-slim-buster AS base
+
+FROM base AS builder
+WORKDIR /install
+
+COPY requirement.txt .
+RUN pip install -r requirement.txt
+
+FROM base
+
+COPY --from=builder /install /usr/local
+RUN useradd --create-home app
+WORKDIR /home/app
+USER app
+COPY src .
+CMD ["gunicorn", "-w 4", "main:app"]
+```
+
+<br>
+
+### Node.js
+* .dockerignore에 npm-debug.log 추가
+* `node_modules` caching이 중요
+* package.json이 변경될 경우에만 run npm install
+* `npm start`가 아닌 `node index.js`로 signal을 node process가 수신하도록 한다
+```dockerfile
+# build
+FROM node:12.16.2 AS builder
+WORKDIR /usr/src/app
+COPY package* .
+RUN npm install --production
+COPY src/ src/
+
+# lint
+FROM node:12.16.2 AS linting
+WORKDIR /usr/src/app
+COPY --from=builder /usr/src/app/src .
+RUN npm lint
+
+# static Analysis
+FROM newtmitch/sonar-scanner:latest as sonarqube
+COPY --from=builder /usr/src/app/src /root/src
+
+# unit testing
+FROM node:12.16.2 AS unit-tests
+WORKDIR /usr/src/app
+COPY --from=builder /usr/src/app .
+RUN npm test
+
+# accessibility tests
+FROM node:12.16.2 AS access-tests
+WORKDIR /usr/src/app
+COPY --from=builder /usr/src/app .
+RUN npm access-tests
+
+# runtime
+FROM node:12.16.2
+WORKDIR /usr/src/app
+USER app
+COPY --from=builder /usr/src/app/dest .
+COPY --from=builder /usr/src/app/package* .
+EXPOSE 3000
+CMD ["node", "index.js"]
+```
+
+<br>
+
+### Java
+* Golang 같이 build stage와 runtime stage를 분리하여 final image에는 binary만 실행
+
+```dockerfile
+# build
+FROM openjdk:14-jdk-slim AS builder
+
+ENV APP_HOME=/home/app
+WORKDIR $APP_HOME
+
+COPY build.gradle settings.gradle gradlew $APP_HOME
+COPY gradle $APP_HOME/gradle
+RUN ./gradlew build || return 0
+COPY . .
+RUN ./gradlew build
+
+# runtime
+FROM openjdk:14-jre-slim
+
+ENV APP_HOME=/home/app
+WORKDIR $APP_HOME
+
+COPY --from=builder $APP_HOME/build/libs/app.jar .
+EXPOSE 8080
+ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]
+```
+
+TODO: https://docs.docker.com/develop/develop-images/dockerfile_best-practices/ 내용 추가
+
 <br><br>
 
 > #### Reference
 > * [Intro Guide to Dockerfile Best Pratices](https://www.docker.com/blog/intro-guide-to-dockerfile-best-practices/?fbclid=IwAR0cNHNRuE3HSHT61iI-Zo3iFTqBa90H8pOpbFjvDGWlk95euOJeEvW_jF0)
 > * [Docker Best Pratices](https://medium.com/banksalad/docker-best-practices-8b4f28ab3a65)
 > * [Add --chown to WORKDIR](https://github.com/moby/moby/issues/36408)
+> * [Creating Effective Images - Youtube](https://www.youtube.com/watch?v=pPsREQbf3PA&feature=youtu.be)
+> * [Creating Effective Images - Abby Fuller - DevOpsDays Tel Aviv 2017 - Slideshare](https://www.slideshare.net/DevopsCon/creating-effective-images-abby-fuller-devopsdays-tel-aviv-2017)
+> * [scratch - Docker Hub](https://hub.docker.com/_/scratch)
+> * [Best pratices when writing a Dockerfile for a Ruby application](https://lipanski.com/posts/dockerfile-ruby-best-practices)
+> * [Broken by default: why you should avoid most Dockerfile example](https://pythonspeed.com/articles/dockerizing-python-is-hard/)
+> * [Java Example with Gradle and Docker - codefresh.io](https://codefresh.io/docs/docs/learn-by-example/java/gradle/)
