@@ -313,7 +313,19 @@ yum install [dependency]-[version]
 ## Keep It Light
 * 꼭 필요한 파일만 image로 생성
 * `.dockerignore` 미사용시 폴더를 복사하는 경우 의도하지 않은 파일이 image에 포함될 수 있기 때문에 **명시적으로 파일을 복사하거나 `.dockerignore`를 사용**
+  * [.dockerignore file](https://docs.docker.com/engine/reference/builder/#dockerignore-file) 참고
 
+<br>
+
+### dockerignore rule
+| Rule | Behavior |
+|:--|:--|
+| `# comment` | ignored |
+| `*/temp*` | /somedir/temp, /somedir/temporary.txt 제외 |
+| `*/*/temp*` | /some/sub/temporary.txt 제외 |
+| `temp?` | /tempa, tempb 제외 |
+| `**/*.txt` | 모든 txt 제외 |
+| !README.md | README.md 포함 |
 
 <br>
 
@@ -323,6 +335,138 @@ yum install [dependency]-[version]
   * `nginx`를 다른 Loadbaalncer(e.g. envoy, haproxy)로 변경할 경우 유연하게 대응
   * 하나의 component에 대해 변경이 필요할 경우 투명하게 관리
   * Kubernetes에서 lifecycle에 맞게 동작시킬 수 있다
+
+
+<br>
+
+## Create ephemeral containers
+* minimum set up & configuration으로 사용 가능한 **ephemeral container**로 생성
+* [Twelve-Factor 6 Processes](https://12factor.net/processes) 참고
+
+
+<br>
+
+## Pipe Dockerfile through stdin
+* local, remote build context로 `stdin`을 통해 Dockerfile을 piping하여 build 가능
+* Dockerfile을 disk에 저장할 필요 없는 1회성 build에 유용
+```sh
+$ echo -e 'FROM busybox\nRUN echo "hello"' | docker build -
+```
+
+* stdin에서 `Dockerfile`을 사용하여 image build
+```sh
+$ docker build -<<EOF
+FROM busybox
+RUN echo "hello"
+EOF
+```
+* 위의 방법으로 `COPY`, `ADD` 사용시 **no such file or directory** 발생하여 사용할 수 없지만 아래 방법으로는 가능
+```sh
+$ docker build -t myimage:latest -f- . <<EOF
+FROM busybox
+COPY somefile.txt .
+RUN cat /somefile.txt
+EOF
+```
+
+<br>
+
+### remote git repository를 사용하여 build
+* `git clone`하여 build context로 daemon에 전달하므로 `git`이 설치되어 있어야 한다
+```sh
+$ docker build -t myimage:latest -f- https://github.com/docker-library/hello-world.git <<EOF
+FROM busybox
+COPY hello.c .
+EOF
+```
+
+
+<br>
+
+## Using Pipes
+* `|` 사용시 마지막 exit code만 평가하므로 `set -o pipefail`을 사용하여 전체 명령 성공시 build되도록 하는게 좋다
+```dockerfile
+# Bad
+RUN wget -O -https://some.site | wc -l > /number
+
+# Good
+RUN set -o pipefail && wget -O -https://some.site | wc -l > /number
+```
+
+
+<br>
+
+## ADD or COPY
+* 기능적으로 비슷하지만 일반적으로 `COPY`를 권장
+* `COPY`는 local file을 container로 복사하는 기능만 있지만 `ADD`는 tar 추출 및 remote URL support 기능이 있기 때문에 `ADD`의 tar auto-extraction이 필요하지 않다면 `COPY`를 사용
+* image layer 때문에 `ADD [remote url]` 보다는 `curl` or `wget` 권장
+```dockerfile
+# Bad
+ADD https://example/big.tar.xz /usr/src/things
+RUN tar -xJf /usr/src/things/big.tar.xz -C /usr/src/things
+RUN make -C /usr/src/things all
+
+# Good
+RUN mkdir -p /usr/src/things \
+  && curl -SL https://example/big.tar.xz \
+  | tar -xJC /usr/src/things \
+  && make -C /usr/src/things all
+```
+
+
+<br>
+
+## CMD
+* `CMD ["executable", "param1", "param2"...]`로 사용
+* `ENTRYPOINT`의 동작을 잘 알고 있지 않다면 `CMD ["param1", "param2"...]`으로 사용하지 않는게 좋다
+```dockerfile
+CMD ["java", "-jar", "app.jar"]
+CMD ["python", "run.py"]
+```
+
+
+<br>
+
+## ENTRYPOINT
+* 가장 좋은 용도는 `ENTRYPOINT`로 image main command를 설정하고 `CMD`에 default flag를 사용
+```dockerfile
+ENTRYPOINT ["s3cmd"]
+CMD ["--help"]
+```
+
+* 추가 작업이 필요할 경우 `ENTRYPOINT`에 helper script를 사용
+```sh
+#!/bin/bash
+set -e
+
+if [ "$1" = 'postgres' ]; then
+  chown -R postgres "$PGDATA"
+
+  if [ -z "$(ls -A "$PGDATA")" ]; then
+    gosu postgres initdb
+  fi
+
+  exec gosu postgres "$@"
+fi
+
+exec "$@"
+```
+
+```dockerfile
+COPY ./dokcer-entrypoint.sh /
+ENTRYPOINT ["/dokcer-entrypoint.sh"]
+CMD ["postgres"]
+```
+
+* `ENTRYPOINT`를 사용할 경우 추가 flag를 전달할 수 있다
+```sh
+$ docker run postgres --help
+
+$ docker run --rm -it postgres bash
+```
+
+## sudo 사용 X
+* sudo 사용일 필요할 경우 `gosu` 사용
 
 
 <br>
@@ -514,7 +658,6 @@ EXPOSE 8080
 ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]
 ```
 
-TODO: https://docs.docker.com/develop/develop-images/dockerfile_best-practices/ 내용 추가
 
 <br><br>
 
@@ -528,3 +671,4 @@ TODO: https://docs.docker.com/develop/develop-images/dockerfile_best-practices/ 
 > * [Best pratices when writing a Dockerfile for a Ruby application](https://lipanski.com/posts/dockerfile-ruby-best-practices)
 > * [Broken by default: why you should avoid most Dockerfile example](https://pythonspeed.com/articles/dockerizing-python-is-hard/)
 > * [Java Example with Gradle and Docker - codefresh.io](https://codefresh.io/docs/docs/learn-by-example/java/gradle/)
+> * [Best pratices for writing Dockerfiles - Docker Docs](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/)
