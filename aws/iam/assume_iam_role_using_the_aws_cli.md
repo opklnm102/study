@@ -171,7 +171,7 @@ set -e
 
 usage() {
   cat <<-EOM
-USAGE: ./aws-assume-role [AWS IAM User name] [AWS IAM Role name] [MFA token code]
+Usage: ${0##*/} [AWS IAM User name] [AWS IAM Role name] [MFA token code]
 EOM
   exit 1
 }
