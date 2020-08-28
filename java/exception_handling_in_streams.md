@@ -324,6 +324,104 @@ items.stream()
 
 <br>
 
+## Step 6 - with io.vavr
+
+### 1. Using CheckedFunction
+```java
+private Item raiseChecked(Item item) throws IOException {
+    if (item.getId() % 2 == 0) {
+        return item;
+    }
+    throw new IOException("error");
+}
+
+
+CheckedFunction1<Item, Item> raisedCheckedFunction = x -> raiseChecked(x);
+
+// unchecked exception 발생시 stream이 끊기므로 주의
+items.stream()
+     .filter(Objects::nonNull)
+     .map(raisedCheckedFunction.unchecked())  // wrapping with unchecked exception
+     .forEach(output -> System.out.println("do something " + output));
+```
+
+<br>
+
+### 2. Using helper methods
+* 1의 방식을 위한 helper method 지원
+```java
+items.stream()
+     .filter(Objects::nonNull)
+     .map(API.unchecked(this::raiseChecked))
+     .forEach(output -> System.out.println("do something " + output));
+```
+* unchecked exception을 처리해야 stream이 끊기지 않는다
+* unchecked exception 처리를 위해 lambda block에 `try-catch`를 사용하면 lambda의 간결함이 손상 -> **Vavr lifting** 사용
+
+<br>
+
+### 3. Using Lifting
+* concept from functional programming
+* Option을 return하는 total function으로 `partial function`을 lift할 수 있다
+* `partial function`
+  * 전체 domain에 정의된 total function이 아닌 subset domain에 정의되는 function
+  * 범위를 벗어난 input으로 partial function을 호출하면 일반적으로 exception 발생
+
+```java
+items.stream()  // Stream<Item>
+     .filter(Objects::nonNull)
+     .map(CheckedFunction1.lift(this::raiseChecked))  // Stream<Option<Item>>
+     .map(x -> x.getOrElse(Item.NOT_FOUND))  // Stream<Item>
+     .forEach(output -> System.out.println("do something " + output));
+```
+
+
+<br>
+
+### 4. Using Try
+* lift는 exception을 해결하지만, 실제로는 삼키므로 consumer는 exception을 모른다 -> `Try` 사용
+* Try - exception을 묶을 수 있는 container
+  * [Guide to Try in Vavr](https://www.baeldung.com/vavr-try) 참고
+
+```java
+items.stream()  // Stream<Item>
+     .filter(Objects::nonNull)
+     .map(CheckedFunction1.liftTry(this::raiseChecked))  // Stream<Try<Item>>
+     .flatMap(Value::toJavaStream)  // Stream<Item>
+     .forEach(output -> System.out.println("do something " + output));
+```
+
+<br>
+
+### 5. Processing Multi Task
+* `Try`를 사용해 다양한 function을 처리시 exception에도 견고한 stream을 사용하고 싶을 경우
+```java
+items.stream()
+     .filter(Objects::nonNull)
+     .map(item -> Try.of(() -> task1(item))
+                     .andThen(() -> task2(item))
+                     .andThen(() -> task3(item))
+                     .filter(item1 -> item1.getId() != 2)
+                     .onFailure(throwable -> System.out.println("fatal error " + throwable + "origin value: " + item)))  // try 자체로는 origin value를 알 수 없지만, 같은 scope에 있어서 가능
+     .flatMap(Value::toJavaStream)  // Try.Success -> return origin value
+     .forEach(output -> System.out.println("do something " + output));
+```
+
+* `Either`를 사용하면 origin vaule도 알 수 있다
+```java
+items.stream()
+     .filter(Objects::nonNull)
+     .map(item -> taskEither1(item).peekLeft(x -> System.out.println("task1 fatal error " + x.getFirst() + " origin value: " + x.getSecond())))
+     .filter(Either::isRight)
+     .map(either -> taskEither2(either.get()).peekLeft(x -> System.out.println("task2 fatal error " + x.getFirst() + " origin value: " + x.getSecond())))
+     .filter(Either::isRight)
+     .map(x -> taskEither3(x.get()))
+     .flatMap(Value::toJavaStream)
+     .forEach(x -> System.out.println("final: " + x));
+```
+
+<br>
+
 ## Conclusion
 * checked exception 처리 방안으로는 아래 2가지가 있다
   * lambda의 try-catch에서 unchecked exception으로 변환
