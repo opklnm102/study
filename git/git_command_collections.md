@@ -122,6 +122,7 @@ $ ls | xargs -I{} sh -c 'echo --{}--; git -C {} stash list;'
 $ ls | xargs -I{} -P10 sh -c 'git -C {} checkout master; git -C {} pull; git -C {} checkout release; git -C {} pull; git -C {} checkout develop; git -C {} pull;'
 ```
 
+
 <br>
 
 ## 파일 하나의 변경 이력 확인
@@ -163,6 +164,14 @@ commit 18c55bbbc17a4f70064d79c8d6de8c3f7071a8c4
 ...
 ```
 
+
+<br>
+
+## 사용하지 않는 branch 제거하기
+* master, develop branch를 제외하고, merged branch 제거하기
+```sh
+$ git branch --merged | egrep -v '(^\*|master|develop)' | xargs git branch -D
+```
 
 <br><br>
 
