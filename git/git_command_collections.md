@@ -173,6 +173,21 @@ commit 18c55bbbc17a4f70064d79c8d6de8c3f7071a8c4
 $ git branch --merged | egrep -v '(^\*|master|develop)' | xargs git branch -D
 ```
 
+
+<br>
+
+## branch의 부분 이름으로 checkout
+```sh
+## .bash_profile, .zshrc 등에 아래의 function 추가
+gcop() {
+  git branch -a | grep -v "remotes" | grep "$1" | head -n 1 | xargs git checkout
+}
+
+## usage
+$ gcop "ISSUE-10"
+```
+
+
 <br><br>
 
 > #### Reference
