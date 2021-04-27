@@ -12,6 +12,7 @@
 * [kubectl-aliases](#kubectl-aliases)
 * [kubectl-neat](#kubectl-neat)
 * [Kubetail](#kubetail)
+* [Kube No Trouble - kubent](#kube-no-trouble---kubent)
 
 
 <br>
@@ -237,10 +238,14 @@ $ kubectl neat get -- svc -n default [service name] -o json
 * 여러 Pod의 log를 하나의 stream으로 aggregate(tail/follow)할 수 있는 script
 * `kubectl logs -f`를 실행하는 것과 동일하지만 여러 Pod에 적용된다
 
+<br>
+
 ### Install
 ```sh
 $ brew tap johanhaleby/kubetail && brew install kubetail
 ```
+
+<br>
 
 ### Examples
 ```sh
@@ -256,6 +261,59 @@ $ kubetail app2 -c container1 -n namespace1
 ```
 
 
+<br>
+
+## Kube No Trouble - kubent
+* Easily check your cluster for use of deprecated APIs
+* cluster upgrade 전에 API version 확인하여 조치하기에 유용하다
+* 리소스 배포 방법에 따라 사용되지 않는 deprecated API를 감지
+  * file - local manifests(yaml, json)
+  * kubectl - `kubectl.kubernetes.io/last-applied-configuration` annotation
+  * Helm v2 - `Tiller` manifests(Secret, ConfigMap)
+  * Helm v3 - `Helm` manifests(Secret, ConfigMap)
+
+<br>
+
+### Install
+```sh
+$ sh -c "$(curl -sSL https://git.io/install-kubent)"
+
+>>> kubent installation script <<<
+> Detecting latest version
+> Downloading version 0.4.0
+> Done. kubent was installed to /usr/local/bin/..
+```
+
+<br>
+
+### Usage
+* kubectl의 current-context에 대하여 `kubent`가 동작
+```sh
+$ ./kubent
+
+10:58AM INF >>> Kube No Trouble `kubent` <<<
+10:58AM INF version 0.4.0 (git sha 3d82a3f0714c97035c27374854703256b3d69125)
+10:58AM INF Initializing collectors and retrieving data
+10:58AM INF Retrieved 199 resources from collector name=Cluster
+10:58AM INF Retrieved 0 resources from collector name="Helm v2"
+10:58AM INF Retrieved 0 resources from collector name="Helm v3"
+10:58AM INF Loaded ruleset name=custom.rego.tmpl
+10:58AM INF Loaded ruleset name=deprecated-1-16.rego
+10:58AM INF Loaded ruleset name=deprecated-1-22.rego
+...
+```
+
+#### Use in CI
+* CI에서 아래의 script로 실행
+```sh
+if ! OUTPUT="$(kubent)"; then       # check for non-zero return code first
+  echo "kubent failed to run!"
+elif [ -n "${OUTPUT}" ]; then       # check for empty stdout
+  echo "Deprecated resources found"
+fi
+```
+
+
 <br><br>
 
 > #### Reference
@@ -265,3 +323,4 @@ $ kubetail app2 -c container1 -n namespace1
 > * [ahmetb/kubectl-aliases - GitHub](https://github.com/ahmetb/kubectl-aliases)
 > * [itaysk/kubectl-neat - GitHub](https://github.com/itaysk/kubectl-neat)
 > * [johanhaleby/kubetail - GitHub](https://github.com/johanhaleby/kubetail)
+> * [doitintl/kube-no-trouble - GitHub](https://github.com/doitintl/kube-no-trouble)
