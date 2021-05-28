@@ -47,6 +47,9 @@ Non-authoritative answer:
 35.0.0.10.in-addr.arpa	name = ip-192-0-0-5.ap-northeast-1.compute.internal.
 
 Authoritative answers can be found from:
+
+## or use dig - $dig +short [domain]
+$ dig +short ip-192-0-0-5.ap-northeast-1.compute.internal
 ```
 * DNS에도 문제가 없음을 알 수 있다
 
@@ -78,6 +81,10 @@ telnet x.x.x.x 22
 Trying x.x.x.x...
 telnet: connect to address x.x.x.x: Connection refused
 telnet: Unable to connect to remote host
+
+## or use nc - $nc -z [ip or domain] [port]
+$ nc -z ip-192-0-0-5.ap-northeast-1.compute.internal 22
+Connection to ip-192-0-0-5.ap-northeast-1.compute.internal 22 port...
 ```
 * 뭔가 문제가 있는듯...
 
