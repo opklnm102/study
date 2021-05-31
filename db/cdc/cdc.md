@@ -20,7 +20,7 @@
   * **변경 이력은 data source에 따라 다르기** 때문에 중요한 정보를 담고 있는 transaction data를 추출하는 것이 CDC solution의 기술력
   * DML(Data Manipulation Language)이 담겨 있는 부분은 log data의 일부에 불과하기 때문
 * Downtime 없이 Near real time(준실시간) data integration이 필요한 Data warehouse 등에 사용
-* source data system의 부하를 줄이고, 전체적인 작업 생산성 향상
+* source data system의 부하를 줄이고, 유연성이 높아져 전체적인 작업 생산성 향상
 * CDC를 사용해 `Event Sourcing`(모든 event를 기록하고, 최신 snapshot을 생성)을 구현하여 OLTP(Online Transaction Processing) application을 대체할 수도 있다
 
 
@@ -127,6 +127,25 @@
 * [Shareplex](https://www.quest.com/products/shareplex/)
 * [OGG(Oracle Golden Gate)](https://www.oracle.com/kr/integration/goldengate/)
 * [IBM InfoSphere](https://www.ibm.com/kr-ko/analytics/information-server)
+
+
+<br>
+
+## CDC(Changed Data Capture) vs ETL(Extract, Transform, Load)
+
+### ETL
+* source data storage에 query하여 직접 data를 추출하기 때문에 source data storage에 부하가 발생할 수 있다
+* 과도한 부하로 인해 batch processing(일,주,월 단위)을 하기 때문에 CDC에 비해 실시간성을 확보하기 어렵다
+  * DW(data warehouse)에 적재하거나 백업하는 용도로 사용
+* batch processing이기 때문에 1번에 옮기는 data size가 크고, 그로 인해 network 비용 부담 발생
+
+<br>
+
+### CDC
+* data 자체가 아닌 transcation을 옮기기 때문에 data size가 작다
+  * `ETL`에 비해 network 비용 부담이 적다
+  * 먼 거리 data 전송에 유리
+* transaction data를 target data storage에서 똑같이 실행하는 방식이기 때문에 중간에 별도의 task 없이는 data transform 불가능
 
 
 <br>
