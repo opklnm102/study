@@ -14,16 +14,20 @@ http {
     ...
     location /my-static-content {
       ...
-        
-      if ($request_method = 'GET') {
-        add_header 'Access-Control-Allow-Origin' 'https://example.com';
+      
+      # Simple requests
+      if ($request_method ~* '(GET|POST|HEAD)') {
+        add_header 'Access-Control-Allow-Origin' 'https://example.com';  # or '*'
       }
 
+      # Preflighted requests
       if ($request_method = 'OPTIONS') {
-        add_header 'Access-Control-Allow-Origin' 'https://example.com';
-        add_header 'Access-Control-Allow-Methods' 'GET';
+        add_header 'Access-Control-Allow-Origin' 'https://example.com';  # or '*'
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, HEAD';
         add_header 'Access-Control-Allow-Headers' 'pragma';
         add_header 'Access-Control-Max-Age' 172800;
+        add_header 'Content-Type' 'text/plain; charset=utf-8';
+        add_header 'Content-Length' 0;
 
         return 204;
       }
@@ -78,3 +82,4 @@ http {
 
 #### Reference
 > * [CDN을 통한 CORS 및 CORS 요청 - IBM Cloud 문서](https://cloud.ibm.com/docs/CDN?topic=CDN-cors-and-cors-requests-through-your-cdn&locale=ko)
+> * [CORS on Nginx](https://enable-cors.org/server_nginx.html)
