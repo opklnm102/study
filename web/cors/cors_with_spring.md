@@ -42,6 +42,8 @@ public class AccountController {
 }
 ```
 
+<br>
+
 ### Global로 설정
 ```java
 @Bean
@@ -59,6 +61,8 @@ public WebMvcConfigurer cosrConfigurer() {
     }
 }
 ```
+
+<br>
 
 ### CORS Filter
 * `Spring Security`는 built-in `CorsFilter` support
@@ -102,7 +106,10 @@ public class AccountController {
 }
 ```
 
+<br>
+
 ### Global로 설정
+* `WebFluxConfigurer` 사용
 ```java
 @Configuration
 @EnableWebFlux
@@ -118,6 +125,35 @@ public class WebConfig implements WebFluxConfigurer {
     }
 }
 ```
+
+* `WebFilter` 사용
+```kotlin
+// kotlin
+@Component
+class CorsFilter : WebFilter {
+    override fun filter(ctx: ServerWebExchange?, chain: WebFilterChain?): Mono<Void> {
+        if (ctx == null) {
+            return chain?.filter(ctx) ?: Mono.empty()
+        }
+
+        ctx.response.headers.add("Access-Control-Allow-Origin", "*")
+        ctx.response.headers.add("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
+        ctx.response.headers.add("Access-Control-Allow-Headers", "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Content-Range,Range")
+
+        if (ctx.request.method == HttpMethod.OPTIONS) {
+            ctx.response.headers.add("Access-Control-Max-Age", "1728000")
+            ctx.response.statusCode = HttpStatus.NO_CONTENT
+            return Mono.empty()
+        } 
+
+        ctx.response.headers.add("Access-Control-Expose-Headers", "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Content-Range,Range")
+        return chain?.filter(ctx) ?: Mono.empty()
+    }
+}
+```
+
+
+<br>
 
 ### CORS Filter
 * `Spring Security`는 built-in `CorsFilter` support
@@ -148,3 +184,4 @@ public CorsFilter corsFilter() {
 > * [Enabling Cross Origin Requests for a RESTful Web Service](https://spring.io/guides/gs/rest-service-cors/)
 > * [CORS Spring Web MVC Docs](https://docs.spring.io/spring/docs/5.1.7.RELEASE/spring-framework-reference/web.html#mvc-cors)
 > * [CORS Spring WebFlux Docs](https://docs.spring.io/spring/docs/5.1.7.RELEASE/spring-framework-reference/web-reactive.html#webflux-cors)
+> * [CORS on Spring Boot Applications in Kotlin](https://enable-cors.org/server_spring-boot_kotlin.html)
