@@ -105,6 +105,14 @@ rm ${temp_file}
 ```
 
 
+<br>
+
+## Delimiter
+* `\`, `newline`을 제외하고 사용 가능하므로 `/var/log` 같은 path를 치환할 때 다음과 같이 사용할 수 있다
+```sh
+$ sed 's|/var/log|/var/log2|g' <source file>
+```
+
 <br><br>
 
 > #### Reference
