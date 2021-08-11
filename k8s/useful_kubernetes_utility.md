@@ -314,6 +314,118 @@ fi
 ```
 
 
+<br>
+
+## kubectl-view-secret
+* easy secret decoding
+
+secret 확인시 다음의 번거로운 절차가 필요 없다
+1. `kubectl get secret <secret> -o yaml`
+2. Copy base64 encoded secret
+3. `echo "b64string" | base64 -d `
+
+<br>
+
+### Install
+```sh
+$ kubectl krew install view-secret
+```
+
+<br>
+
+### Usage
+* print secret keys
+```sh
+$ kubectl view-secret <secret>
+
+## example
+$ kubectl view-secret cry-panda-mariadb
+
+Multiple sub keys found. Specify another argument, one of:
+-> mariadb-password
+-> mariadb-root-password
+```
+
+* decode specific entry
+```sh
+$ kubectl view-secret <secret> <key>
+
+## example
+$ kubectl view-secret cry-panda-mariadb mariadb-password
+
+8NnXey6nED
+```
+
+* decode all contents
+```sh
+$ kubectl view-secret <secret> -a/--all
+
+## example
+$ kubectl view-secret cry-panda-mariadb -a
+
+mariadb-password=8NnXey6nED
+mariadb-root-password=6CvYS8fqzc
+```
+
+* 다른 namespace 사용
+```sh
+$ kubectl view-secret <secret> -n/--namespace <namespace>
+```
+
+* 다른 context 사용
+```sh
+$ kubectl view-secret <secret> -c/--context <context>
+```
+
+*  다른 kubeconfig 사용
+```sh
+$ kubectl view-secret <secret> -k/--kubeconfig <kubeconfig>
+```
+
+* suppress info output
+```sh
+$ kubectl view-secret <secret> -q/--quit
+```
+
+
+<br>
+
+## kubectl-whoami
+* show the subject that's currently authenticated as
+* OIDC provider를 통해 인증시에 subject 확인시에 유용
+
+<br>
+
+### Install
+```sh
+$ kubectl krew install whoami
+```
+
+<br>
+
+### Usage
+```sh
+$ kubectl whoami
+
+kubecfg:certauth:admin
+```
+
+* 다른 context에서 확인
+```sh
+$ kubectl whoami --context <context>
+
+## example
+$ kubectl whoami --context docker-desktop
+
+kubecfg:certauth:admin
+```
+
+* service account token 사용
+```sh
+$ kubectl whoami --token <token>
+```
+
+
 <br><br>
 
 > #### Reference
@@ -324,3 +436,5 @@ fi
 > * [itaysk/kubectl-neat - GitHub](https://github.com/itaysk/kubectl-neat)
 > * [johanhaleby/kubetail - GitHub](https://github.com/johanhaleby/kubetail)
 > * [doitintl/kube-no-trouble - GitHub](https://github.com/doitintl/kube-no-trouble)
+> * [elsesiy/kubectl-view-secret - GitHub](https://github.com/elsesiy/kubectl-view-secret)
+> * [rajatjindal/kubectl-whoami - GitHub](https://github.com/rajatjindal/kubectl-whoami)
