@@ -592,7 +592,7 @@ helm과 함께 사용하면 유용한 plugin들이 있다
   * Prometheus/Elasticsearch query 기반의 release/rollback monitoring
 * [helm-unittest](https://github.com/quintush/helm-unittest)
   * `yaml`을 사용하여 local에서 chart unit testing
-* [hc-unit]
+* [hc-unit](https://github.com/xchapter7x/hcunit)
   * `OPA(Open Policy Agent)`와 `Rego`를 사용하여 local에서 chart unit testing
 
 
