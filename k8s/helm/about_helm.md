@@ -412,6 +412,16 @@ $ helm rollback happy-panda 2
 
 <br>
 
+### Usage specific chart version
+* `--version`을 사용해 특정 chart version을 사용할 수 있다
+```sh
+$ helm install [release name] [chart name] --version [version]
+
+$ helm upgrade [release name] [chart name] --version [version]
+```
+
+<br>
+
 ### Create a custom helm chart
 * chart에서 사용되는 초기 구성 및 chart direcotry 생성
 ```sh
