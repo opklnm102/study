@@ -13,7 +13,9 @@
 * [kubectl-neat](#kubectl-neat)
 * [Kubetail](#kubetail)
 * [Kube No Trouble - kubent](#kube-no-trouble---kubent)
-
+* [kubectl-view-secret](#kubectl-view-secret)
+* [kubectl-whoami](#kubectl-whoami)
+* [kube-lineage](#kube-lineage)
 
 <br>
 
@@ -426,6 +428,74 @@ $ kubectl whoami --token <token>
 ```
 
 
+<br>
+
+## kube-lineage
+* A CLI tool to display all dependencies or dependents of an object in a Kubernetes cluster
+
+
+<br>
+
+### Install
+```sh
+$ kubectl krew install lineage
+```
+
+<br>
+
+### Usage
+* `ClusterRole`의 dependency 조회
+```sh
+$ kubectl lineage clusterrole [ClusterRole name]
+
+## example
+## -o, --oupput - wide | split | split-wide
+$ kubectl lineage clusterrole system:metrics-server -o wide
+NAMESPACE     NAME                                                     READY   STATUS    AGE    RELATIONSHIPS
+              ClusterRole/system:metrics-server                        -                 100d   []
+              └── ClusterRoleBinding/system:metrics-server             -                 100d   [RoleBindingRole]
+...
+```
+
+* `Pod`의 dependency 조회
+```sh
+$ $ kubectl lineage pod [Pod name]
+
+## example
+## --dependencies, -D - list object dependencies instead of dependents. not support helm
+$ kubectl lineage pod coredns-6fb4cf484b-8bmpz -D
+NAMESPACE     NAME                                                                 READY   STATUS         AGE
+kube-system   Pod/coredns-6fb4cf484b-8bmpz                                         1/1     Running        100d
+              ├── Node/ip-10-xxx-xxx-xxx.ap-xxxxx-x.compute.internal               True    KubeletReady   100d
+...
+```
+
+* `Helm Release`의 dependency 조회
+```sh
+$ $ kubectl lineage helm [Helm Release name]
+
+## example
+$ kubectl lineage helm kube-state-metrics -n monitoring-system
+NAMESPACE           NAME                                                             READY   STATUS     AGE
+monitoring-system   kube-state-metrics                                               True    Deployed   25m
+                    ├── ClusterRole/kube-state-metrics                               -                  25m
+                    │   └── ClusterRoleBinding/kube-state-metrics                    -                  25m
+monitoring-system   │       └── ServiceAccount/kube-state-metrics                    -                  25m
+...
+```
+
+* `Deployment`의 dependency 조회
+```sh
+$ kubectl lineage deploy/[Deployment name] 
+
+## example
+$ kubectl lineage deploy/coredns -o split --show-group
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/coredns   2/2     2            2           100d
+...
+```
+
+
 <br><br>
 
 > #### Reference
@@ -438,3 +508,4 @@ $ kubectl whoami --token <token>
 > * [doitintl/kube-no-trouble - GitHub](https://github.com/doitintl/kube-no-trouble)
 > * [elsesiy/kubectl-view-secret - GitHub](https://github.com/elsesiy/kubectl-view-secret)
 > * [rajatjindal/kubectl-whoami - GitHub](https://github.com/rajatjindal/kubectl-whoami)
+> * [tohjustin/kube-lineage - GitHub](https://github.com/tohjustin/kube-lineage)
