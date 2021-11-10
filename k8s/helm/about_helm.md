@@ -610,6 +610,12 @@ helm과 함께 사용하면 유용한 plugin들이 있다
 
 ## Conclusion
 * kubernetes cluster에 application 배포를 `helm`을 사용하여 단순화할 수 있어서 사용해보기를 추천한다
+* `helm`과 같은 template engine은 ConfigMap 내용 변경시 `Deployment`가 자동으로 rollout하지 않아서 아래의 2가지 방법으로 접근해볼 수 있다
+  * chart의 `Deployment`가 ConfigMap의 checksum을 가지도록 구성하면, ConfigMap 변경시 rollout 가능
+  * ConfigMap, Secret 변경시 Pod restart 해주는 [Reloader](https://github.com/stakater/Reloader) 사용
+* `helm` 사용시 `values.yaml`만 git에서 관리하여 chart의 관리가 애매할 수 있다
+* `helm`에는 template engine, rollout, management 등의 기능이 있어서 template engine 기능만 사용하고, kubernetes manifest를 rollout tool과 함께 사용하면 IaC의 어려움을 해결해볼 수 있다
+  * helm chart -> RUN `helm template` -> kubernetes manifest -> git + rollout tool(e.g. ArgoCD) -> apply kubernetes
 
 
 <br><br>
