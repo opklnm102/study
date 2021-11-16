@@ -604,6 +604,8 @@ helm과 함께 사용하면 유용한 plugin들이 있다
   * `yaml`을 사용하여 local에서 chart unit testing
 * [hc-unit](https://github.com/xchapter7x/hcunit)
   * `OPA(Open Policy Agent)`와 `Rego`를 사용하여 local에서 chart unit testing
+* [helm-secrets](https://github.com/jkroepke/helm-secrets)
+  * A helm plugin that help manage secrets with Git workflow and store them anywhere
 
 
 <br>
