@@ -158,14 +158,14 @@ COPY --from=nginx:latest /etc/nginx/nginx.conf /nginx.conf
 ### Use a previous stage as a new stage
 * `FROM`으로 이전 stage의 중단된 부분을 참조하여 사용 가능
 ```dockerfile
-FROM alpine:latest as builder
+FROM alpine:latest AS builder
 RUN apk --no-cache add build-base
 
-FROM builder as build1
+FROM builder AS build1
 COPY source1.cpp source.cpp
 RUN g++ -o /binary source.cpp
 
-FROM builder as build2
+FROM builder AS build2
 COPY source2.cpp source.cpp
 RUN g++ -o /binary source.cpp
 ```
@@ -206,6 +206,98 @@ CMD ["--spring.profile.active=postgres"]
 * node.js image를 사용해 javascript, css 등의 frontend build
 * maven image를 사용해 jar build
 * JDK image에서 build된 것들 복사하여 runtime만 포함하도록 image 생성
+
+
+<br>
+
+## image build에서 test를 제외하여 pure build로 유지
+* 상황에 따라 test는 Dockerfile 외부의 build image에서 실행할 수 있다
+
+### As-is
+```dockerfile
+FROM node:10-alpine AS builder
+...
+RUN npm install \
+    && npm run build \
+    && npm run test \
+    && npm run coverage
+
+FROM node:10-alpine AS app
+WORKDIR /app
+COPY --from=builder /app/dist/src/ ./
+COPY package*.json ./
+RUN npm install --only=prod
+EXPOSE 8000
+ENTRYPOINT node /app/index.js   
+```
+
+<br>
+
+### To-be
+```dockerfile
+FROM node:10-alpine AS builder
+...
+RUN npm install \
+    && npm run build  # remove npm run test and coverage
+
+FROM node:10-alpine AS app
+...
+```
+
+```sh
+$ docker run -it builder /bin/bash -c 'npm run test && npm run coverage'
+```
+
+
+<br>
+
+## Advanced multi-stage build patterns
+
+### Alias for a common image
+* alias를 사용해 base image에 대한 관리를 단순화할 수 있다
+#### As-is
+```dockerfile
+FROM alpine:3.6
+...
+
+FROM alpine:3.6
+...
+
+FROM alpine:3.6
+...
+```
+
+#### To-be
+```dockerfile
+FROM alpine:3.6 AS alpine
+
+FROM alpine  # alpine:3.6
+...
+
+FROM alpine  # alpine:3.6
+...
+
+## or
+ARG ALPINE_VERSION=3.6
+
+FROM alpine:${ALPINE_VERSION} AS alpine
+
+FROM alpine  # alpine:3.6
+...
+```
+
+### build arguments in --from
+```dockerfile
+ARG src=stage-0
+
+FROM alpine AS build-stage-0
+...
+
+FROM build-${src}
+
+# or 
+COPY --from=build-${src}
+```
 
 
 <br><br>
