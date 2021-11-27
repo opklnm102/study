@@ -5,6 +5,70 @@
 
 <br>
 
+## General guidelines and recommendations
+### Create ephemeral containers
+* 최소한의 configuration만으로 container를 교체할 수 있도록 ephemeral container를 생성해야한다
+
+<br>
+
+### Understand build context
+```sh
+## build context - current directory
+$ docker build -t helloapp:v1 .
+
+## build context - other direcotry
+$ docker build --no-cache -t helloapp:v2 -f dockerfiles/Dockerfile context
+```
+
+* build context - `docker build` 명령을 실행하는 current working directory
+* 기본적으로 build context의 `Dockerfile`을 사용하지만 `-f` 로 변경할 수 있다
+* 어디의 `Dockerfile`을 사용하는지에 관계없이 build context의 contents는 Docker daemon에 전송된다
+  * image build에 불필요한 파일이 포함되면 build context 및 image size가 증가해 build/pull/push time, container starting time이 증가할 수 있다
+  * [.dockerignore file](https://docs.docker.com/engine/reference/builder/#dockerignore-file) 사용 추천
+* build context size는 `docker build`시 아래와 같은 메시지에서 확인
+```sh
+Sending build context to Docker daemon 187.8MB
+```
+
+<br>
+
+### Pipe Dockerfile through stdin
+* `stdin`을 통해 `Dockerfile`을 piping하여 build할 수 있다
+* `Dockerfile`을 disk에 쓰지 않아서 일회성 build에 유용
+```sh
+$ echo -e `FROM busybox\nRUN echo "hello world"` | docker build -
+
+## or
+$ docker build -<<EOF
+FROM busybox
+RUN echo "hello world"
+EOF
+```
+
+#### local filesystem + stdin Dockerfile
+```sh
+$ docker build [options] -f- [build context]
+
+## example
+$ docker build -t my-image:latest -f- . <<EOF
+FROM busybox
+COPY somefile.txt ./
+RUN cat /somefile.txt
+EOF
+```
+
+#### remote filesystem + stdin Dockerfile
+```sh
+$ docker build -t my-image:latest -f- https://github.com/docker-library/hello-world.git <<EOF
+FROM busybox
+COPY somefile.txt ./
+RUN cat /somefile.txt
+EOF
+```
+
+
+<br>
+
 ## Incremental build time
 * image rebuild시 cache를 활용하는 것이 build time에 중요
 * caching은 필요하지 않은 build step을 skip
