@@ -1,6 +1,6 @@
-# [Web] About DNS
+# [Network] About DNS
 > date - 2019.06.02  
-> keyword - DNS, DNS record  
+> keyword - network, dns, dns record  
 > DNS에 대해 너무 막연하게 알고 있어서 DNS record마다의 차이도 잘 몰라서 이참에 DNS에 대해 알아보기로 함
 
 <br>
@@ -20,6 +20,8 @@
   * 이를 통해 DNS query에 응답해 domain name을 IP address로 변환
 * domain에 대한 최종 권한이 있으며 `Recursive DNS` 서버에 IP address를 제공할 책임이 있다
   * e.g. AWS Route 53
+
+<br>
 
 ### Recursive DNS
 * Client는 `Authoritative DNS`에 직접 query를 하는 대신 recursive DNS(or resolver)에 연결하는 경우가 일반적
@@ -47,13 +49,11 @@
 | ccTLD() | 국가 코드 TLD | 국가/지역 등을 나타냄<br>해당 국가, 지역의 단체나 개인만 취득 가능 | kr, jp, cn |
 | New gTLD() | 신규 일반 TLD | gTLD의 수량적 한계로 등장<br>브랜드명, 일반 명사 등 아무거나 사용 가능 | xyz, bar, actor |
 
-
 <br>
 
 ### SLD(Second-Level Domain)
 * domain name을 등록한 조직을 나타낸다
 * e.g. ac, co
-
 
 <br>
 
@@ -140,7 +140,6 @@ or
 name server: a.com과 같고, 11.22.33.44 입니다
 ```
 
-
 #### Example. web server, name server, mail server 등이 하나의 IP address로 운영하는 경우
 
 | name | type| value |
@@ -157,7 +156,6 @@ mail.my.com ---> my.com ---> 1.20.0.1
 ```
 * 각 도메인에 대해 my.com을 CNAME을 설정하면 IP address 변경시 my.com만 수정해주면 되니 관리하기 쉽다
 
-
 <br>
 
 ### HINFO(Host Information)
@@ -166,14 +164,12 @@ mail.my.com ---> my.com ---> 1.20.0.1
   * host간 통신에서 특정 OS protocol을 사용할 수 있는지에 대한 정보 제공
 * public server에서는 보안 때문에 사용하지 않는다
 
-
 <br>
 
 ### ISDN(Integrated Services Digital Network)
 * host의 ISDN address를 지정
   * ISDN address - country code, national destination code, ISDN subscriber number 및 ISDN subaddress(optional)로 구성된 전화번호
 * A record 기능의 변형이라고 생각하자
-
 
 <br>
 
@@ -189,7 +185,6 @@ mail.my.com ---> my.com ---> 1.20.0.1
 20 mailserver2.example.com.
 ```
 
-
 <br>
 
 ### NS(Name Server)
@@ -204,12 +199,10 @@ ns3.amazon.net
 ns4.amazon.co.uk
 ```
 
-
 <br>
 
 ### PTR(Reverse-lookup Pointer records)
 * forward DNS resolution(A, AAAA record)과 달리 IP address를 기반으로 domain name을 조회하는데 사용
-
 
 <br>
 
@@ -225,7 +218,6 @@ ns4.amazon.co.uk
 
 ns.example.net. hostmaster.example.com. 1 7200 900 1209600 86400
 ```
-
 
 <br>
 

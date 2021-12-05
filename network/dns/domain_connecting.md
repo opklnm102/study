@@ -1,4 +1,4 @@
-# [Web] 도메인 연결하기
+# [Network] 도메인 연결하기
 > date - 2019.06.09  
 > keyword - domain  
 > 도메인과 서버를 다른 업체에서 사용하는 경우에는 **도메인 연결** 필요
@@ -54,5 +54,3 @@
   * SEO에 영향을 미치지 않기 위해
 3. 새로운 site를 [Google Web Master Tool](https://search.google.com/search-console/about?hl=ko&utm_source=wmx&utm_medium=wmx-welcome)에 등록
 4. [Google Web Master Tool](https://search.google.com/search-console/about?hl=ko&utm_source=wmx&utm_medium=wmx-welcome)에서 구 site에 대하여 **주소 변경** 신청
-
-
