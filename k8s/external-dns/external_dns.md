@@ -14,11 +14,16 @@
 * DNS Provider와 무관하게 k8s resource로 DNS record를 동적으로 제어할 수 있다
 * `--domain-filter`로 선택된 영역만 Ingress, Service(type=LoadBalancer)와 동기화 가능
 
-> TODO: 어떤식으로 동작하는지 image로 설명하면 좋을듯
+<br>
+
+<div align="center">
+  <img src="./images/external-dns-flow.png" alt="external-dns flow" width="70%" height="70%" />
+</div>
 
 <br>
 
 ## Configuration
+* [Setting up ExternalDNS for Services on AWS](https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/aws.md)에 자세히 나와있다
 
 ### External DNS
 ```yaml
@@ -99,4 +104,9 @@ time="2019-02-03T06:19:55Z" level=info msg="All records are already up to date"
 <br><br>
 
 > #### Reference
-> * [kubernetes-incubator/external-dns - GitHub](https://github.com/kubernetes-incubator/external-dns)
+> * [kubernetes-sigs/external-dns - GitHub](https://github.com/kubernetes-sigs/external-dns)
+
+<br>
+
+> #### Further reading
+> * [test environments with Azure DevOps, EKS and ExternalDNS](https://blog.codemine.be/posts/20190125-devops-eks-externaldns/)
