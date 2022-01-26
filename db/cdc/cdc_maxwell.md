@@ -110,6 +110,14 @@ $ docker run -it --rm zendesk/maxwell bin/maxwell --user=$MYSQL_USERNAME \
     --kafka.bootstrap.servers=$KAFKA_HOST:$KAFKA_PORT --kafka_topic=maxwell
 ```
 
+* binlog event가 producing되는 partition은 hash function과 hash string에 의해 결정
+```
+HASH_FUNCTION(HASH_STRING) % TOPIC.NUMBER_OF_PARTITIONS
+```
+* Maxwell 시작시 kafka topic의 partition 수를 검색
+  * kafka의 `auto.create.topics.enable`가 false면 topic이 미리 생성되어 있어야하고, true면 필요 없다
+
+
 #### Kinesis
 ```sh
 $ docker run -it --rm --name maxwell -v `cd && pwd`/.aws:/root/.aws zendesk/maxwell sh -c 'cp /app/kinesis-producer-library.properties.example /app/kinesis-producer-library.properties && echo "Region=$AWS_DEFAULT_REGION" >> /app/kinesis-producer-library.properties && bin/maxwell --user=$MYSQL_USERNAME --password=$MYSQL_PASSWORD --host=$MYSQL_HOST --producer=kinesis --kinesis_stream=$KINESIS_STREAM'
