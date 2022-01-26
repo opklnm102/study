@@ -1,4 +1,4 @@
-# [Docker] Docker 기초
+# [Docker] Docker Basic
 
 <br>
 
@@ -6,9 +6,11 @@
 * 가상화보다 훨씬 가벼운 기술
 
 <div align="center">
-<img src="./images/virtual_machines.png" alt="Virtual Machines" width="350" height="350"/>
-<img src="./images/container.png" alt="Container" width="350" height="350"/>  
+  <img src="./images/virtual_machines.png" alt="Virtual Machines" width="350" height="350"/>
+  <img src="./images/container.png" alt="Container" width="350" height="350"/>  
 </div>
+
+<br>
 
 #### Virtual Machines
 * Type 1 Hypervisor, Type 2 Hypervisor, Para-Virtualization(반가상화), Full-Virtualization(전가상화) 등 
@@ -38,11 +40,15 @@ AWS EC2에 Docker를 사용하면 이런 모습이라고 생각하면 된다
 * 서버가 놀고 있다
 * 서버에 VM을 여러개 띄워서 일을 더 시키자
 
+<br>
+
 ### 2. IT 기술이 보편화되면서 서버도 많아짐
 * 서버자체를 VM에 집어넣어서 돌리자
 * VM에 각종 서버 프로그램, DB등을 설치하여 App을 실행
 * 미리 구축한 VM 이미지를 여러 서버에 복사하여 실행하면 이미지 하나로 서버를 계속 만들어 낼 수 있음
 * 가상화 기술을 이용하여 서버를 임대해주는 서비스가 `클라우드 서비스`
+
+<br>
 
 ### 3. 근데 가상머신은 문제가 있어
 * 컴퓨터를 통째로 만들어내다 보니 각종 성능 손실이 발생
@@ -50,19 +56,26 @@ AWS EC2에 Docker를 사용하면 이런 모습이라고 생각하면 된다
 * 그래도 느림
 * 호스트와 커널을 공유하는 반가상화 기술 등장
 
+<br>
+
 ### 4. 이러나 저러나 VM은 완전한 컴퓨터
 * 항상 게스트 OS를 설치해야함  
 * 이미지안에 OS가 포함
   * 이미지 용량이 커짐 
   * 네트워크로 가상화 이미지를 주고받는건 꽤 부담스러움
 
+<br>
+
 ### 5. 오픈소스 가상화SW는 OS가상화에만 주력
 * 배포와 관리 기능이 부족
+
+<br>
 
 ### 6. VM의 성능문제가 있다보니 리눅스 컨테이너가 나옴
 * 컨테이너 안에 가상공간을 만들지만 실행파일을 호스트에서 직접 실행
 * 리눅스 커널의 cgroups, namespaces가 제공하는 기술
 * 가상화가 아닌 `격리`!!
+
 
 <br>
 
@@ -74,19 +87,26 @@ AWS EC2에 Docker를 사용하면 이런 모습이라고 생각하면 된다
 * 호스트와 OS자원(system call)을 공유
 * 리눅스 커널에서 제공하는 `컨테이너 기술 이용`
 
+<br>
+
 ### 2. HW가상화 계층이 없음
 * 메모리 접근, 파일 시스템, 네트워크 전송속도가 VM에 비해 월등히 빠름
 * 호스트와 Docker Container 사이의 성능차이가 크지 않음(오차범위 안)
+
+<br>
 
 ### 3. 이미지 생성과 배포에 특화
 * 이미지 버전관리도 제공하고 중앙저장소에 이미지를 올리고 받을 수 있음(Push/Pull)
 * 이미지를 공유하는 Docker hub 제공
   * GitHub와 비슷한 방식
 
+<br>
+
 ### 4. 다양한 API를 제공하여 원하는 만큼 자동화 가능
 * 개발과 서버 운영에 매우 유용
 * 개발, 테스트, 서비스 환경을 하나로 통일하여 효율적으로 관리
 * 복잡한 리눅스 애플리케이션을 `컨테이너로 묶어서` 실행
+
 
 <br>
 
@@ -107,6 +127,7 @@ AWS EC2에 Docker를 사용하면 이런 모습이라고 생각하면 된다
 > * Docker Hub 및 개인저장소에서 이미지를 공유할 때 바뀐 부분만 주고 받음
 >   * 각 이미지는 의존관계 형성
 
+
 <br>
 
 ## 서비스 운영과 도커
@@ -118,6 +139,8 @@ AWS EC2에 Docker를 사용하면 이런 모습이라고 생각하면 된다
   * 클릭 몇번만으로 가상서버를 생성 - 자동으로 서버를 추가, 삭제
   * 서버 대수가 많아지면서 사람이 일일이 세팅하기 힘들어짐
     * `Immutable Infrastructure`라는 패러다임 등장
+
+<br>
 
 ### Immutable Infrastructure
 * 호스트 OS와 서비스 운영환경(서버 프로그램, 소스코드, 컴파일된 바이너리)을 분리
@@ -144,6 +167,7 @@ AWS EC2에 Docker를 사용하면 이런 모습이라고 생각하면 된다
 ##### 4. 가볍다
 * OS와 서비스 환경을 분리하여 가볍고(Lightweight) 어디서든 실행가능한(Portable) 환경 제공
 
+
 <br>
 
 ## Docker
@@ -160,6 +184,8 @@ AWS EC2에 Docker를 사용하면 이런 모습이라고 생각하면 된다
   * namespaces(Process ID, Mount, UTS, User ID, IPC, Network...)
   * union-capable file system(OverlayFS, AuFS...)
 
+<br>
+
 ### Workflow
 ![docker workflow](./images/docker_workflow.png)
 
@@ -167,36 +193,38 @@ AWS EC2에 Docker를 사용하면 이런 모습이라고 생각하면 된다
 <br>
 
 ## Docker 설치하기
-* 리눅스
+* Linux
 
 ### 자동으로 설치하기
 * 리눅스 배포판 종류를 자동으로 인식하여 Docker Package를 설치해주는 스크립트 제공
 ```sh
 # wget 옵션 참고 - http://coffeenix.net/board_print.php?bd_code=168
-$ sudo wget -qO- https://get.docker.com/ | sh
+$ wget -qO- https://get.docker.com/ | sh
    
 # 설치하면 hello-world이미지도 자동 설치, 사용하지 않을것이므로 모두 삭제
-$ sudo docker rm 'sudo docker ps -aq'
-$ sudo docker rmi hello-world
+$ docker rm 'sudo docker ps -aq'
+$ docker rmi hello-world
 ```
+
+<br>
 
 ### 수동으로 설치하기
 * 우분투, /usr/bin/docker.io실행 파일을 /usr/local/bin/docker로 링크하여 사용
 ```sh
-$ sudo apt-get update
-$ sudo apt-get install docker.io
-$ sudo ln -sf /usr/bin/docker.io /usr/local/bin/docker
+$ apt-get update
+$ apt-get install docker.io
+$ ln -sf /usr/bin/docker.io /usr/local/bin/docker
 ```
 
 * Centos6, 패키지 저장소에 docker-io가 없으므로 EPEL 저장소를 사용
 ```sh
-$ sudo yum install http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
-$ sudo yum install docker-io
+$ yum install http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+$ yum install docker-io
 ```
 
 * Centos7, docker 패키지 설치
 ```sh
-$ sudo yum install docker
+$ yum install docker
 ```
 > AWS EC2 - Amazon Linux, EPEL를 설치하지 않아도 됨  
 
@@ -205,22 +233,26 @@ $ sudo yum install docker
 $ brew cask install docker
 ```
 
+<br>
+
 ### Docker 서비스 실행하기
 ```sh
-$ sudo service docker start
+$ service docker start
 
 # 부팅했을 때 자동으로 실행하기
-$ sudo chkconfig docker on
+$ chkconfig docker on
 ```
+
+<br>
 
 ### 최신 바이너리 사용하기
 * 배포판 별 패키지가 아닌 빌드된 바이너리를 직접 사용하는 방법
 
 #### 이미 패키지로 설치했을 때
 ```sh
-$ sudo service docker stop
-$ sudo wget https://get.docker.com/builds/Linux/x86_64/docker-latest \ -0 $(type -P docker)
-$ sudo service docker start
+$ service docker stop
+$ wget https://get.docker.com/builds/Linux/x86_64/docker-latest \ -0 $(type -P docker)
+$ service docker start
 ```
 
 #### 새로 설치할 때, URL을 지정
@@ -229,9 +261,10 @@ $ sudo service docker start
 ```sh
 $ wget https://get.docker.com/builds/Linux/x86_64/docker-latest
 $ chmod +x docker-latest
-$ sudo mv docker-latest /usr/local/bin/docker
-$ sudo /usr/local/bin/docker -d
+$ mv docker-latest /usr/local/bin/docker
+$ /usr/local/bin/docker -d
 ```
+
 
 <br>
 
@@ -242,6 +275,8 @@ $ sudo /usr/local/bin/docker -d
 $ docker <command>
 # ex) docker run, docker push
 ```
+
+<br>
 
 > #### sudo를 매번 입력하지 않으려면
 > * root계정 이용
@@ -255,6 +290,8 @@ $ docker <command>
 > $ sudo service docker restart
 > ```
 
+<br>
+
 ### 이미지 검색
 ```sh
 $ docker search <image name>
@@ -264,12 +301,14 @@ $ docker search <image name>
 * 유명 리눅스 배포판, 오픈 소스 프로젝트(Redis, Nginx 등)의 이미지를 모두 Docker Hub에서 구할 수 있음
 * `이미지와 관련된 명령은 기본적으로 Docker Hub를 이용`하도록 설정되어 있음
 
+<br>
+
 ### Pull 명령어로 이미지 받기
 ```sh
 $ docker pull <image name>:<tag>
 
-# ex
-$ sudo docker pull ununtu:latest
+# example
+$ docker pull ununtu:latest
 ```
 * 이미지 이름뒤에 `latest`를 설정하면 최신버전을 받음
 * ubuntu:14.04, ubuntu:12.10처럼 `태그를 지정`할 수 있음
@@ -277,55 +316,74 @@ $ sudo docker pull ununtu:latest
   * 공식 이미지는 사용자명 X
 * 호스트에 설치된 리눅스 배포판과 도커 이미지의 배포판 종류는 달라도 됨, 즉 Contos에서 Ununtu컨테이너를 실행할 수 있음
 
+<br>
+
 ### 이미지 목록 출력
 ```sh
 # 모든 이미지
-$ docker images  
+$ docker image ls
 
 # 이미지 이름을 설정하면 이름은 같지만 태그가 다른 이미지가 출력
-$ docker images ubuntu  
+$ docker image ls ubuntu  
+
+# 해당 tag 이전의 image 조회
+$ docker image ls <image repository> —filter “before=<image repository>:<tag>“
 ```
+
+<br>
 
 ### 컨테이너 생성하기
 ```sh
-$ docker run <option> <image name> <실행할 file name>
+$ docker run <options> <image name>
 
-# ex
-$ sudo docker run -i -t --name hello ubuntu /bin/bash
+# example
+$ docker run -it --name hello ubuntu /bin/bash
 ```
 * ubuntu 이미지를 컨테이너로 생성한 뒤 ubuntu 안의 `/bin/bash`를 실행
 * i(interactive), -t(Pseudo-tty)를 사용하면 실행된 `bash쉘에 입력 및 출력 가능`
 * `--name` 으로 컨테이너에 이름을 지정할 수 있음. 이름을 지정하지 않으면 도커가 자동으로 이름을 생성하여 지정
 * 우분투 이미지에서 /bin/bash 실행파일을 실행했기 때문에 여기서 빠져나오면 컨테이너 stop됨
 
+<br>
+
 > #### centos에서
 > `unable to remount sys read only: unable to mount sys as readonly max retries reached 에러` 발생시 /etc/sysconfig/docker 파일에 `--exec-dirver=lxc 추가` 그리고 `$ sudo service docker restart`로 재시작
+
+<br>
 
 ### 컨테이너 목록 확인하기
 ```sh
 $ docker ps
 
-# ex1 
-$ sudo docker ps  # 실행되고 있는 컨테이너 출력
+# example 1 - 실행되고 있는 컨테이너 출력
+$ docker ps
 
-# ex2 
-$ sudo docker ps  -a  # 정지된 컨테이너까지 모두 출력
+# example 2 - 정지된 컨테이너까지 모두 출력
+$ docker ps -a
 ```
+
+<br>
 
 ### 컨테이너 시작하기
 ```sh
 $ docker start <컨테이너 이름 or ID>
 ```
 
+<br>
+
 ### 컨테이너 재시작하기
 ```sh
 $ docker restart <컨테이너 이름 or ID>
 ```
 
+<br>
+
 ### 컨테이너에 접속하기
 ```sh
 $ docker attach <컨테이너 이름 or ID>
 ```
+
+<br>
 
 ### 외부에서 컨테이너 안의 명령 실행하기
 ```sh
@@ -335,23 +393,36 @@ $ docker exec <컨테이너 이름 or ID> <명령> <매개 변수>
    * 정지된 상태에서는 사용할 수 없음
 * 이미 실행된 컨테이너에 apt-get, yum명령으로 패키지를 설치하거나 각종 데몬을 실행할 때 활용
 
+<br>
+
 ### 컨테이너 정지하기
 ```sh
 $ docker stop <컨테이너 이름 or ID>
 ```
 
+<br>
+
 ### 컨테이너 삭제하기
 ```sh
-$ docker rm <컨테이너 이름 or ID>
+$ docker rm <container name or ID>
 $ docker ps -a 해도 안나온다  # 삭제 확인
 ```
 
+<br>
+
 ### 이미지 삭제하기
 ```sh
-$ docker rmi <image name or ID>:<tag>
-# ex.$sudo docker rmi ubuntu:latest
+$ docker rmi <image>
+
+
+# example
+$ docker rmi ubuntu:latest
+
+# 특정 image 이전의 image 제거
+$ docker rmi $(docker image ls opklnm102/test-app --filter "before=opklnm102/test-app" -q)
 ```
 * tag 생략시 이름이 같은 모든 이미지 삭제
+
 
 <br>
 
@@ -381,42 +452,81 @@ EXPOSE 80  # 호스트와 연결할 포트 번호
 EXPOSE 443
 ```
 
+<br>
+
 ### 2. build 명령으로 이미지 생성
 ```sh
-$ docker build <옵션> <Dockerfile 경로>
-$ sudo docker build --tag hello:0.1 .
+$ docker build hello:0.1 .
 ```
 * `--tag`옵션으로 이미지 이름과 태그를 설정할 수 잇음
 * 이미지 이름만 설정하면 태그는 `latest`로 설정됨
 
 ```sh
-$ sudo docker run  --name hello-nginx -d -p 80:80 -v /root/data:/data hello:0.1
+$ docker run --name hello-nginx -d -p 80:80 -v /root/data:/data hello:0.1
 ```
 * `-d`옵션 컨테이너를 `백그라운드로 실행`
 * `-p 80:80(host:docker)`옵션으로 호스트의 80번 포트와 컨테이너의 80번 포트를 연결하고 외부에 노출
 * `-v /root/data:/data`옵션으로 호스트의 /root/data 디렉토리를 /data 디렉토리에 연결
 * `http://<host ip>:80`으로 접속하면 Welcome to nginx! 페이지가 표시됨!
 
-### Ex. Docker로 Spring Boot App build 해보기
-```sh
-# Dockerfile
-FROM dockerfile/java:oracle-java8  # java8 기반의 이미지 생성
-MAINTAINER opklnm102 opklnm102@gmail.com  # 이미지를 생성한 사람의 정보 설정
-ADD springboot_demo-0.0.1-SNAPSHOT.jar /opt/springboot_demo-0.0.1-SNAPSHOT/  # 배포본 복사
-EXPOSE 8080  # 호스트와 연결할 포트 설정
-WORKDIR /opt/springboot_demo-0.0.1-SNAPSHOT/  # RUN, CMD, ENTRYPOINT의 명령이 실행될 디렉토리 설정
-CMD ["java", "-jar", "springboot_demo-0.0.1-SNAPSHOT.jar"]  # 컨테이너 시작 후 실행될 명령어(배포본 실행)
-
-# Dockerfile기반의 이미지 생성
-docker build -t <image name> <dockerfile path>
-
-# 호스트 8080과 컨테이너 8080 연결하고 외부에 노출시킴으로 이미지 실행(컨테이너 상태로 전환됨)
-docker run -p 8080:8080 <image name/image id>
-```
+> docker build시 이전 과정에서 build한 layer를 caching하기 때문에 더 빠르다
 
 <br>
+
+### Ex. Docker로 Spring Boot App build 해보기
+* Dockerfile
+```dockerfile
+# container image build에 사용하는 base image를 의미
+FROM dockerfile/java:oracle-java8
+
+# docker inspect 커맨드를 통해 볼 수 있는 값을 설정(maintainer 등)
+LABEL maintainer="opklnm102 <opklnm102@gmail.com>"
+
+# container image 내부에서 환경 변수 설정
+# image build시 환경 변수 때문에  error가 발생할 수 있으므로 build시 필요한 환경 변수라면 RUN을 이용
+# ENV_FRONTEND=non-interactive의 경우 다음에 나오는 모든 RUN apt-get install에 영향을 주기 때문에
+# 특정 RUN 커맨드에 한해서 비대화형으로 설정하고 싶은 경우
+# RUN ENV_FRONTEND=non-interactive apt-get install 로 사용
+ENV TZ=Asia/Seoul
+
+# image build시 base image에 dependency를 설치 등의 명령어를 실행
+# RUN apt-get install xxx
+RUN useradd --create-home app
+
+# 컨테이너 내부에 로컬 디렉토리를 생성하고
+# 해당 디렉토리를 workdir 이후에 나오는 모든 커맨드(RUN, COPY) 실행의 작업 디렉토리로 설정
+# npm같이 로컬이나 상대경로에 실행해야하는 경우 유용
+WORKDIR /home/app
+
+# host의 local file을 container image로 복사
+# image에 source code를 복사하는 가장 효과적인 방법
+# directory or file 복사
+# .dockerignore에 정의된 파일은 제외
+COPY build/libs/springboot_demo-0.0.1-SNAPSHOT.jar /home/app/app.jar
+
+# host와 연결할 port 설정
+EXPOSE 8080  
+
+# CMD, ENTRYPOINT로 container 실행시 실행해야할 커맨드와 스크립트 등을 명시
+# ENTRYPOINT에 실행 파일만 명시되어 있을 경우, CMD로 실행 파일에 대한 매개변수를 명시할 수 있다
+CMD ["java", "-jar", "app.jar"]
+```
+
+* 위에서 작성한 `Dockerfile`을 기반으로 image build
+```sh
+$ docker build -t <image name> <dockerfile path>
+```
+
+* build한 image를 가지고 host port(8080)과 container port(8080)를 연결하여 외부에 노출하면서 container 생성
+```sh
+$ docker run -p 8080:8080 <image name/image id>
+```
+
+
+<br><br>
 
 > #### Reference
 > * [도커 무작정 따라하기: 도커가 처음인 사람도 60분이면 웹 서버를 올릴 수 있습니다!](https://www.slideshare.net/pyrasis/docker-fordummies-44424016)
 > * [What is a Container](https://www.docker.com/what-container)
 > * [Spring boot와 docker를 이용한 MSA](https://www.slideshare.net/heungrae_kim/spring-boot-docker-msa)
+> * [Dockerfile reference](https://docs.docker.com/engine/reference/builder/)
