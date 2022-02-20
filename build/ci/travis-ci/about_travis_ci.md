@@ -6,7 +6,12 @@
 <br>
 
 ## Travis CI란?
-TODO: 2019.01.06 메인 페이지의 이미지도 삽입하기
+* 몇 초만에 code를 test하는 CI tool
+<div align="center">
+  <img src="./images/travis-ci.png" alt="travis ci" width="70%" height="70%" />
+</div>
+
+
 
 
 <br>
@@ -87,7 +92,7 @@ script:
 * optional
 * build 결과물을 Heroku, AWS, Docker Hub 등에 배포하기 위해 Continuous Deploy Provier를 사용해 정의
 * build가 깨지면 skip한다
-* Provier를 사용해 배포시 빌드 중 변경 내용을 삭제하지 않도록 아래 설정 추가
+* Provider를 사용해 배포시 빌드 중 변경 내용을 삭제하지 않도록 아래 설정 추가
 ```yaml
 deploy:
   skip_cleanup: true
@@ -120,7 +125,96 @@ deploy:
 <br>
 
 ## Deployment
-TODO: 2019.01.06 [Deployment - Travis CI Docs](https://docs.travis-ci.com/user/deployment) 참고해 내용 추가
+
+### Deploying to Multiple Providers
+* 여러 provider를 사용하면 여러 곳에 deploy 가능
+```yaml
+deploy:
+  - provider: cloudcontrol
+    email: "YOUR CLOUDCONTROL EMAIL"
+    password: "YOUR CLOUDCONTROL PASSWORD"
+    deployment: "APP_NAME/DEP_NAME"
+  - provider: heroku
+    api_key: "YOUR HEROKU API KEY"
+```
+
+<br>
+
+### Conditional Releases
+* `on`을 사용하면 조건 지정 가능
+```yaml
+deploy:
+  provider: s3
+  access_key_id: "YOUR AWS ACCESS KEY"
+  secret_access_key: "YOUR AWS SECRET KEY"
+  bucket: "S3 Bucket"
+  skip_cleanup: true
+  on:  # 모든 조건 충족시 deploy
+    repo: travis-ci/dpl  # 특정 repo에서
+    branch: release  # 특정 branch에서
+    condition: $MY_ENV = super_awesome  # condition 충족시
+```
+
+* staging/production branch일 때 deploy
+```yaml
+deploy:
+  provider: script
+  script: deploy.sh
+  on:
+    all_branchs: true
+    condition: $TRAVIS_BRANCH =~ ^(staging|production)$
+```
+
+
+
+<br>
+
+## Cache
+* pip, npm, gradle 등 언어별 dependency를 쉽고 빠르게 설치하기 위해 cache 사용
+* install은 빠르지만 download는 느린 large files는 cache에서 download하는 시간이 오래 걸리므로 caching의 이점이 없다
+  * Android SDKs
+  * Debian packages
+  * JDK packages
+  * Compiled binaries
+  * Docker images
+    * build 마다 새로운 VM을 provisioning하기 때문에 caching 되지 않는다
+* 정의된 directory를 storage provider에 upload하므로 network bandwidth, DNS resolutions에 영향 받는다
+
+<br>
+
+### node.js
+```yaml
+language: node_js
+node_js: '6'
+cache: npm  # $HOME/.npm or node_modules
+```
+
+<br>
+
+### gradle, maven
+```yaml
+cache:
+  directories:
+    - $HOME/.m2  # gradle, maven
+    - node_modules  # NPM packages
+```
+
+<br>
+
+### Python
+```yaml
+language: python
+cache: pip  # $HOME/.cache/pip
+```
+
+
+<br>
+
+## Architecture
+<div align="center">
+  <img src="./images/travis_ci_architecture.png" alt="travis ci architecture" width="70%" height="70%" />
+</div>
+> 정확하진 않고 대략적으로 이해하는 용도로만 사용하자
 
 
 <br><br>
@@ -128,3 +222,4 @@ TODO: 2019.01.06 [Deployment - Travis CI Docs](https://docs.travis-ci.com/user/d
 > #### Reference
 > * [Job Lifecycle - Travis CI Docs](https://docs.travis-ci.com/user/job-lifecycle/)
 > * [Deployment - Travis CI Docs](https://docs.travis-ci.com/user/deployment)
+> * [Travis architecture. #3501](https://github.com/travis-ci/travis-ci/issues/3501)
