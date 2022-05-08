@@ -6,8 +6,7 @@
 <br>
 
 ## JWT(Json Web Token)란?
-* `RFC 7519`로 등록
-* JSON object를 이용하여 정보를 안전하게 전달하기 위한 방식
+* [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519.html)로 JSON object를 이용하여 정보를 안전하게 전달하기 위한 방식
 * 특징으로 **compact, self-contained**가 있다
   * Compact
     * **압축을 이용해** size가 작기 때문에 전송 속도가 빠르다
@@ -22,16 +21,23 @@
 ## JWT를 사용하는 경우
 
 ### Authorization
-* 로그인 이후의 모든 request에 JWT가 포함되어 허용된 resource에 access할 수 있다
+* 로그인을 통해 IdP(Identity Provider)에 인증을 하면 이후의 모든 request에 JWT가 포함되어 허용된 resource에 access할 수 있다
   * e.g. SSO(Single Sign On) - 작은 overhead와 여러 도메인에서 쉽게 사용할 수 있는 기능
+  * JWT 검증을 위해 IdP(IDentity Provider)에 물어볼 필요가 없다
 * 가장 일반적인 시나리오
 
 <br>
 
 ### Information Exchange
-* public/private key pair를 이용한 sign을 통해 sender 확인이 가능하여 정보를 안전하게 전달할 수 있다
-* header와 payload를 사용하여 sign되므로 content 변조도 검증 가능
+* ECC/RSA public/private key signing을 통해 sender 확인이 가능하여 정보를 안전하게 전달할 수 있다
+* IdP는 header와 payload를 private key를 사용해 JWT에 signing, public key가 있는 모든 service는 JWT의 무결성(content 변조 검증)을 확인할 수 있다
+* JWT가 발급되면 IdP(Identity Provider)의 역할은 끝
+  * data를 포함하지 않는 문자열인 `Opaque token`은 발급 후 유효성 확인, data fetch시 IdP(Identity Provider) access 필요
 
+<div align="center">
+  <img src="./images/with_jwt.png" alt="with jwt" width="45%" height="45%"/>
+  <img src="./images/without_jwt.png" alt="without jwt" width="45%" height="45%"/>
+</div>
 
 <br>
 
@@ -44,7 +50,7 @@
 * `SAML`과 같은 XML-based 표준에 비해 간결
 
 <div align="center">
-  <img src="./images/jwt_structure.png" alt="jwt" width="80%" height="80%"/>
+  <img src="./images/jwt_structure.png" alt="jwt structure" width="80%" height="80%"/>
 </div>
 
 <br>
@@ -125,8 +131,11 @@ Authorization: Bearer <token>
 <br>
 
 <div align="center">
-  <img src="./images/jwt_flow1.png" alt="jwt" width="80%" height="80%"/>
-  <img src="./images/jwt_flow2.png" alt="jwt" width="80%" height="80%"/>
+  <img src="./images/jwt_flow1.png" alt="jwt flow1" width="45%" height="45%"/>
+  <img src="./images/jwt_flow2.png" alt="jwt flow2" width="45%" height="45%"/>
+</div>
+<div align="center">
+  <img src="./images/jwt_flow3.png" alt="jwt flow3" width="50%" height="50%"/>
 </div>
 
 1. client는 authorization server에 authorization request
@@ -147,6 +156,82 @@ SWT(Simple Web Tokens), SAML(Security Assertion Markup Language Tokens)와 비�
 * 단순한 sign
   * `SWT`는 HMAC algorithm을 사용하는 shared secret으로만 symmetrically signed
   * JWT, `SAML` token은 x.509 certificate 형식의 public/private key를 사용하여 sign
+
+
+<br>
+
+## Holding token
+* Client에서 안전한 저장소에 JWT를 저장하여 사용
+  * e.g. iOS - keychain
+* 브라우저에서 JWT를 localStorage or JavaScript에 access할 수 있는 Cookie에 저장하지 말아야한다
+  * Cookie에 저장시 아래의 내용을 적용
+    * Cookie는 TLS에서만 전달
+    * 악성 JavaScript가 접근할 수 없도록 `HttpOnly` 사용
+    * Cookie가 같은 도메인에서만 사용되도록 `SameSite: Lax or Strict` 사용
+  * Page reload 전까지 token이 유효하도록 memory에 저장
+  * Web worker를 사용해 JavaScript context 외부에 저장
+
+
+<br>
+
+## Revoke token
+JWT는 강제로 만료(revoke)시킬 방법이 없어서 별도의 메커니즘 필요
+* 유효성 검증을 위해 모든 JWT 저장
+* 짧은 수명을 가진 JWT 사용
+* Revoked JWT에 대한 deny list 관리
+
+<br>
+
+### 유효성 검증을 위해 모든 JWT 저장
+* 모든 JWT를 관리하는 것은 JWT의 이점이 제거되는 문제점이 있다
+
+<br>
+
+### 짧은 수명을 가진 JWT 사용
+* expiration time 일, 월 단위보다는 초, 분, 시 단위로 짧게 유지
+* JWT 만료시 재발급을 위해서 refresh token 사용
+* 가장 일반적인 솔루션
+
+<br>
+
+> #### Refresh token?
+> * JWT 발급을 위해 사용되는 Opaque token
+> * IdP에 의해 관리되기 때문에 JWT 메커니즘에서 유연하게 사용 가능
+
+<br>
+
+#### JWT 수명을 감소시키고 JWT를 생성을 수 없도록 refresh token revoke
+1. JWT expiration time을 짧게(5 ~ 10m) 설정
+2. refresh token expiration time을 길게(2 weeks ~ 2 months) 설정
+3. IdP에서 언제든지 refresh token revoke
+4. 새 JWT 발급 시도시 refresh token 재발급을 위해 인증 필요
+
+#### 이 방법에는 2가지 문제점이 있다
+1. JWT가 유효하지 않을 때까지 refresh token을 사용할 일이 없다
+2. JWT의 짧은 expiration time까지의 시간이 존재
+
+그럼? Rotate keys, Revoked JWT에 대한 deny list 관리 사용
+
+<br>
+
+### Rotate keys
+* JWT의 signature 검증시마다 IdP에서 key를 가져오는 경우 key가 만료되면 JWT를 무효화
+
+#### key abcd의 `kid`가 있다고 가정
+1. backend는 public key list를 IdP에 요청
+2. abcd의 kid가 포함된 public key가 리턴되고, 리턴된 key로 JWT의 signature 검증
+3. IdP에서 key abcd가 제거되면 제거된 key의 signed JWT의 signature 검증을 할 수 없어 무효화된다
+4. 해당 key로 JWT를 발급한 모든 유저에게 영향을 끼친다
+
+backend는 public key list를 IdP에 지속적으로 polling하므로 JWT의 이점이 제거되는 문제가 있다
+
+<br>
+
+### Revoked JWT에 대한 deny list 관리
+* refresh token revoke를 backend service에 알리는 distributed event system을 활용해 IdP의 지속적인 polling을 제거
+* IdP는 refresh token revoke event를 다른 backend service에 broadcast
+* event를 수신한 backend service는 refresh token이 revoke된 유저들을 관리하는 local cache를 갱신
+* JWT 검증시 local cache를 이용해 JWT revoke 여부를 결정
 
 
 <br>
