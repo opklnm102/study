@@ -1,6 +1,6 @@
-# [Web] JWT(Json Web Token)
+# [Security] JWT(Json Web Token)
 > date - 2021.05.16  
-> keyworkd - jwt, web, authentication, authorization  
+> keyworkd - jwt, security, web, authentication, authorization  
 > web service 인증시에 많이 사용하는 jwt에 대해 정리  
 
 <br>
