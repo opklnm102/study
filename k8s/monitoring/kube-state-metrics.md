@@ -5,7 +5,7 @@
 
 <br>
 
-## kube-state-metrics이란?
+## kube-state-metrics(KSM)이란?
 * Add-on agent to generate and expose cluster-level metrics
 * Kubernetes API server를 Listen해 k8s API object state(Deployments, ReplicaSet 등)에 대한 metrics을 생성
   * cluster의 snapshot을 memory에 저장하고 이를 기반으로 metric 생성
