@@ -79,7 +79,15 @@ Fixes #2310
 
 * 현재 시제 사용(e.g. Add feature not Added feature)
 * 첫줄은 72문자 이하로 제한
+  * commit으로 인한 변화를 요약
 * 첫줄 이후 자유롭게 기술
+* 어떤 맥락(context)과 동기를 가지고 변경을 했는지 설명
+  * side effect 방지에 도움이 될 수 있다
+* 기술적으로 trade-off를 잘 따져가며 의미있는 근거들로 변경을 했는지 작성하면 의미있는 기록(history)이 될 수 있다
+  * 버그라면, 기대하는 결과와 고치기 전 결과를 명시
+  * 기능이라면, 무슨 기능인지 간단하게 요약
+  * commit이 merge되어도 왜 안전한지 이유 명시
+  * 변화와 관련된 티켓, 기술 문서 등의 링크 명시
 
 <br>
 
@@ -109,3 +117,4 @@ Fixes #2310
 > * [Git Commit Msg - Karma](http://karma-runner.github.io/2.0/dev/git-commit-msg.html)
 > * [How to Write a Git Commit Message](https://item4.github.io/2016-11-01/How-to-Write-a-Git-Commit-Message/)
 > * [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
+> * [How Square writes commit messages](https://developer.squareup.com/blog/how-square-writes-commit-messages/)
