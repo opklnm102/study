@@ -16,6 +16,7 @@
 * [kubectl-view-secret](#kubectl-view-secret)
 * [kubectl-whoami](#kubectl-whoami)
 * [kube-lineage](#kube-lineage)
+* [kube-tree](#kube-tree)
 
 <br>
 
@@ -496,6 +497,36 @@ deployment.apps/coredns   2/2     2            2           100d
 ```
 
 
+<br>
+
+## kube-tree
+* browse Kubernetes object hierarchies as a tree
+* [kube-lineage](https://github.com/tohjustin/kube-lineage)와 비슷하지만 ownerReference를 통해 Kubernetes objcet 간의 관계를 탐색
+
+<br>
+
+### Install
+```sh
+$ kubectl krew install tree
+```
+
+<br>
+
+### Usage
+* Deployment 조회
+```sh
+$ kubectl tree deployment [deployment name]
+
+## example
+$ kubectlr tree deployment app
+NAMESPACE  NAME                          READY  REASON  AGE
+default    Deployment/app                -              507d
+default    ├─ReplicaSet/app-6d56795c89   -              25h
+default    ├─ReplicaSet/app-6f9f5bd5d5   -              22h
+default      ├─Pod/app-6f9f5bd5d5-262jl  True           22h
+default      └─Pod/app-6f9f5bd5d5-d4q7w  True           22h
+```
+
 <br><br>
 
 > #### Reference
@@ -509,3 +540,4 @@ deployment.apps/coredns   2/2     2            2           100d
 > * [elsesiy/kubectl-view-secret - GitHub](https://github.com/elsesiy/kubectl-view-secret)
 > * [rajatjindal/kubectl-whoami - GitHub](https://github.com/rajatjindal/kubectl-whoami)
 > * [tohjustin/kube-lineage - GitHub](https://github.com/tohjustin/kube-lineage)
+> * [ahmetb/kubectl-tree - GitHub](https://github.com/ahmetb/kubectl-tree)
