@@ -7,11 +7,40 @@
 <br>
 
 총 3가지 방법을 소개해보려고한다
-* build time
+* build time(Create a custom container)
   * binary를 download 후 Dockerfile COPY
   * Dockerfile에서 image build시 download
 * run time
   * init container 사용
+
+<br>
+
+## build time vs run time
+먼저 장단점에 대해 알아보자
+
+### build time
+
+#### Pros
+* image 재사용, 배포 재현 가능
+* runtime시 internet access 불필요
+* bandwidth를 절약하고 빠르게 배포 가능
+
+#### Cons
+* custom image를 위한 container registry와 build infrastructure 필요
+* version upgrade를 위해 image build 필요
+
+<br>
+
+### run time
+
+#### Pros
+* 시작과 version upgrade 쉽다
+
+#### Cons
+* runtime시 internet access 필요
+* network issue, 잘못된 설정 등으로 배포가 실패할 수 있다
+* 배포마다 설치해야하므로 bandwidth가 낭비되고, 시작 속도가 느리다
+* deployment manifest가 복잡해진다
 
 
 <br>
@@ -124,3 +153,4 @@ containers:
 
 > #### Reference
 > * [DanPerovich/new-relic-java-apm-k8s-init-practice - GitHub](https://github.com/DanPerovich/new-relic-java-apm-k8s-init-practice)
+> * [Custom configuration files and plugins - Elastic Cloud on Kubernetes Docs](https://www.elastic.co/guide/en/cloud-on-k8s/master/k8s-bundles-plugins.html)
