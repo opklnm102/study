@@ -5,6 +5,14 @@
 
 <br>
 
+## Web Rendering Type
+<div align="center">
+  <img src="./images/web_rendering_type.png" alt="web rendering type" width="70%" height="70%" />
+</div>
+
+
+<br>
+
 ## SPA(Single Page Application)
 <div align="center">
   <img src="./images/spa.png" alt="spa" width="70%" height="70%" />
@@ -46,7 +54,7 @@ Next.js 등으로 쉽게 구현 가능
 <br>
 
 > #### Next.js 동작 방식
-> 1. 유저의 초기 접근시 SSR 방식으로 rendering한 HTML 전달
+> 1. 유저의 초기 접근시 SSR/SSG 방식으로 rendering한 HTML 전달
 > 2. 브라우저에서 JavaScript를 다운로드하고 React 실행
 > 3. 유저, 페이지가 상호작용하여 다른 페이지 이동시에는 CSR 방식으로 브라우저에서 처리
 
@@ -78,12 +86,29 @@ SSR보다 초기 로딩 속도는 뒤쳐질 수 있지만, 첫 페이지를 로�
 
 ## SSR vs CSR
 <div align="center">
-  <img src="./images/ssr_csr.png" alt="ssr csr" width="70%" height="70%" />
+  <img src="./images/ssr_csr.png" alt="ssr csr" width="45%" height="45%" />
+  <img src="./images/pre_rendering.png" alt="pre rendering" width="45%" height="45%" />
 </div>
+
+
+<br>
+
+## SSG(Static Site Generation)
+<div align="center">
+  <img src="./images/ssg_ssr.png" alt="ssg ssr" width="40%" height="40%" />
+</div>
+
+* SSG
+  * **build time에 HTML 생성**하여 request마다 재사용하기 때문에 response time이 빠르다
+  * Next.js에서는 default 동작이며 추천하는 방식
+  * Amazon S3 같은 object storage에 올려서 CDN을 적용하기 좋다
+* SSR
+  * **request 마다 HTML 생성**
+  * request마다 내용이 변하여 항상 최신 상태를 유지해야하는 경우 사용
 
 
 <br><br>
 
 > #### Reference
 > * [The Benefits of Server Side Rendering Over Client Side Rendering](https://medium.com/walmartglobaltech/the-benefits-of-server-side-rendering-over-client-side-rendering-5d07ff2cefe8)
-> * [Rendering on the Web](https://developers.google.com/web/updates/2019/02/rendering-on-the-web)
+> * [Rendering on the Web](https://web.dev/rendering-on-the-web)
