@@ -52,6 +52,8 @@ RUN apt-get update \
   * Development `Dockerfile`로 **application build에 필요한 모든 것**이 포함
 * `Dockerfile`
   * Production `Dockerfile`로 **application과 runtime**만 포함
+* CI 서비스(e.g. Github Action)에서 image build시 제공하는 머신에서 생성된 binary를 runtime image에 넣으므로 해당 패턴을 이용한다고 이해해도 무방
+  * build image는 서비스의 build spec
 
 <br>
 
