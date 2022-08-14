@@ -50,8 +50,102 @@ bootBuildImage {
 }
 ```
 
+
+<br>
+
+## Layered fat jar
+* 별도의 설정이 필요해서 `Dockerfile`을 사용해야 하는 경우 build layer cache를 효율적으로 이용하기 위해 fat jar에 대한 최적화가 필요
+* `Buildpacks`을 사용하면 자동으로 적용
+
+<br>
+
+### fat jar 구조
+```sh
+.
+├── BOOT-INF
+│   ├── classes
+│   │   ├── application.properties
+│   │   ├── me
+│   │   ├── static
+│   │   └── templates
+│   ├── classpath.idx
+│   ├── layers.idx
+│   └── lib
+│       ├── jackson-annotations-2.13.3.jar
+│       ...
+├── META-INF
+│   └── MANIFEST.MF
+└── org
+    └── springframework
+        └── boot
+```
+* fat jar는 크게 3가지로 구성
+  * Spring application을 시작하기 위한 bootstrap class
+  * application code
+  * 3rd party libraries
+* `spring-boot-jarmode-layertools`는 `layers.idx`의 내용으로 디렉토리를 매핑한다
+```sh
+- "dependencies":
+  - "BOOT-INF/lib/"
+- "spring-boot-loader":
+  - "org/"
+- "snapshot-dependencies":
+- "application":
+  - "BOOT-INF/classes/"
+  - "BOOT-INF/classpath.idx"
+  - "BOOT-INF/layers.idx"
+  - "META-INF/"
+
+
+## 아래 명령어 실행시 매핑된 정보로 풀린다
+$ java -Djarmode=layertools -jar app.jar extract
+```
+
+* spring boot 2.7.2에서는 default로 layerd가 활성화되어 있어서 이전 버전처럼 별도의 설정이 필요 없고, 아래 설정으로 비활성화할 수 있다
+```gradle
+tasks.named("bootJar") {
+	layered {
+		enabled = false  // disable layered mode
+	}
+}
+```
+
+<br>
+
+### Dockerfile 작성
+* spring boot multi module을 기준으로 작성
+```dockerfile
+FROM openjdk:11 AS builder
+
+COPY . .
+
+ARG MODULE=test-api
+ARG JAR_FILE=build/libs/app.jar
+
+RUN ./gradlew ${MODULE}:build \
+    && java -Djarmode=layertools -jar ${MODULE}/${JAR_FILE} extract
+
+FROM openjdk:11-slim
+
+RUN useradd --create-home -s /bin/bash app
+WORKDIR /home/app
+
+USER app
+
+COPY --from=builder --chown=app:app ./dependencies/ ./
+COPY --from=builder --chown=app:app ./spring-boot-loader/ ./
+COPY --from=builder --chown=app:app ./snapshot-dependencies/ ./
+COPY --from=builder --chown=app:app ./application/ ./
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "${JAVA_OPTS}", "org.springframework.boot.loader.JarLauncher"]
+```
+
+
 <br><br>
 
 > #### Reference
 > * [Spring Boot Gradle Plugin Reference Guide](https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/)
 > * [Creating Efficient Docker Images with Spring Boot 2.3](https://spring.io/blog/2020/08/14/creating-efficient-docker-images-with-spring-boot-2-3)
+> * [layered-archives - Spring Boot Docs](https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#packaging-executable.configuring.layered-archives)
