@@ -11,7 +11,9 @@ IOPS = 초당 데이터 전송량 / block size
 ```
 * **초당 처리되는 I/O의 개수**로 높을수록 disk 속도가 빠르다는 것을 뜻한다
 * HDD, SSD, NVMe 등 저장 장치의 속도에 단위로 사용
+  * 즉 storage device의 성능을 특성화하는데 사용되는 숫자
 * IOPS 100 -> 1초에 100 x block size 만큼의 I/O 가능
+* 높은 IOPS를 생성하는 application은 thread, asynchronous I/O, 병렬 처리를 사용
 
 
 <br>
