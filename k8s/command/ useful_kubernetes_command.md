@@ -71,6 +71,83 @@ $ kubectl exec dnsutils nslookup bluayer-headless # 파드들의 IP를 보여준
 ```
 
 
+<br>
+
+## 현재 배포된 image 조회
+```sh
+$ kubectl get deployment [deployment name] -o=jsonpath='{$.spec.template.spec.containers[:1].image}'
+```
+
+
+<br>
+
+## container image 업데이트
+```sh
+$ kubectl set image deployment [deployment name] [container name]=[image]
+
+## example
+$ kubectl set image deployment test-app app=opklnm102/test-app:1.0.0
+```
+
+
+<br>
+
+## 배포 내역 조회
+* revision history를 조회
+```sh
+$ kubectl rollout history deployment [deployment name]
+
+## kubectl rollout history deployment test-app
+deployments "test-app"
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+...
+```
+
+* 특정 revision에 배포된 image 정보를 포함한 상세 정보 조회
+```sh
+$ kubectl rollout history deployment [deployment name] --revision=[revision number]
+ 
+## example
+$ kubectl rollout history deployment test-app --revision=2
+```
+
+
+<br>
+
+## replica 개수 변경하기
+```sh
+$ kubectl scale deployment [deployment name] --replicas=[replica count]
+
+## example
+$ kubectl scale deployment test-app --replicas=2
+```
+
+
+<br>
+
+## Pod 강제 제거하기
+```sh
+$ kubectl delete pods [pod name] --grace-period=0 --force
+```
+
+
+<br>
+
+## Command line argument에 environment variables 사용하기
+```yaml
+...
+  command: ["bin/test-cli"]
+  args: ["--host=$(HOST)", "--port=$(PORT)"]
+  env:
+    - name: HOST
+      value: "test.example.com"
+    - name: PORT
+      value: "5000"
+```
+
+
 <br><br>
 
 > #### Reference
