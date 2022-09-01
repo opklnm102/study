@@ -148,6 +148,19 @@ $ kubectl delete pods [pod name] --grace-period=0 --force
 ```
 
 
+<br>
+
+## Pod의 resources.requests, limits 조회
+```sh
+$ kubectl get pods [pod name] -o jsonpath='{range .spec.containers[*]}{"Container Name: "}{.name}{"\n"}{"Requests:"}{.resources.requests}{"\n"}{"Limits:"}{.resources.limits}{"\n"}{end}'
+
+## 모든 Pod의 resource 조회
+for pod in $(kubectl get pods -o jsonpath={.items..metadata.name}); do
+  kubectl get pods $pod  -o jsonpath='{range .spec.containers[*]}{"Container Name: "}{.name}{"\n"}{"Requests:"}{.resources.requests}{"\n"}{"Limits:"}{.resources.limits}{"\n"}{end}';
+done
+```
+
+
 <br><br>
 
 > #### Reference
