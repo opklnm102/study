@@ -17,6 +17,10 @@ $ kubectl run curl -it --rm --image curlimages/curl -- sh
 ```sh
 $ kubectl logs -f --tail=200 -l app=zk --max-log-requests 50
 ```
+* restarted Pod의 이전 log 확인
+```sh
+$ kubectl logs [pod name] --previous
+```
 
 
 <br>
