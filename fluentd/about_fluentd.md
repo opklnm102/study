@@ -50,7 +50,7 @@
 
 ## Internal Architecture
 ![fluentd internal architecture detail](./images/fluentd_internal_architecture_detail.png)
-* Input, Parser, Filter, Formatter, Storage, Buffer, Output plugin을 자유롭게 활용
+* Input, Parser, Filter, Output, Formatter, Storage, Service Discovery, Buffer, Metrics plugin을 자유롭게 활용
 
 ### Fluentd가 읽어들인 Data는 tag, time, record로 구성된 Event로 처리
 ![fluentd internal architecture](./images/fluentd_internal_architecture.png)
@@ -82,7 +82,7 @@ record={
     * ex) myapp.access
   * event에 적절한 filter, parser, output plugin을 적용할지 분류할 수 있는 기준
 * time
-  * event가 발생될 때 기록된 unix time
+  * event가 발생한 시간으로 event가 발생될 때의 unix time을 기록
 * record
   * JSON Object format의 Data
 
@@ -144,7 +144,144 @@ record={
 <br>
 
 ## Dockerized Fluentd
-TODO: docker container로 띄우기
+* [fluent/fluentd - Docker Hub](https://hub.docker.com/r/fluent/fluentd)
+* Dockerfile은 [fluent/fluentd-docker-image](https://github.com/fluent/fluentd-docker-image)에서 확인
+* alpine 기반과 debian 기반의 image를 제공하고 있어서 선택에 혼란스러울 수 있다
+  * debian version - [jemalloc](https://github.com/jemalloc/jemalloc)을 지원하므로 production에서 권장
+  * alpine version - image size가 더 작으므로 small image가 필요할 때 사용
+
+<br>
+
+### 1. docker image 생성
+* alpine version
+```dockerfile
+FROM fluent/fluentd:v1.15-1
+
+# Use root account to use apk
+USER root
+
+# below RUN includes plugin as examples elasticsearch is not required
+# you may customize including plugins as you wish
+RUN apk add --no-cache --update --virtual .build-deps \
+  sudo build-base ruby-dev \
+  && sudo gem install fluent-plugin-elasticsearch \
+                      fluent-plugin-kafka \
+  && sudo gem sources --clear-all \
+  && apk del .build-deps \
+  && rm -rf /tmp/* /var/tmp/* /usr/lib/ruby/gems/*/cache/*.gem
+
+COPY fluent.conf /fluentd/etc/
+COPY entrypoint.sh /bin/
+
+USER fluent
+```
+
+* debian version
+```dockerfile
+FROM fluent/fluentd:v1.15-debian-1
+
+# Use root account to use apt
+USER root
+
+# below RUN includes plugin as examples elasticsearch is not required
+# you may customize including plugins as you wish
+RUN buildDeps="sudo make gcc g++ libc-dev" \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends $buildDeps \
+  && sudo gem install fluent-plugin-elasticsearch \
+                      fluent-plugin-kafka \
+  && sudo gem sources --clear-all \
+  && SUDO_FORCE_REMOVE=yes \
+  apt-get purge -y --auto-remove \
+  -o APT::AutoRemove::RecommendsImportant=false \
+  $buildDeps \
+  && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /tmp/* /var/tmp/* /usr/lib/ruby/gems/*/cache/*.gem
+
+COPY fluent.conf /fluentd/etc/
+COPY entrypoint.sh /bin/
+
+USER fluent
+```
+
+<br>
+
+### 2. configuration
+* $(pwd)/fluent.conf에 작성
+```conf
+<system>
+  log_level "#{ENV['LOG_LEVEL'] ? ENV['LOG_LEVEL'] : 'info'}"
+</system>
+
+## monitoring
+<source>
+  @type monitor_agent
+  bind 0.0.0.0
+  port 24220
+</source>
+
+## fluentd log
+<label @FLUENT_LOG>
+  <match fluent.*>
+    @type stdout
+  </match>
+</label>
+
+<source>
+  @type sample
+  sample {"hello":"world"}
+  tag sample
+  @label @sample
+</source>
+
+<label @sample>
+  <match sample>
+    @type stdout
+  </match>
+</label>
+```
+
+<br>
+
+### 3. run container
+```sh
+$ docker run --rm -p 24220:24220 -v $(pwd)/fluent.conf:/fluentd/etc/fluent.conf <fluentd image>
+```
+
+### 4. Makefile 이용
+* Makefile 작성
+```makefile
+IMAGE_NAME ?= opklnm102/fluentd-test
+IMAGE_TAG := $(shell git branch --show-current | sed -e "s/\//-/g")-$(shell git rev-parse HEAD)
+IMAGE = $(IMAGE_NAME):$(IMAGE_TAG)
+
+.DEFAULT_GOAL := build-image
+
+build-image:
+	docker build -t $(IMAGE) -f ./Dockerfile .
+
+push-image: build-image
+	docker push $(IMAGE)
+
+clean-image:
+	docker image rm -f $(IMAGE)
+
+run-container:
+	docker run --rm $(IMAGE)
+
+run-config-test-container:
+	docker run --rm -v ${PWD}/fluent.conf:/fluentd/etc/fluent.conf $(IMAGE)
+```
+
+* image build & run container
+```sh
+$ make && make run-container
+```
+
+* run test container
+```sh
+$ make run-config-test-container
+```
 
 
 <br><br>
@@ -154,3 +291,6 @@ TODO: docker container로 띄우기
 > * [Life of an Fluentd event](https://www.slideshare.net/tamuraaa/life-of-an-fluentd-event?ref=https://docs.fluentd.org/v0.12/articles/config-file)
 > * [Fluentbit: Fast and Lightweight Log processor and forwarder for Linux, BSD and OSX](https://github.com/fluent/fluent-bit)
 > * [Fluend 101](https://www.slideshare.net/tagomoris/fluentd-101)
+> * [fluent/fluentd - Docker Hub](https://hub.docker.com/r/fluent/fluentd)
+> * [fluent/fluentd-docker-image](https://github.com/fluent/fluentd-docker-image)
+> * [Docker Image - Fluentd Docs](https://docs.fluentd.org/container-deployment/install-by-docker)
