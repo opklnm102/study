@@ -5,6 +5,12 @@
 
 <br>
 
+## TL;DR
+* [Amazon OpenSearch Service](https://docs.aws.amazon.com/ko_kr/opensearch-service/latest/developerguide/what-is.html)에서 원하는 버전의 도메인을 생성한 후 실시간 데이터는 dual write하고, 과거 데이터는 snapshot을 통해 zere downtime migration을 진행했다
+
+
+<br>
+
 ## Dual write
 
 ### As-is
@@ -209,7 +215,7 @@ print(response.text)
 
 | Old version | New version | Etc |
 |:--|:--|:--|
-| Elasticsearch 5.6 | Elasticsearch 6.8 | index에 하나의 mapping type만 있는지 확인 |
+| Elasticsearch 5.6 | Elasticsearch 6.8 | index에 하나의 mapping type만 있는지 확인<br>[Goodbye, types. Hello, typeless](https://www.elastic.co/blog/moving-from-types-to-typeless-apis-in-elasticsearch-7-0) 참고 |
 | Elasticsearch 6.8 | Opensearch 1.3 | [Amazon OpenSearch Service - 변경 사항 요약](https://docs.aws.amazon.com/ko_kr/opensearch-service/latest/developerguide/rename.html) 확인<br>Elasticsearch 5.6에서 생성된 index에 대하여 reindexing 필요 |
 
 
@@ -622,6 +628,12 @@ POST _reindex?wait_for_completion=false
 }
 ```
 
+<br>
+
+## Conclusion
+* Elasticsearch 5.6 -> OpenSearch 1.3 업그레이드를 통해 Graviton instance type을 사용하여 computing 비용 -10%와 동일한 index 저장시 -30 ~ 40% store size 감소 효과를 보았다
+  * e.g. 3GB index 이관시 2GB로 저장
+
 
 <br><br>
 
@@ -638,3 +650,4 @@ POST _reindex?wait_for_completion=false
 > * [Amazon OpenSearch Service - 변경 사항 요약](https://docs.aws.amazon.com/ko_kr/opensearch-service/latest/developerguide/rename.html)
 > * [Reindex API](https://www.elastic.co/guide/en/elasticsearch/reference/master/docs-reindex.html)
 > * [Alerting - OpenSearch Docs](https://opensearch.org/docs/latest/monitoring-plugins/alerting)
+> * [OpenSearch란 무엇인가요?](https://aws.amazon.com/ko/what-is/opensearch/)
