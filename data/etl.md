@@ -1,4 +1,4 @@
-# [Architecture] ETL(Extract, Transform, Load)
+# [Data] ETL(Extract, Transform, Load)
 > date - 2021.05.30  
 > keyworkd - data engineering, data pipeline, etl  
 > data engineering에 사용되는 ETL이란 용어에 대해 알아보고 정리  
