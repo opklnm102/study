@@ -1,19 +1,24 @@
-# [Java] Managing multiple Java version with jenv
+# [Java] Managing multiple Java version
 > date - 2018.10.18  
-> keyword - java, jenv  
+> keyword - java, jenv, sdkman  
 > 새로운 개발 환경 셋팅중 Java11이 설치되어 nvm처럼 여러 버전을 사용할 수 없을까 해서 찾아본 내용 정리  
 
 <br>
 
-## jEnv - Manage your Java environment
-* CLI에서 `JAVA_HOME` 환경 변수를 간단하게 설정할 수 있는 tool
-* `JAVA_HOME`을 설정해주기 때문에 nvm처럼 여러 Java version을 사용할 수 있다
+## TL;DR
+* [jEnv](#jenv---manage-your-java-environment), [SDK Man](#sdkmnm)를 이용한다
 
 
 <br>
 
-## Installation
+## [jEnv - Manage your Java environment](http://www.jenv.be)
+* CLI에서 `JAVA_HOME` 환경 변수를 간단하게 설정할 수 있는 tool
+* `JAVA_HOME`을 설정해주기 때문에 nvm처럼 여러 Java version을 사용할 수 있다
+* JDK는 별도로 설치해야한다
 
+<br>
+
+### Installation
 ```sh
 $ brew update
 
@@ -83,10 +88,9 @@ $ echo 'eval "($jenv init -)"' >> ~/.zshrc
 $ echo 'export JAVA_HOME="$(jenv prefix)"' >> ~/.zshrc  # 어느날 갑자기.. IntelliJ terminal에서 Java 버전 mismatch가 일어나서..
 ```
 
-
 <br>
 
-## Usage
+### Usage
 * Java 추가
 ```sh
 ## 위에서 설치한 Java를 추가
@@ -113,6 +117,85 @@ $ jenv local 1.8.0.192
 ```
 
 
+<br>
+
+## [SDKMNM!](https://sdkman.io)
+* 다양한 SDK(Software Development Kits)를 관리하기 위한 tool
+* [jEnv](#jenv---manage-your-java-environment)와 다르게 JDK도 설치할 수 있다
+
+### Installation
+```sh
+$ curl -s "https://get.sdkman.io" | bash
+```
+* `.zshrc`, `.bash_profile`에 아래 내용이 자동으로 추가됨
+```sh
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+```
+
+* Delete
+```sh
+$ rm -rf ~/.sdkman
+```
+
+* Update
+```sh
+$ sdk selfupdate
+```
+
+
+<br>
+
+### Usage
+* Java 버전 조회
+```sh
+$ sdk list(or l) java
+
+================================================================================
+Available Java Versions for macOS 64bit
+================================================================================
+ Vendor        | Use | Version      | Dist    | Status     | Identifier
+--------------------------------------------------------------------------------
+ Corretto      |     | 19           | amzn    |            | 19-amzn
+               |     | 19.0.1       | amzn    |            | 19.0.1-amzn
+               |     | 17.0.5       | amzn    |            | 17.0.5-amzn
+               |     | 17.0.4       | amzn    |            | 17.0.4-amzn
+               |     | 11.0.17      | amzn    |            | 11.0.17-amzn
+               |     | 11.0.16      | amzn    |            | 11.0.16-amzn
+               |     | 8.0.352      | amzn    |            | 8.0.352-amzn
+               |     | 8.0.342      | amzn    |            | 8.0.342-amzn
+ Gluon         |     | 22.1.0.1.r17 | gln     |            | 22.1.0.1.r17-gln
+               |     | 22.1.0.1.r11 | gln     |            | 22.1.0.1.r11-gln
+...
+```
+
+* Java 설치
+```sh
+$ sdk install(or i) java [version]
+
+## example
+$ sdk i java 11.0.17-tem
+```
+
+* Java 제거
+```sh
+$ sdk uninstall java [version]
+```
+
+* Java 버전 변경
+```sh
+## current shell
+$ sdk use java [version]
+
+## default로 지정
+$ sdk default java [version]
+```
+
+* 현재 사용 중인 버전 확인
+```sh
+$ sdk current
+```
+
 <br><br>
 
 > #### Reference
@@ -121,3 +204,4 @@ $ jenv local 1.8.0.192
 > * [Mac에 Java 여러 버전 설치 & 사용하기](https://jojoldu.tistory.com/329)
 > * [Installing Java 8 and Managing Multiple Java Versions on OSX](http://hanxue-it.blogspot.com/2014/05/installing-java-8-managing-multiple.html)
 > * [Jenv not setting JAVA_HOME](https://github.com/gcuisinier/jenv/issues/44)
+> * [SDK Man](https://sdkman.io)
