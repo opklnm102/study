@@ -17,6 +17,7 @@
 * [kubectl-whoami](#kubectl-whoami)
 * [kube-lineage](#kube-lineage)
 * [kube-tree](#kube-tree)
+* [실습하기에 좋은 무료 서비스](#실습하기에-좋은-무료-서비스)
 
 <br>
 
@@ -526,6 +527,14 @@ default    ├─ReplicaSet/app-6f9f5bd5d5   -              22h
 default      ├─Pod/app-6f9f5bd5d5-262jl  True           22h
 default      └─Pod/app-6f9f5bd5d5-d4q7w  True           22h
 ```
+
+
+<br>
+
+## 실습하기에 좋은 무료 서비스
+* [Kubernetes Interactive Tutorial](https://kubernetes.io/docs/tutorials/kubernetes-basics/create-cluster/cluster-interactive)
+* [Okteto starter plan](https://cloud.okteto.com)
+
 
 <br><br>
 
