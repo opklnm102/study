@@ -18,6 +18,7 @@
 * [kube-lineage](#kube-lineage)
 * [kube-tree](#kube-tree)
 * [실습하기에 좋은 무료 서비스](#실습하기에-좋은-무료-서비스)
+* [kubeshark](#kubeshark)
 
 <br>
 
@@ -536,6 +537,82 @@ default      └─Pod/app-6f9f5bd5d5-d4q7w  True           22h
 * [Okteto starter plan](https://cloud.okteto.com)
 
 
+<br>
+
+## kubeshark
+* Kubernetes용 API Traffic Viewer
+* eBPF를 이용하여 cluster 내부의 container와 Pod 간에 ingress/egress API traffic과 payload에 대한 visibility 제공
+  * HTTP/1, HTTP/2, AMQP, Apache KAfka, Redis, gRPC over HTTP/2, GraphQL over HTTP/1.1 & HTTP/2
+* Chrome Dev Toos + TCPDump + Wireshark 조합이라고 생각하면 된다
+
+### Architecture
+* CLI + Hub + Worker로 구성
+
+<div align="center">
+  <img src="./images/kubeshark_diagram.png" alt="kubeshark diagram" width="70%" height="70%" />
+</div>
+
+#### [CLI](https://github.com/kubeshark/kubeshark) 
+* k8s API를 통해 cluster와 통신하는 client로 Hub를 배포하는데 사용
+
+#### [Hub](https://github.com/kubeshark/hub)
+* cluster에 배포되는 Pod로 worker deployment를 조율하며, worker에서 스니핑 & 해부된 정보를 수신하여 중앙에 수집하여 웹 브라우저에 표시
+* [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)으로 worker와 통신
+
+#### [Worker](https://github.com/kubeshark/worker)
+* cluster의 모든 node가 kubeshark에 포함되도록 하기 위해 `DaemonSet`으로 배포
+* network sniffer, kernel tracing 등이 구현되어 있으며, WebSocket으로 수집된 traffic을 Hub에 전송
+
+<br>
+
+### Install
+```sh
+$ sh <(curl -Ls https://kubeshark.co/install)
+```
+
+<br>
+
+### Usage
+* 현재 namespace의 API traffic을 real time으로 streaming
+```sh
+$ kubeshark tap
+```
+
+* 특정 Pod에 사용
+```sh
+$ kubeshark tap [pod name]
+
+## example
+$ kubeshark tap catalogue-b87b45784-sxc8q
+```
+
+* regex로 여러 Pod에 사용
+```sh
+$ kubeshark tap "[regex]"
+
+## example
+$ kubeshark tap "(catalo*|front-end*)"
+```
+
+* Namespace에 사용
+```sh
+$ kubeshark tap -n "[namespace]"
+```
+
+* 모든 namespace에 사용
+```sh
+$ kubeshark tap -A
+```
+
+* Clean Up
+```sh
+$ kubeshark clean
+
+## only a certain namespace
+$ kubeshark clean -n [namespace]
+```
+
+
 <br><br>
 
 > #### Reference
@@ -550,3 +627,4 @@ default      └─Pod/app-6f9f5bd5d5-d4q7w  True           22h
 > * [rajatjindal/kubectl-whoami - GitHub](https://github.com/rajatjindal/kubectl-whoami)
 > * [tohjustin/kube-lineage - GitHub](https://github.com/tohjustin/kube-lineage)
 > * [ahmetb/kubectl-tree - GitHub](https://github.com/ahmetb/kubectl-tree)
+> * [kubeshark/kubeshark - GitHub](https://github.com/kubeshark/kubeshark)
