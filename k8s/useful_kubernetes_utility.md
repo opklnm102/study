@@ -8,6 +8,7 @@
 ## Toc
 * [krew](#krew)
 * [kubectx + kubens](#kubectx-+-kubens)
+* [kubeswitch](#kubeswitch)
 * [kube-ps1](#kube-ps1)
 * [kubectl-aliases](#kubectl-aliases)
 * [kubectl-neat](#kubectl-neat)
@@ -19,6 +20,7 @@
 * [kube-tree](#kube-tree)
 * [실습하기에 좋은 무료 서비스](#실습하기에-좋은-무료-서비스)
 * [kubeshark](#kubeshark)
+* [kubectl-graph](#kube-graph)
 
 <br>
 
@@ -113,6 +115,46 @@ Active namespace is "kube-system".
 ```sh
 $ kubectx | cat
 ```
+
+
+<br>
+
+## kubeswitch
+* kubectx의 대체품으로 설계되어 모든 kubeconfig 파일에 대한 단일 창
+* context를 전역적으로 변경하는 kubectx와 다르게 터미널마다 context 유지
+
+### Install
+```sh
+$ brew install danielfoehrkn/switch/switch
+
+## add .zshrc
+$ INSTALLATION_PATH=$(brew --prefix switch) && source $INSTALLATION_PATH/switch.sh
+```
+
+<br>
+
+### Usage
+* change context
+```sh
+$ switch
+```
+
+* chage namesapce
+```sh
+$ switch ns
+```
+
+<br>
+
+### kubectx vs kubeswitch
+* kubeswitch는 kubectx + kubens 보다 기능이 많아서 더 유용하다
+
+| | kubectx | kubeswitch |
+|:--:|:--:|:--:|
+| Context search | O | O |
+| Multiple kubeconfig | X | O |
+| Config alias | O | O |
+| Multiple terminal | X | O |
 
 
 <br>
@@ -613,6 +655,31 @@ $ kubeshark clean -n [namespace]
 ```
 
 
+<br>
+
+## kube-graph
+* Visualize Kubernetes resource & relationship
+* 시각화를 위해 [Graphviz](https://graphviz.org), [Neo4j](https://neo4j.com), [ArangoDB](https://www.arangodb.com) 필요
+
+<br>
+
+### Install
+```sh
+$ kubectl krew install graph
+```
+
+<br>
+
+### Usage
+* Graphviz를 사용하여 시각화
+
+```sh
+$ kubectl graph pods --field-selector status.phase=Running -n kube-system | dot -T svg -o pods.svg
+
+$ open pods.svg
+```
+
+
 <br><br>
 
 > #### Reference
@@ -628,3 +695,6 @@ $ kubeshark clean -n [namespace]
 > * [tohjustin/kube-lineage - GitHub](https://github.com/tohjustin/kube-lineage)
 > * [ahmetb/kubectl-tree - GitHub](https://github.com/ahmetb/kubectl-tree)
 > * [kubeshark/kubeshark - GitHub](https://github.com/kubeshark/kubeshark)
+> * [kubectl-graph](https://github.com/steveteuber/kubectl-graph)
+> * [Best three tools for working with many Kubernetes contexts](https://home.robusta.dev/blog/switching-kubernets-context)
+> * [kubeswitch](https://github.com/danielfoehrKn/kubeswitch)
