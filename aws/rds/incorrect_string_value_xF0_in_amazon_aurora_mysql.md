@@ -157,6 +157,7 @@ show global variables
 
 ## Conclusion
 * MySQL 8.0부터 default character set이 utf8mb4로 되었고, 이모지 처리에 이슈가 없으려면 처음부터 utf8mb4를 사용하는게 좋겠다
+* MySQL character set, collation 변경시 DB, table, column 단위로도 지정이 가능하고, client session에서도 설정 가능하므로 server, DB, table, column, client session까지 확인해야한다
 
 
 <br><br>
