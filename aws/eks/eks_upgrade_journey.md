@@ -117,6 +117,53 @@ spec:
         type: Utilization
 ```
 
+#### pluto + kubectl-convert를 이용한 manifest 변환 자동화
+* script를 `migrate-deprecated-api`로 저장
+```sh
+#!/usr/bin/env bash
+
+usage() {
+  cat <<-EOM
+Usage: ${0##*/} [kubernetes version] [manifest path]
+e.g. ${0##*/} v1.24.7 .
+EOM
+  exit 0
+}
+
+if [[ $# != 2 ]]; then
+  usage
+fi
+
+command -v jq >/dev/null || fail "jq is not installed!"
+
+k8s_version=${1}
+manifest_path=$(cd "${2}" && pwd)
+cd "${manifest_path}"
+
+pluto_result=$(pluto detect-files -o json -t k8s=${k8s_version} -d . | jq '[.items[] | select(.api."replacement-api" != "") | {replacement_api: .api."replacement-api", file_path: .filePath}]')
+
+for row in $(echo "${pluto_result}" | jq -r '.[] | @base64'); do
+  _jq() {
+    echo ${row} | base64 --decode | jq -r ${1}
+  }
+  file_path=$(_jq '.file_path')
+  kubectl convert -f ${file_path} --output-version $(_jq '.replacement_api') | kubectl create -f - --dry-run=client
+  kubectl convert -f ${file_path} --output-version $(_jq '.replacement_api') > ${file_path}.new
+  sed -i '' '/creationTimestamp/d' ${file_path}.new
+  sed -i '' '/status/q' ${file_path}.new
+  sed -i '' '/status/d' ${file_path}.new
+  mv ${file_path}.new ${file_path}
+done
+```
+
+* usage
+```sh
+$ ./migrate-deprecated-api [kubernetes version] [manifest path]
+
+$ ./migrate-deprecated-api v1.24.7 .
+```
+
+
 <br>
 
 ## Upgrade Amazon EKS(Elastic Kubernetes Service)
