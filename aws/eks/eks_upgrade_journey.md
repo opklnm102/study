@@ -51,6 +51,71 @@ kafka-pdb                                PodDisruptionBudget       policy/v1beta
 ...
 ```
 
+<br>
+
+### kubectl convert를 사용해 API 변환
+* [Migrate to non-deprecated APIs](https://kubernetes.io/docs/reference/using-api/deprecation-guide/#migrate-to-non-deprecated-apis)에 나오는 방법으로 `kubectl convert`를 사용해 manifest를 자동으로 변환 가능
+
+#### [Install](https://kubernetes.io/docs/tasks/tools/install-kubectl-macos/#install-kubectl-convert-plugin)
+```sh
+$ curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/darwin/amd64/kubectl-convert"
+$ chmod +x ./kubectl-convert
+$ sudo mv ./kubectl-convert /usr/local/bin/kubectl-convert
+$ sudo chown root: /usr/local/bin/kubectl-convert
+$ kubectl convert --help
+```
+
+#### Usage
+```sh
+$ kubectl convert -f <file> --output-version <group>/<version>
+```
+
+* before
+```yaml
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app
+  maxReplicas: 2
+  minReplicas: 1
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: 80
+```
+
+* kubectl convert로 변환
+```sh
+$ kubectl convert -f ./app-hpa.yaml --output-version autoscaling/v2
+```
+
+* after
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app
+  maxReplicas: 2
+  minReplicas: 1
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        averageUtilization: 80
+        type: Utilization
+```
 
 <br>
 
