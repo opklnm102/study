@@ -61,6 +61,22 @@ CMD ["hello.py", "/etc"]
 
 <br>
 
+## Java image 비교
+```sh
+$ docker run -it --rm gcr.io/distroless/java11-debian11 --version
+openjdk 11.0.16 2022-07-19
+OpenJDK Runtime Environment (build 11.0.16+8-post-Debian-1deb11u1)
+OpenJDK 64-Bit Server VM (build 11.0.16+8-post-Debian-1deb11u1, mixed mode)
+
+$ docker run -it --rm openjdk:11 java --version
+openjdk 11.0.16 2022-07-19
+OpenJDK Runtime Environment 18.9 (build 11.0.16+8)
+OpenJDK 64-Bit Server VM 18.9 (build 11.0.16+8, mixed mode, sharing)
+```
+
+
+<br>
+
 ## Vulnerability scan
 * distroless 기반의 application image에서 Vulnerability scanning시 standard linux distribution 보다 취약점이 적게 발견되는 것을 확인할 수 있다
 
