@@ -230,11 +230,18 @@ $ brew uninstall asdf
 | asdf plugin list | 설치된 plugin 리스트 조회 |
 | asdf plugin list all | 설치 가능한 plugin 리스트 조회 |
 | asdf plugin add <plugin name> [<git-url>] | plugin 설치 |
+| asdf plugin update --all | 모든 plugin 업데이트 |
+| asdf plugin update <plugin name> | 특정 plugin 업데이트 |
+| asdf plugin remove <plugin name> | plugin 제거 |
 | asdf list all <plugin name> | plugin에서 설치 가능한 버전 확인 |
 | asdf install <plugin name> <version> | 버전 설치 |
+| asdf latest <name> | 최신 버전 확인 |
+| asdf latest <name> <version> | 특정 버전의 최신 버전 확인 |
+| asdf uninstall <name> <version> | 버전 제거 |
 | asdf local <plugin name> <version> | 현재 경로의 사용 설정 |
 | asdf global <plugin name> <version> | 전역 설정 |
 
+<br>
 
 * [Java plugin](https://github.com/halcyon/asdf-java#java_home) 추가
 ```sh
