@@ -6,7 +6,7 @@
 <br>
 
 ## TL;DR
-* [jEnv](#jenv---manage-your-java-environment), [SDK Man](#sdkmnm)를 이용한다
+* [jEnv](#jenv---manage-your-java-environment), [SDK Man](#sdkmnm), [asdf](#asdf)를 이용한다
 
 
 <br>
@@ -196,6 +196,93 @@ $ sdk default java [version]
 $ sdk current
 ```
 
+
+<br>
+
+## [asdf](https://asdf-vm.com)
+* 다양한 언어의 버전을 쉽게 관리하기 위한 tool
+* [jEnv](#jenv---manage-your-java-environment), [SDK Man](#sdkmnm)과 다르게 다른 언어의 버전 관리가 가능하여 nvm(node.js), rbenv(ruby) 등을 대체할 수 있다
+
+<br>
+
+### Installation
+```sh
+$ brew install asdf
+```
+
+* `.zshrc`에 asdf 초기화 명령어 설정
+```sh
+$ echo -e "\n. $(brew --prefix asdf)/libexec/asdf.sh" >> ${ZDOTDIR:-~}/.zshrc
+```
+
+* Delete
+```sh
+$ brew uninstall asdf
+```
+
+<br>
+
+### Usage
+* asdf는 asdf core를 설치한 후 언어별 plugin을 이용
+
+| Command | Description |
+|:--|:--|
+| asdf plugin list | 설치된 plugin 리스트 조회 |
+| asdf plugin list all | 설치 가능한 plugin 리스트 조회 |
+| asdf plugin add <plugin name> [<git-url>] | plugin 설치 |
+| asdf list all <plugin name> | plugin에서 설치 가능한 버전 확인 |
+| asdf install <plugin name> <version> | 버전 설치 |
+| asdf local <plugin name> <version> | 현재 경로의 사용 설정 |
+| asdf global <plugin name> <version> | 전역 설정 |
+
+
+* [Java plugin](https://github.com/halcyon/asdf-java#java_home) 추가
+```sh
+$ asdf plugin add java https://github.com/halcyon/asdf-java.git
+$ asdf plugin update java
+
+## JAVA_HOME 설정
+$ echo -e "\n. $HOME/.asdf/plugins/java/set-java-home.zsh" >> ${ZDOTDIR:-~}/.zshrc
+```
+
+* 설치 가능한 Java 버전 조회
+```sh
+$ asdf list-all java
+```
+
+* Java 설치
+```sh
+$ asdf install java <version>
+
+## example
+$ asdf install java temurin-11.0.17+8
+```
+
+* 설치한 Java 버전 확인
+```sh
+$ asdf list java
+```
+
+* Java 제거
+```sh
+$ asdf uninstall java [version]
+```
+
+* Java 버전 변경
+```sh
+## current path
+$ asdf local java temurin-11.0.17+8
+
+## global
+$ asdf global java temurin-11.0.17+8
+```
+
+* 현재 사용 중인 버전 확인
+```sh
+$ asdf current
+```
+
+
 <br><br>
 
 > #### Reference
@@ -205,3 +292,4 @@ $ sdk current
 > * [Installing Java 8 and Managing Multiple Java Versions on OSX](http://hanxue-it.blogspot.com/2014/05/installing-java-8-managing-multiple.html)
 > * [Jenv not setting JAVA_HOME](https://github.com/gcuisinier/jenv/issues/44)
 > * [SDK Man](https://sdkman.io)
+> * [asdf](https://asdf-vm.com)
