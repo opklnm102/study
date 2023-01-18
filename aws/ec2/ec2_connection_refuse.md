@@ -76,15 +76,38 @@ round-trip min/avg/max/stddev = 40.801/125.601/542.074/186.257 ms
 * 그럼 22 port의 문제인데...
 * ping은 ICMP를 사용하기 때문에 port가 없기 때문에 telnet을 사용해보자
 
-```sh
-telnet x.x.x.x 22
-Trying x.x.x.x...
-telnet: connect to address x.x.x.x: Connection refused
-telnet: Unable to connect to remote host
+<br>
 
-## or use nc - $nc -z [ip or domain] [port]
-$ nc -z ip-192-0-0-5.ap-northeast-1.compute.internal 22
-Connection to ip-192-0-0-5.ap-northeast-1.compute.internal 22 port...
+### port 확인
+* telnet, curl, nc를 사용하여 확인할 수 있다
+* telnet
+```sh
+$ telnet <host> <port>
+
+## example
+$ telnet ip-192-0-0-5.ap-northeast-1.compute.internal 22
+Trying ip-192-0-0-5.ap-northeast-1.compute.internal...
+...
+```
+
+* curl
+```sh
+$ curl -v telnet://<host>:<port>
+
+## example
+$ curl -v telnet://ip-192-0-0-5.ap-northeast-1.compute.internal:22
+Trying ip-192-0-0-5.ap-northeast-1.compute.internal:22...
+...
+```
+
+* nc
+```sh
+$ nc -zv <host> <port>
+
+## example
+$ nc -zv ip-192-0-0-5.ap-northeast-1.compute.internal 22
+Connection to ip-192-0-0-5.ap-northeast-1.compute.internal 22 port
+...
 ```
 * 뭔가 문제가 있는듯...
 
@@ -137,3 +160,4 @@ systemd 238
 > * [Cannot connect to EC2 server anymore:“Connection refused on port 22”](https://unix.stackexchange.com/questions/369366/cannot-connect-to-ec2-server-anymoreconnection-refused-on-port-22)
 > * [ssh Connection refused: how to troubleshoot?](https://unix.stackexchange.com/questions/21302/ssh-connection-refused-how-to-troubleshoot)
 > * [sshd.socket stops working after a while](https://github.com/coreos/bugs/issues/2181)
+> * [VPC의 퍼블릿 또는 프라이빗 서브넷을 사용하는 Amazon RDS DB 인스턴스에 대한 연결 문제를 해결하려면 어떻게 해야 합니까?](https://aws.amazon.com/ko/premiumsupport/knowledge-center/rds-connectivity-instance-subnet-vpc)
