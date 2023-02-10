@@ -59,7 +59,7 @@ spec:
     args:
     - "-c"
     - "sleep 5 && exit 1"
-  restartPolicy: "Never"
+  restartPolicy: Never
 ```
 
 
@@ -68,10 +68,10 @@ spec:
 ## DNS로 Pod 찾기
 ```sh
 ## DNS 조회가 가능한 파드 만들기 
-$ kubectl run dnsutils --image=tutum/dnsutils --generator=run-pod/v1 --command -- sleep infinity 
+$ kubectl run dnsutils --image=tutum/dnsutils --command -- sleep infinity
 
 ## 새 파드로 DNS 조회 하기 
-$ kubectl exec dnsutils nslookup bluayer-headless # 파드들의 IP를 보여준다
+$ kubectl exec -it dnsutils -- nslookup [domain]
 ```
 
 
@@ -162,6 +162,14 @@ $ kubectl get pods [pod name] -o jsonpath='{range .spec.containers[*]}{"Containe
 for pod in $(kubectl get pods -o jsonpath={.items..metadata.name}); do
   kubectl get pods $pod  -o jsonpath='{range .spec.containers[*]}{"Container Name: "}{.name}{"\n"}{"Requests:"}{.resources.requests}{"\n"}{"Limits:"}{.resources.limits}{"\n"}{end}';
 done
+```
+
+
+<br>
+
+## PV(Persistent Volume) 총 크기 구하기
+```sh
+$ kubectl get pv -o json | jq '[ .items[].spec.capacity.storage[:-2] | tonumber ] | add'
 ```
 
 
