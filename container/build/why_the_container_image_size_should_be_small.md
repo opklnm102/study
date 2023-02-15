@@ -10,6 +10,7 @@ image size는 아래와 같은 요인을 통해 image build부터 container 실�
 * image build 소요 시간
 * registry에 image push 소요 시간
 * container를 실행할 host에서 image pull 소요 시간
+* container를 실행시키는 시간
 
 위 요인은 다음과 같은 문제를 일으킬 수 있다
 * cluster를 구성하는 node의 disk size 낭비
@@ -19,6 +20,8 @@ image size는 아래와 같은 요인을 통해 image build부터 container 실�
 대규모 트래픽 시스템에서는 auto scaling을 통해 새로운 node가 투입되는데, 이때 node에 얼마나 빨리 container를 배포할 수 있는지가 중요
 * memory footprint, image size가 커질수록 더 많은 memory 사용
 * 불필요한 것들이 포함되어 image size가 증가했다면 불필요한 것으로 인한 취약점 발생 요인 증가
+* image registry에 부하 증가
+* 취약성을 확인하는 시간 증가
 
 
 <br>
@@ -39,6 +42,7 @@ image size는 아래와 같은 요인을 통해 image build부터 container 실�
 
 ## 가벼운 container image 만들기
 * image에는 application binary와 dependency library, tool이 포함, 이 size를 줄이면 image size를 줄일 수 있다
+  * multistage build로 쉽게 가능
 * 아래 요소는 CI 등을 통해 지속적으로 모니터링 필요
   * 불필요한 파일 제거
   * 불필요한 프로그램 최소화
@@ -125,6 +129,17 @@ COPY --from=builder /app ./
 CMD ["./app"]
 ```
 
+
+<br>
+
+## Slim(Slim toolkit)
+* image size를 줄일 수 있는 간편한 도구인 [Slim(toolkit)](https://github.com/slimtoolkit/slim)을 사용
+```sh
+$ slim build <image>
+
+## e.g.
+$ slim build my/sample-app
+```
 
 <br>
 
