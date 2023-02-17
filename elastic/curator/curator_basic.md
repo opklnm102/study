@@ -773,9 +773,9 @@ actions:
       unit: days
       unit_count: 2
       exclude:
-    - filtertype:
+    - filtertype: forcemerged
       max_num_segments: 2
-      exclude:
+      exclude: True
 ```
 
 
@@ -1319,7 +1319,7 @@ actions:
   * index의 모든 shard(primary or replica)의 copy하여 동일한 node에 relocated
   * cluster health **green**
   * target index가 있으면 안된다
-  * target index의 primary shard count는 source index의 primary shard count와 동일해야 한다
+  * target index의 primary shard count는 source index의 primary shard count와 factor(인수)여야 한다
   * source index는 target index보다 더 많은 primary shard를 가져야 한다
   * target index는 **single shard에 들어갈 수 있는 maximum document count인 2,147,483,519**를 넘어서는 안된다
   * shrink process에서 기존 index의 second copy를 수용할 수 있는 여유 disk 공간 필요
@@ -1463,59 +1463,52 @@ actions:
 <br>
 
 ## Options
+* 여기서는 자주 사용하는 옵션만 다루며 이외에도 다양한 옵션을 지원하니 [여기](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/options.html)를 참고
 
-### allocation_type
-
-### allow_ilm_indices
+<br>
 
 ### continue_if_exception
-`continue_if_exception`보다 `ignore_empty_list` 사용
-`continue_if_exception`는 empty list 이외의 exception만 catch
-empty list는 새로운 cluster거나 index pattern이 추가될 때 발생할 수 있다
+* `continue_if_exception`보다 `ignore_empty_list` 사용
+* `continue_if_exception`는 empty list 이외의 exception만 catch
+* empty list는 새로운 cluster거나 index pattern이 추가될 때 발생할 수 있다
+* True - exception logging 후 다음 action 수행
+* False(default) - exception 발생시 action 종료
 
-True
-  exception logging 후 다음 action 수행
-default False
-
-
+<br>
 
 ### disable_action
-현재 action을 무시
-큰 설정 파일에서 작업을 일시적으로 비활성화하는데 유용
-default. False
+* 현재 action을 무시
+* 큰 설정 파일에서 작업을 일시적으로 비활성화하는데 유용
+* default. False
 
+<br>
 
 ### ignore_empty_list
-index, filtering에 따라 empty list가 될 수 있는데 empty list는 error condition
+* index, filtering에 따라 empty list가 될 수 있는데 empty list는 error condition
+* True - INFO log를 남기며 action이 종료
+* False(default) - ERROR log를 남기며 curator는 exit code 1로 종료
 
-True
-  INFO log
-  exit action
-False(default)
-  ERROR log
-  exit code 1 curator
-
-
+<br>
 
 ### timeout_override
-일부 action에만 default 설정
+* 일부 action에만 default 설정
+| action | default `timeout_override` value |
+|:--|:--|
+| close | 180 |
+| delete_snapshots | 300 |
+| forcemerge | 21600 |
+| resotre | 21600 |
+| snapshot | 21600 |
 
-close - 180
-delete_snapshots - 300
-forcemerge - 21600
-resotre - 21600
-snapshot - 21600
-
-wait_for_completion 사용시 새로운 polling 동작에 대해 client timeout을 줄이거나 방지해야 하는 forceMerge action 등에 유용
+* `wait_for_completion`를 사용할 때 client timeout을 줄이거나 방지해야 하는 다른 모든 action에 새로운 polling 동작이 있으므로 이 설정은 force merge action에 특히 유용
 
 
-
-
+<br>
 
 ## Filters
-원하는 index/snapshot을 선택하는 방법
-filter chain은 AND 연산
-OR 연산을 하고 싶으면 filtertype pattern으로 regex를 사용
+* 원하는 index/snapshot을 선택하는 방법
+* filter chain은 AND 연산
+* OR 연산을 하고 싶으면 filtertype pattern으로 regex를 사용
 ```yaml
 filters:
 - filtertype: pattern
@@ -1523,6 +1516,9 @@ filters:
   value: '^(alpha-|bravo-|charlie-).$'
 ```
 
+<br>
+
+### filtertype
 * filtertype 정의 필수, 여러개 가능
 ```yaml
 filters:
@@ -1536,34 +1532,34 @@ filters:
   settingN: ...
 ```
 
-index filtertypes
-  age
-  alias
-  allocated
-  closed
-  count
-  empty
-  forcemerged
-  kibana
-  none
-  opened
-  pattern
-  period
-  space
+#### index filtertypes
+* [age](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_age.html)
+* [alias](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_alias.html)
+* [allocated](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_allocated.html)
+* [closed](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_closed.html)
+* [count](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_count.html)
+* [empty](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_empty.html)
+* [forcemerged](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_forcemerged.html)
+* [kibana](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_kibana.html)
+* [none](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_none.html)
+* [opened](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_opened.html)
+* [pattern](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_pattern.html)
+* [period](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_period.html)
+* [space](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_space.html)
 
-snapshot filtertypes
-  age
-  count
-  none
-  pattern
-  period
-  state
+#### snapshot filtertypes
+* [age](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_age.html)
+* [count](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_count.html)
+* [none](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_none.html)
+* [pattern](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_pattern.html)
+* [period](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_period.html)
+* [state](https://www.elastic.co/guide/en/elasticsearch/client/curator/current/filtertype_state.html)
 
 
 ### age
-age를 기준으로 filtering
-exclude 사용 가능
-epoch time 기준
+* age를 기준으로 filtering
+* exclude 사용 가능
+* epoch time 기준
 
 | unit | seconds | Note |
 |:--|:--|:--|
@@ -1582,69 +1578,207 @@ epoch time 기준
   unit: days
   unit_count: 3
 ```
-index/snapshot의 생성 날짜와 `current epoch time - 3 * 86400`를 비교해 오래된 경우 실행 가능한 목록에 유지
+* index/snapshot의 생성 날짜와 `current epoch time - 3 * 86400`를 비교해 오래된 경우 실행 가능한 목록에 유지
 
+#### name-based ages
+```yaml
+ - filtertype: age
+   source: name
+   direction: older
+   timestring: '%Y.%m.%d'
+   unit: days
+   unit_count: 3
+```
 
-name-based ages
+#### creation_date-based ages
+```yaml
+ - filtertype: age
+   source: creation_date
+   direction: older
+   unit: days
+   unit_count: 3
+```
 
-
-
-creation_date-based ages
-
-
-
-
-field_stats-based ages
-
-
-
-
-#### Required settings
-
-
-#### Dependent settings
-
-
-#### Optional settings
-
-
-
-
-
-
-
-
-
-
-
+#### field_stats-based ages
+```yaml
+ - filtertype: age
+   source: field_stats
+   direction: older
+   unit: days
+   unit_count: 3
+   field: '@timestamp'
+   stats_result: min_value
+```
 
 
 <br>
 
-## 
-crontab이나 kubernetes cronjob으로 등록해서 사용
+## Example
+* crontab이나 kubernetes cronjob으로 등록해서 사용
 
 ### crontab
-TODO
-`crontab -e`
+* `crontab -e`
 ```
-00 8 * * * root curator /path/delete_index.yml --config /path/curator.yml
+0 8 * * * root curator /path/delete_index.yml --config /path/curator.yml
 ```
 
+<br>
 
 ### kubernetes cronjob
-TODO
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: elastic-curator
+  namespace: test
+  labels:
+    k8s-app: elastic-curator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: elastic-curator
+  namespace: test
+  labels:
+    k8s-app: elastic-curator
+rules:
+  - apiGroups: [ "" ]
+    resources: [ "configmaps" ]
+    verbs: [ "update", "patch" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: elastic-curator
+  namespace: test
+  labels:
+    k8s-app: elastic-curator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: elastic-curator
+subjects:
+  - kind: ServiceAccount
+    name: elastic-curator
+    namespace: test
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elastic-curator-config
+  namespace: test
+  labels:
+    k8s-app: elastic-curator
+data:
+  actionfile.yml: |-
+    ---
+    # Remember, leave a key empty if there is no value.  
+    # None will be a string, not a Python "NoneType"
+    # Also remember that all examples have 'disable_action' set to True.  
+    # If you want to use this action as a template, be sure to set this to False after copying it.
+    # https://www.elastic.co/guide/en/elasticsearch/client/curator/current/actionfile.html
+    actions:
+      1:
+        action: delete_indices
+        description: >-
+          Delete indices older than 30 days (based on index name), for logstash- prefixed indices
+        options:
+          ignore_empty_list: True
+          timeout_override:
+          continue_if_exception: True
+          disable_action: False
+        filters:
+        - filtertype: pattern
+          kind: prefix
+          value: logstash-
+          exclude:
+        - filtertype: age
+          source: name
+          direction: older
+          timestring: '%Y.%m.%d'
+          unit: days
+          unit_count: 30
+          field:
+          stats_result:
+          epoch:
+          exclude: False
+      2:
+        action: delete_indices
+        ...
 
+  config.yml: |-
+    ---
+    # Remember, leave a key empty if there is no value.
+    # None will be a string, not a Python "NoneType"
+    # https://www.elastic.co/guide/en/elasticsearch/client/curator/current/configfile.html
+    client:
+      hosts:
+        - elasticsearch.example.com
+      port: 443
+      url_prefix:
+      use_ssl: True
+      certificate:
+      client_cert:
+      client_key:
+      ssl_no_validate: False
+      timeout: 120
+      master_only: False
+    logging:
+      loglevel: INFO
+      logfile:
+      logformat: default
+      blacklist: ['elasticsearch', 'urllib3']
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: elastic-curator
+  namespace: test
+  labels:
+    k8s-app: elastic-curator
+spec:
+  schedule: "@daily"
+  startingDeadlineSeconds: 300
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            k8s-app: elastic-curator
+        spec:
+          serviceAccountName: elastic-curator
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node-group
+                        operator: In
+                        values:
+                          - test
+          restartPolicy: Never
+          containers:
+            - name: curator
+              image: untergeek/curator:8.0.2
+              args: ["--config", "/etc/config/config.yml", "/etc/config/actionfile.yml"]
+              volumeMounts:
+                - name: config-volume
+                  mountPath: /etc/config
+          volumes:
+            - name: config-volume
+              configMap:
+                name: elastic-curator-config
+```
 
 
 <br>
 
 ## Conclusion
-TODO: write the conclusion
+* curator와 cron을 이용하면 Elasticsearch 관리 작업을 자동화할 수 있으므로 유용하다
 
 
 <br><br>
-
 
 > #### Reference
 > * [elastic/curator](https://github.com/elastic/curator)
