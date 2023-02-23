@@ -173,6 +173,56 @@ $ kubectl get pv -o json | jq '[ .items[].spec.capacity.storage[:-2] | tonumber 
 ```
 
 
+<br>
+
+## 특정 key를 가지는 node cordon/drain
+
+### 특정 AZ의 node에 적용
+```sh
+## cordon
+$ kubectl cordon $(kubectl get no -l topology.kubernetes.io/zone=ap-northeast-2a -o name)
+
+## drain
+$ kubectl drain $(kubectl get no -l topology.kubernetes.io/zone=ap-northeast-2a -o name)
+```
+
+
+<br>
+
+## awk와 조합
+* kubectl과 awk를 조합하면 원하는 정보를 쉽고 빠르게 추출 및 조작할 수 있다
+
+
+### 특정 pod가 어느 node에 있는지 확인
+```sh
+$ kubectl describe pod <pod_name> | awk '/Node:/ {print $2}'
+```
+
+<br>
+
+### 특정 type Service 확인
+```sh
+$ kubectl get service -o wide | awk '$2 == "<type>" {print $1}'
+
+## NodePort type Service 확인
+$ kubectl get service -o wide | awk '$2 == "NodePort" {print $1}'
+```
+
+<br>
+
+### not ready pod 확인
+```sh
+$ kubectl get pod -o wide | awk '$2 == "0/1" {print $1}'
+```
+
+<br>
+
+### 특정 pod 제거
+```sh
+$ kubectl get pod --no-headers=true | awk '/nginx-*|app-*/ {print $1}' | xargs kubectl delete pod
+```
+
+
 <br><br>
 
 > #### Reference
