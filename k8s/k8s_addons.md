@@ -11,8 +11,8 @@
 |:--|:--|
 | [kube-proxy](https://kubernetes.io/ko/docs/reference/command-line-tools-reference/kube-proxy) | Node의 트래픽을 Pod로 proxy |
 | [amazon-vpc-cni](https://github.com/aws/amazon-vpc-cni-k8s) | VPC IP를 Pod에 할당해주는 CNI |
-| [CoreDNS](https://coredns.io) | cluster DNS |
-| [ExternalDNS](https://github.com/kubernetes-sigs/external-dns) | 외부 DNS 연동<br>CSP의 DNS 서비스(e.g. Route53) 권한 필요 |
+| [CoreDNS](https://coredns.io) | cluster의 container에게 DNS service와 service discovery 제공 |
+| [ExternalDNS](https://github.com/kubernetes-sigs/external-dns) | Route53 같은 외부 DNS와 cluster DNS 연동<br>CSP의 DNS 서비스(e.g. Route53) 권한 필요 |
 | [AWS Load Balancer Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller) | AWS ELB 연동 |
 | [Calico](https://www.tigera.io/project-calico) | Network Policy | 
 | [Istio](https://istio.io) | service mesh |
