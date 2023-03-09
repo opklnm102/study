@@ -248,6 +248,191 @@ $ kubectl get daemonsets --all-namespaces
 ```
 
 
+
+### Install with Terraform
+
+#### AWS 리소스 생성
+* Amazon SQS(Simple Queue Service) Queue
+* AutoScaling Group Termination Lifecycle Hook
+* Amazon EventBridge Rule
+* (Optional) IAM Role for the aws-node-termination-handler Queue Processing Pods
+
+```tf
+# cluster에 연결된 ASG에 lifecycle hook 생성
+resource "aws_autoscaling_lifecycle_hook" "nth" {
+  for_each = { for asg in local.asg_names: asg => asg if var.enable_aws_node_termination_handler && length(var.cluster_name) > 0 }
+  name                   = format("%s-asg-lifecycle-hook", var.cluster_name)
+  autoscaling_group_name = each.key
+  default_result         = "CONTINUE"
+  heartbeat_timeout      = 300
+  lifecycle_transition   = "autoscaling:EC2_INSTANCE_TERMINATING"
+}
+
+# node group에서 ec2 event를 수신하기 위한 SQS
+resource "aws_sqs_queue" "nth" {
+  count = var.enable_aws_node_termination_handler && length(var.cluster_name) > 0 ? 1 : 0
+  name = format("%s-nth-quere", var.cluster_name)
+  message_retention_seconds = var.message_retention_seconds
+  kms_master_key_id      = data.aws_kms_key.by_alias.arn
+  kms_data_key_reuse_period_seconds = 86400
+}
+
+resource "aws_sqs_queue_policy" "nth" {
+  count = var.enable_aws_node_termination_handler && length(var.cluster_name) > 0 ? 1 : 0
+  queue_url = aws_sqs_queue.nth[0].id
+  policy = data.aws_iam_policy_document.nth.json
+}
+
+data "aws_iam_policy_document" "nth" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "sqs:SendMessage",
+    ]
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com", "sqs.amazonaws.com"]
+    }
+    resources = [
+      try(aws_sqs_queue.nth[0].arn, "*"),
+    ]
+  }
+}
+
+locals {
+  nth_event_rules = {
+    ASGTerminationRule = {
+      source = "aws.autoscaling"
+      detail-type = "EC2 Instance-terminate Lifecycle Action"
+    }
+    SpotInterruptionRule = {
+      detail-type = "EC2 Spot Instance Interruption Warning"
+    }
+    RebalanceRecommendationRule = {
+      detail-type = "EC2 Instance Rebalance Recommendation"
+    }
+    ScheduledChangeRule = {
+      detail-type = "EC2 Instance State-change Notification"
+    }
+  }
+}
+ 
+resource "aws_cloudwatch_event_target" "nth" {
+  for_each = { for k, v in local.nth_event_rules : k => v if var.enable_aws_node_termination_handler && length(var.cluster_name) > 0 }
+  rule      = aws_cloudwatch_event_rule.nth[0].name
+  target_id = "NTHInterruptionQueueTarget"
+  arn       = aws_sqs_queue.nth[0].arn
+}
+ 
+resource "aws_cloudwatch_event_rule" "nth" {
+  for_each = { for k, v in local.nth_event_rules : k => v if var.enable_aws_node_termination_handler && length(var.cluster_name) > 0 }
+  name        = format("%s-nth-%s", var.cluster_name, lower(each.key))
+  description = format("%s-nth-%s", var.cluster_name, lower(each.key))
+
+event_pattern = <<EOF
+{
+  "source": [
+    "${try(each.value.source, "aws.ec2")}"
+  ],
+  "detail-type": [
+    "${each.value.detail-type}"
+  ]
+}
+EOF
+}
+
+resource "aws_cloudwatch_event_target" "health" {
+  count = var.enable_aws_node_termination_handler && length(var.aws_namespace) > 0 ? 1 : 0
+  rule      = aws_cloudwatch_event_rule.health[0].name
+  target_id = "NTHInterruptionQueueTarget"
+  arn       = aws_sqs_queue.nth[0].arn
+}
+
+resource "aws_cloudwatch_event_rule" "health" {
+  count = var.enable_aws_node_termination_handler && length(var.cluster_name) > 0 ? 1 : 0
+  name        = format("%s-nth-healtheventrule", var.cluster_name)
+  description = format("%s-nth-healtheventrule", var.cluster_name)
+ 
+  event_pattern = <<EOF
+{
+  "source": [
+    "aws.health"
+  ],
+  "detail-type": [
+    "AWS Health Event"
+  ],
+  "detail": {
+    "service": [
+      "EC2"
+    ],
+    "eventTypeCategory": [
+      "scheduledChange"
+    ]
+  }
+}
+EOF
+}
+```
+
+#### ArgoCD로 NTH 배포
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: aws-node-termination-handler
+spec:
+  generators:
+    - git:
+        repoURL: {{your gitops repository}}
+        revision: master
+        files:
+          - path: "addons/envs/dev/*.yaml"
+  template:
+    metadata:
+      name: "aws-node-termination-handler-{{cluster}}"
+      labels:
+        app.kubernetes.io/instance: "aws-node-termination-handler"
+        app.kubernetes.io/type: "addons"
+    spec:
+      project: devops
+      destination:
+        name: "{{cluster}}"
+        namespace: kube-system
+      source:
+        repoURL: https://aws.github.io/eks-charts
+        targetRevision: "0.21.0"
+        chart: aws-node-termination-handler
+        helm:
+          values: |-
+            fullnameOverride: aws-node-termination-handler
+            awsRegion: "{{aws_region}}"
+            managedAsgTag: "k8s.io/cluster-autoscaler/enabled"
+            enableSqsTerminationDraining: true
+            queueURL: "https://sqs.{{aws_region}}.amazonaws.com/{{aws_account_id}}/{{cluster}}-worker-nth-queue"             
+            serviceAccount:
+              annotations:
+                eks.amazonaws.com/role-arn: "arn:aws:iam::{{aws_account_id}}:role/aws-node-termination-handler-role" 
+            enableRebalanceDraining: true
+            enableSpotInterruptionDraining: true
+            podTerminationGracePeriod: "180"
+            nodeTerminationGracePeriod: "180"
+            enablePrometheusServer: true
+              serviceMonitor:
+                create: true
+                labels:
+                  release: prometheus-operator
+            webhookURLSecretName: aws-system-secret
+            webhookTemplateConfigMapName: webhook-template
+            webhookTemplateConfigMapKey: template
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+```
+
+
 <br>
 
 ## Test
