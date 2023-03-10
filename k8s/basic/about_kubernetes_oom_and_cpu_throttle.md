@@ -130,6 +130,15 @@ $ kubectl get pods -o jsonpath='{.status.qosClass}' [pod name]
   <img src="./images/cpu_throttle.png" alt="cpu throttle" width="70%" height="70%"/>
 </div>
 
+
+<br>
+
+## Resource troubleshooting cheatsheet
+<div align="left">
+  <img src="./images/k8s_resource_troubleshooting_cheatsheet.png" alt="k8s resource troubleshooting cheatsheet" width="70%" height="70%"/>
+</div>
+
+
 <br>
 
 ## Conclusion
