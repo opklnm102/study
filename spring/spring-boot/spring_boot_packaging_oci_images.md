@@ -31,7 +31,7 @@ docker.io/library/${project.name}:${project.version}
 * custom
 ```groovy
 bootBuildImage {
-	imageName = "example.com/library/${project.name}"
+  imageName = "example.com/library/${project.name}"
 }
 ```
 
@@ -42,11 +42,11 @@ bootBuildImage {
 ```groovy
 bootBuildImage {
   publish = true
-	docker {
-		builderRegistry {
-			token = "9cbaf023786cd7..."
-		}
-	}
+    docker {
+	  builderRegistry {
+	    token = "9cbaf023786cd7..."
+	  }
+  }
 }
 ```
 
@@ -101,12 +101,19 @@ bootBuildImage {
 $ java -Djarmode=layertools -jar app.jar extract
 ```
 
+| Directory | Description |
+|:--|:--|
+| Dependencies | Spring Boot 등 framework dependencies<br>framework version upgrade시에 변경 |
+| Spring Boot Loader | Bean lifecycle 관리를 위해 Spring Boot App을 JVM에 load하는 코드<br>거의 변하지 않는다 |
+| Snapshot dependencies | 자주 변경<br>build시마다 최신 snapshot을 가져와야할 수도 있다<br>application code에 가장 가깝다 |
+| Application | `src/main/java`로 application code |
+
 * spring boot 2.7.2에서는 default로 layerd가 활성화되어 있어서 이전 버전처럼 별도의 설정이 필요 없고, 아래 설정으로 비활성화할 수 있다
 ```gradle
 tasks.named("bootJar") {
-	layered {
-		enabled = false  // disable layered mode
-	}
+  layered {
+    enabled = false  // disable layered mode
+  }
 }
 ```
 
