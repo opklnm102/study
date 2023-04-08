@@ -368,7 +368,127 @@ $ serverless remove
 ```
 
 
+<br>
+
+## CI/CD with GitHub Actions
+* .github/workflows/deploy.yaml 추가
+```yaml
+name: Deploy serverless app
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - name: serverless deploy
+        uses: serverless/github-action@v3.1
+        with:
+          args: deploy --verbose
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+```
+
+### monorepo
+* monorepo일 경우 branch name과 working-directory를 이용
+```sh
+.
+├── example
+│   ├── node-api-gw
+│   │   ├── Makefile
+│   │   ├── README.md
+│   │   ├── docker-compose.yml
+│   │   ├── index.js
+│   │   ├── node_modules
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   └── serverless.yml
+│   ├── node-basic
+│   │   ├── Makefile
+│   │   ├── README.md
+│   │   ├── docker-compose.yml
+│   │   ├── index.js
+│   │   └── serverless.yml
+...
+```
+```yaml
+name: Deploy node-api-gw
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+      - feature/node-api-gw*
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+    defaults:
+      run:
+        working-directory: ./example/node-api-gw
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - name: serverless deploy
+        uses: serverless/github-action@v3.1
+        with:
+          args: deploy --verbose
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+```
+
+<br>
+
+### serverless/github-action 살펴보기
+* nikolaik/python-nodejs를 base image로 사용하여 `npm i -g serverless@3.x`를 실행하는 간단한 actions
+```dockerfile
+FROM nikolaik/python-nodejs:python3.10-nodejs16-slim
+
+LABEL version="1.0.0"
+LABEL repository="https://github.com/serverless/github-action"
+LABEL homepage="https://github.com/serverless/github-action"
+LABEL maintainer="Serverless, Inc. <hello@serverless.com> (https://serverless.com)"
+
+LABEL "com.github.actions.name"="Serverless"
+LABEL "com.github.actions.description"="Wraps the Serverless Framework to enable common Serverless commands."
+LABEL "com.github.actions.icon"="zap"
+LABEL "com.github.actions.color"="red"
+
+RUN npm i -g serverless@3.x
+ENTRYPOINT ["serverless"]
+```
+
+
 <br><br>
 
 > #### Reference
 > * [Serverless Framework Documentation](https://www.serverless.com/framework/docs)
+> * [Github Action for Serverless](https://github.com/serverless/github-action)
+> * [Setup CI/CD for your AWS Lambda with Serverless Framework and GitHub Actions](https://dev.to/aws-builders/setup-cicd-for-your-aws-lambda-with-serverless-framework-and-github-actions-4f12)
