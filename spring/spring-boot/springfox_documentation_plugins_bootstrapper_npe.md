@@ -75,7 +75,7 @@ Caused by: java.lang.NullPointerException: Cannot invoke "org.springframework.we
 
 ## Why?
 [Spring Boot 2.6에서 Spring MVC Path Matching Strategy 변경](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.6-Release-Notes#pathpattern-based-path-matching-strategy-for-spring-mvc)된게 원인으로 관련해서 자세히 보면
-* Spring MVC handlerMappings(spring.mvc.pathmatch.matching-strategy)의 default가 `AntPathMatcher` -> `PathPatternParser`로 변경
+* Spring MVC handlerMappings(spring.mvc.pathmatch.matching-strategy)의 default가 `AntPathMatcher` → `PathPatternParser`로 변경
 * `spring.mvc.pathmatch.matching-strategy=ant-path-matcher`로 `AntPathMatcher` 사용 가능
 * `PathPatternParser` 사용시 spring.mvc.servlet.path 사용 불가
 * actuator endpoint의 path matching strategy도 `PathPattern` 기반을 사용하며, condition property로 설정 불가
@@ -175,7 +175,7 @@ implementation 'org.springdoc.springdoc-openapi-ui:1.7.0'
 public class TestController {
 
     @GetMapping("/test")
-    public D test(@ApiParam(name = "이름", allowableValues = "kim,lee") @RequestParam("name") String name,
+    public Person test(@ApiParam(name = "이름", allowableValues = "kim,lee") @RequestParam("name") String name,
                   @RequestParam("age") Integer age) {
         return new Person(name, age);
     }
@@ -200,7 +200,7 @@ public class TestController {
 public class TestController {
 
     @GetMapping("/test")
-    public D test(@Parameter(name = "이름", schema = @Schema(allowableValues = {"kim", "lee"})) @RequestParam("name") String name,
+    public Person test(@Parameter(name = "이름", schema = @Schema(allowableValues = {"kim", "lee"})) @RequestParam("name") String name,
                   @RequestParam("age") Integer age) {
         return new Person(name, age);
     }
@@ -214,6 +214,154 @@ public class TestController {
         @Schema(title = "나이", hidden = true)
         private Integer age;
     }
+}
+```
+
+#### Annotation
+| Annotation | Case |
+|:--|:--|
+| @Api → @Tag | @Api(description = "설명", tags = {"api-v1"}) → @Tag(name = "api-v1", description = "설명") |
+| @ApiModel → @Schema | X |
+| @ApiModelProperty → @Schema | - @ApiModelProperty(position = 1) 제거<br>- @ApiModelProperty(value = "xxx") → @Schema(description = "xxx")<br>- @ApiModelProperty(required = true) → @Schema(requiredMode =  RequiredMode.REQUIRED) or @Schema(requiredMode = RequiredMode.AUTO)라면 @NotNull을 인식해 자동으로 required가 된다<br>- @ApiModelProperty(hidden = true) → @Schema(accessMode = READ_ONLY) |
+| @ApiOperation → @Operation | - @ApiOperation(value = "foo", notes = "bar") → @Operation(summary = "foo", description = "bar")<br>- @Operation(method = "xxx") → @GetMapping 등을 자동으로 인식하므로 제거 |
+| @ApiParam → @Parameter | - @ApiParam(value = "idx") @PathVariable(value = "idx") Integer idx → @PathVariable(value = "idx") Integer idx<br>- @ApiParam(allowableValues = "range[1, 5]") → @Parameter(schema = @Schema(minimum = "1", maximum = "5")) |
+| @ApiResponse | @ApiResponse(code = 404, message = "foo") → @ApiResponse(responseCode = "404", description = "foo") |
+| @ApiIgnore → @Parameter(hidden = true) or @Operation(hidden = true) or @Hidden | - model - @Hidden or @JsonIgnore가 있으면 동일한 효과<br>- method parameter - @Parameter(hidden = true)<br>- method - @Operation(hidden = true) |
+| @ApiImplicitParam → @Parameter | X |
+| @ApiImplicitParams → @Parameters | X |
+
+* @Tag - API Group 설정
+```java
+@Tag(name = "test v2", description = "test v2")
+@RestController
+@RequestMapping("/v2")
+public class TestController {
+  ...
+}
+```
+
+* @Schema - API Schema(= Model) 설정으로 필드에 설명이나 기본 값 등 정보를 추가할 수 있다
+```java
+@Schema(description = "사람")
+public class Person {
+  
+  @NotEmpty
+  @Schema(description = "이름")
+  private String name;
+
+  @NotNull
+  @Schema(description = "나이", hidden = true, defaultValue = "0")
+  private Integer age;
+
+  @Email
+  @Schema(description = "이메일", example = "abc@example.com")
+  private String email;
+
+  @Pattern(regexp = "[1-2]")
+  @Schema(description = "성별", defaultValue = "1", allowableValues = {"1", "2"})
+  private String sex;
+
+  @DateTimeFormat(pattern = "yyMMdd")
+  @Schema(description = "생년월일", example = "yyMMdd", maxLength = 6)
+  private String birthDate;
+}
+```
+
+* @Operation - API 상세 정보 설정
+```java
+@Operation(summary = "사람 조회", description = "API 설명")
+@GetMapping("/test")
+public Person test(@Parameter(name = "이름", schema = @Schema(allowableValues = {"kim", "lee"})) @RequestParam("name") String name, 
+              @RequestParam("age") Integer age) {
+  return new Person(name, age);
+}
+```
+
+* @ApiResponse - API response 설정
+```java
+@ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = Person.class))),
+        @ApiResponse(responseCode = "404", description = "존재하지 않는 리소스 접근", content = @Content(schema = @Schema(implementation = ErrorResponse.class))) })
+@Operation(summary = "사람 조회", description = "API 설명")
+@GetMapping("/test")
+public Person test(@Parameter(name = "이름", schema = @Schema(allowableValues = {"kim", "lee"})) @RequestParam("name") String name, 
+              @RequestParam("age") Integer age) {
+  return new Person(name, age);
+}
+
+// or
+@Operation(summary = "사람 조회", 
+           description = "API 설명", 
+           responses = {
+            @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = Person.class))),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 리소스 접근", content = @Content(schema = @Schema(implementation = ErrorResponse.class))) 
+           })
+```
+
+#### Spring Security와 같이 사용할 경우
+```java
+@GetMapping("/test")
+public TestResponse test(@AuthenticationPrincipal CustomUserDetails user) {
+  ...
+}
+```
+* CustomUserDetails은 Spring Security에 의해 자동으로 값이 채워지므로 API parameter로 노출할 필요가 없을 때 아래와 같이 설정하면 개별로 설정해주지 않아도 된다
+```java
+@Configuration
+public class OpenApiConfiguration {
+  static {
+    SpringDocUtils.getConfig().addAnnotationsToIgnore(AuthenticationPrincipal.class);
+  }
+...
+}
+```
+
+#### header로 api key로 인증할 경우
+* springfox의 Docket.globalOperationParameters() 대체
+```java
+@Configuration
+public class OpenApiConfiguration {
+
+  @Bean
+  public OpenAPI openAPI() {
+    return new OpenAPI()
+              .components(new Components()
+                .addSecuritySchemes("Authorization", new SecurityScheme().type(SecurityScheme.Type.APIKEY).in(SecurityScheme.In.HEADER).name("Authorization").description("API key  필요")))
+              .security(List.of(new SecurityRequirement().addList("Authorization")))
+              .info(new Info()
+                      .title("OpenAPI")
+                      .description("OpenAPI Docs"));
+    }
+
+  // 모든 @Operation에 parameter로 추가
+  @Bean
+  public OperationCustomizer operationCustomizer() {
+    return (operation, handlerMethod) -> operation.addParametersItem(
+           new Parameter()
+               .in(SecurityScheme.In.HEADER.toString())
+               .name("Authorization")
+               .description("API key 필요")
+               .required(false));
+    }
+}
+```
+
+#### global response를 추가하고 싶을 경우
+* @ApiResponse로 개별적으로 설정하지 않고 전역으로 설정할 경우로 springfox의 Docket.globalResponseMessage() 대체
+```java
+@Configuration
+public class OpenApiConfiguration {
+
+  @Bean
+  public OpenApiCustomiser openApiCustomiser() {
+    return openApi -> openApi.getPaths().values()
+      .forEach(pathItem -> pathItem.readOperations()
+        .forEach(operation -> operation.getResponses()
+          .addApiResponse(String.valueOf(HttpStatus.UNAUTHORIZED.value()), new ApiResponse().description(HttpStatus.UNAUTHORIZED.getReasonPhrase()))
+          .addApiResponse(String.valueOf(HttpStatus.FORBIDDEN.value()), new ApiResponse().description(HttpStatus.FORBIDDEN.getReasonPhrase()))
+          .addApiResponse(String.valueOf(HttpStatus.BAD_REQUEST.value()), new ApiResponse().description(HttpStatus.BAD_REQUEST.getReasonPhrase()))
+          .addApiResponse(String.valueOf(HttpStatus.UNPROCESSABLE_ENTITY.value()), new ApiResponse().description("잘못된 매개변수"))));
+  }
 }
 ```
 
@@ -234,3 +382,4 @@ public class TestController {
 > * [Spring Boot 2.4 Release Notes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.4-Release-Notes)
 > * [Spring Boot 2.6 Release Notes](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-2.6-Release-Notes)
 > * [URL Matching with PathPattern in Spring MVC](https://spring.io/blog/2020/06/30/url-matching-with-pathpattern-in-spring-mvc)
+> * [@ApiModelProperty to @Schema](https://stackoverflow.com/questions/72221934/apimodelproperty-to-schema)
