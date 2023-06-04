@@ -315,6 +315,72 @@ public class OpenApiConfiguration {
 ...
 }
 ```
+* spring security 설정 수정
+```java
+@Configuration
+public class WebSecurityConfiguration {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        return http.authorizeRequests()
+                .requestMatchers(EndpointRequest.to(HealthEndpoint.class, InfoEndpoint.class)).permitAll()
+                .mvcMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .anyRequest().authenticated()
+                .and()
+                .formLogin().disable()
+                .csrf().disable()
+                .build();
+    }
+}
+```
+* spring security 설정 test
+```java
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class OpenAPISecurityTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    void swaggerUI() throws Exception {
+        mockMvc.perform(get("/swagger-ui/index.html"))
+                .andExpect(status().isOk())
+                .andDo(print());
+    }
+
+    @Test
+    void swaggerConfig() throws Exception {
+        mockMvc.perform(get("/v3/api-docs/swagger-config"))
+                .andExpect(status().isOk())
+                .andDo(print());
+    }
+
+    @Test
+    void apiDocs() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andDo(print());
+    }
+
+    @Test
+    void actuatorHealth() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andDo(print());
+    }
+}
+```
 
 #### header로 api key로 인증할 경우
 * springfox의 Docket.globalOperationParameters() 대체
