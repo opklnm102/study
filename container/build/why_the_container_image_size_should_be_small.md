@@ -97,7 +97,11 @@ CMD ["/my-static-binary"]
 * package manager가 존재하면서 가벼운 배포판으로 인기가 높다
   * package manager - `apk`
   * image size - 약 5MB
-
+* 대부분의 Linux에서 사용하는 [glibc](https://ko.wikipedia.org/wiki/Glibc)가 아닌 musl을 사용하기 때문에 musl 호환 library를 사용하거나 musl libc로 recompile 필요
+  * Java라면 JVM과 musl 호환 필요
+  * 호환성을 위해 추가 패키지 설치시 다른 image와 큰 차이가 없을 가능성 존재
+  * alpine에서 성능이 안나오는 경우 존재
+* 용량 최적화라면 caching을 이용하는 방법도 존재
 ```dockerfile
 FROM alpine:3.14
 RUN apk add --no-cache mysql-client
