@@ -81,6 +81,58 @@ public class WebSecurityConfigurationTest {
 }
 ```
 
+<br>
+
+## WebSecurity 설정
+
+### As-is
+```java
+@Configuration
+public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+    
+  @Override
+  public void configure(WebSecurity web) {
+    web.ignoring().antMatchers("/ignore1", "/ignore2");
+  }
+}
+```
+
+<br>
+
+### To-be
+* `WebSecurityCustomizer` 사용
+```java
+@Configuration
+public class SecurityConfiguration {
+
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return web -> web.ignoring().requestMatchers("/ignore1", "/ignore2");
+    }
+}
+```
+
+* static resource를 사용하는 경우
+```java
+@Bean
+public WebSecurityCustomizer webSecurityCustomizer() {
+  return web -> web.ignoring().requestMatchers(PathRequest.toStaticResources().atCommonLocations());
+}
+```
+
+* `WebSecurityCustomizer`를 사용하면 아래처럼 warning이 발생하므로 `SecurityFilterChain`에서 HttpSecurity#authorizeHttpRequests.permitAll()을 사용하자
+```
+You are asking Spring Security to ignore org.springframework.boot.autoconfigure.security.servlet.StaticResourceRequest$StaticResourceRequestMatcher@72a61eae. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+```
+```java 
+@Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+  return http.authorizeHttpRequests(
+                      auth -> auth.requestMatchers(athRequest.toStaticResources().atCommonLocations()).permitAll())
+             .build();
+}
+```
+
 
 <br>
 
