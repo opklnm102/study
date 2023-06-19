@@ -86,6 +86,48 @@ public CorsFilter corsFilter() {
 }
 ```
 
+<br>
+
+## Spring Security
+* HTTP GET, HEAD, POST에 적용시
+```java
+@Configuration
+public class WebSecurityConfiguration {
+
+  @Bean
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    return http.authorizeHttpRequests(auth ->
+                        auth.requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
+                            .anyRequest().authenticated())
+               .cors(cors -> cors.configurationSource(request -> new CorsConfiguration().applyPermitDefaultValues()))
+               .build();
+  }
+}
+```
+
+* HTTP GET, HEAD, POST 외에 적용시
+```java
+@Configuration
+public class WebSecurityConfiguration {
+
+  @Bean
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    return http.authorizeHttpRequests(auth ->
+                        auth.requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
+                            .anyRequest().authenticated())
+                .cors(cors -> cors.configurationSource(request -> {
+                  var corsConfiguration = new CorsConfiguration();
+                  corsConfiguration.setAllowedOriginPatterns(List.of("https://example.com"));
+                  corsConfiguration.setAllowedMethods(List.of(HttpMethod.GET.name(), HttpMethod.HEAD.name(), HttpMethod.POST.name(),
+                    HttpMethod.PUT.name(), HttpMethod.DELETE.name(), HttpMethod.OPTIONS.name()));
+                  corsConfiguration.setAllowedHeaders(Collections.singletonList(CorsConfiguration.ALL));
+                  return corsConfiguration;
+                }))
+                .build();
+  }
+}
+```
+
 
 <br>
 
