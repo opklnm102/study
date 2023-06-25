@@ -2,12 +2,16 @@
 > date - 2022.09.04  
 > keyworkd - kafka, command  
 > kafka 사용시 유용한 command 정리  
-> Kafka 버전에 따라 `--zookeeper`, `--bootstrap-server`, `--broker-list`를 적절히 사용해야한다
+> Kafka 버전에 따라 `--zookeeper`, `--bootstrap-server`, `--broker-list`를 적절히 사용해야한다  
+> `--zookeeper`, `--broker-list`는 구버전에서 사용되며 최신 버전은 `--bootstrap-server`을 사용한다  
 
 <br>
 
 ## Kafka CLI Configuration
 * container image를 사용하기 때문에 $HOME/.zshrc에 아래와 같이 추가
+
+### bitnami/kafka 사용
+* `--execute`가 없으면 dry run으로 동작
 ```sh
 kafka-cli() {
   docker run -it --rm --entrypoint=sh bitnami/kafka:${TAG} /opt/bitnami/kafka/bin/"$@"
@@ -16,7 +20,7 @@ kafka-cli() {
 
 * 아니면 아래와 같이 세분화해서 추가해도 무방하다
 ```sh
-kafka-cli-topic() {
+kafka-cli-topics() {
   docker run -it --rm --entrypoint=sh bitnami/kafka /opt/bitnami/kafka/bin/kafka-topics.sh "$@"
 }
 
@@ -29,6 +33,37 @@ kafka-cli-reassign-partitions() {
 }
 ```
 
+<br>
+
+### confluentinc/cp-kafka 사용
+* `--dry-run`을 명시적으로 사용해야 dry run으로 동작
+```sh
+kafka-cli() {
+  docker run -it --rm confluentinc/cp-kafka:7.3.2 "$@"
+}
+
+## alias 사용
+alias kafka-cli="docker run -it --rm confluentinc/cp-kafka:7.3.2"
+```
+
+* ver. 세분화
+```sh
+BROKER_ENDPOINT="my-kafka-1:9092,my-kafka-2:9092,my-kafka-3:9092"
+KAFKA_IMAGE="confluentinc/cp-kafka:7.3.2"
+
+kafka-cli-topics() {
+  docker run -it --rm "$KAFKA_IMAGE" kafka-topics --bootstrap-server "$BROKER_ENDPOINT" "$@"
+}
+
+kafka-cli-consumer-groups() {
+  docker run -it --rm "$KAFKA_IMAGE" kafka-consumer-groups --bootstrap-server "$BROKER_ENDPOINT" "$@"
+}
+
+kafka-cli-reassign-partitions() {
+  docker run -it --rm "$KAFKA_IMAGE" kafka-reassign-partitions --bootstrap-server "$BROKER_ENDPOINT" "$@"
+}
+```
+
 
 <br>
 
@@ -36,14 +71,14 @@ kafka-cli-reassign-partitions() {
 
 ### Create topics
 ```sh
-$ kafka-cli kafka-topics.sh --zookeeper [zookeeper endpoint] \
+$ kafka-cli kafka-topics.sh --bootstrap-server [broker endpoint] \
                             --create \
                             --topic [topic] \
                             --partitions [partition] \
                             --replication-factor [replication factor]
 
 ## example
-$ kafka-cli kafka-topics.sh --zookeeper zookeeper:2181 \
+$ kafka-cli kafka-topics.sh --bootstrap-server my-kafka:9092 \
                             --create \
                             --topic test \
                             --partitions 6 \
@@ -54,11 +89,11 @@ $ kafka-cli kafka-topics.sh --zookeeper zookeeper:2181 \
 
 ### List topics
 ```sh
-$ kafka-cli kafka-topics.sh --zookeeper [zookeeper endpoint] \
+$ kafka-cli kafka-topics.sh --bootstrap-server [broker endpoint] \
                             --list
 
 ## example
-$ kafka-cli kafka-topics.sh --zookeeper zookeeper:2181 \
+$ kafka-cli kafka-topics.sh --bootstrap-server my-kafka:9092 \
                             --list
 ```
 
@@ -68,18 +103,18 @@ $ kafka-cli kafka-topics.sh --zookeeper zookeeper:2181 \
 현재 partition 할당 등의 topic 정보 조회
 * 전체 topic 조회
 ```sh
-$ kafka-cli kafka-topics.sh --zookeeper [zookeeper endpoint] \
+$ kafka-cli kafka-topics.sh --bootstrap-server [broker endpoint] \
                             --describe
 ```
 
 * 특정 topic 조회
 ```sh
-$ kafka-cli kafka-topics.sh --zookeeper [zookeeper endpoint] \
+$ kafka-cli kafka-topics.sh --bootstrap-server [broker endpoint] \
                             --topic [topic] \
                             --describe
 
 ## example
-$ kafka-cli kafka-topics.sh --zookeeper zookeeper:2181 \
+$ kafka-cli kafka-topics.sh --bootstrap-server my-kafka:9092 \
                             --topic test \
                             --describe
 
@@ -96,7 +131,7 @@ Topic: test   PartitionCount: 10      ReplicationFactor: 3    Configs: min.insyn
 * `delete.topic.enable=true` 필요
 * delete marked된 후 일정 시간 후 cluster에서 topic 제거되나 exception 발생시 복구된다
 ```sh
-$ kafka-cli kafka-topics.sh --zookeeper [zookeeper endpoint] \
+$ kafka-cli kafka-topics.sh --bootstrap-server [broker endpoint] \
                             --topic [topic] \
                             --delete
 ```
@@ -104,7 +139,7 @@ $ kafka-cli kafka-topics.sh --zookeeper [zookeeper endpoint] \
 
 * 복구 동작 없이 topic 제거
 ```sh
-$ kafka-cli kafka-topics.sh --zookeeper [zookeeper endpoint] \
+$ kafka-cli kafka-topics.sh --bootstrap-server [broker endpoint] \
                             --topic [topic] \
                             --delete \
                             --force
@@ -115,14 +150,14 @@ $ kafka-cli kafka-topics.sh --zookeeper [zookeeper endpoint] \
 ### Set topic retention - time based
 * cluster의 default retention으로 생성되어 더 짧게 or 길게 변경하기 위해 topic level에서 재정의
 ```sh
-$ kafka-cli kafka-configs.sh --zookeeper [zookeeper endpoint] \
+$ kafka-cli kafka-configs.sh --bootstrap-server [broker endpoint] \
                              --alter \
                              --entity-name [topic] \
                              --entity-type topics \
                              --add-config retention.ms=60000  # 60s
 
 ## 확인
-$ kafka-cli kafka-topics.sh --zookeeper [zookeeper endpoint] \
+$ kafka-cli kafka-topics.sh --bootstrap-server [broker endpoint] \
                             --topic [topic] \
                             --describe
 Topic:test	PartitionCount:6	ReplicationFactor:3	Configs:retention.ms=60000
@@ -136,11 +171,11 @@ Topic:test	PartitionCount:6	ReplicationFactor:3	Configs:retention.ms=60000
 ## Simple producer & consumer
 * start console producer
 ```sh
-$ kafka-cli kafka-console-producer.sh --broker-list [broker endpoint] \
+$ kafka-cli kafka-console-producer.sh --bootstrap-server [broker endpoint] \
                                       --topic [topic]
 
 ## example
-$ kafka-cli kafka-console-producer.sh --broker-list my-kafka:9092 \
+$ kafka-cli kafka-console-producer.sh --bootstrap-server my-kafka:9092 \
                                       --topic test
 ```
 
@@ -210,7 +245,7 @@ $ kafka-cli kafka-consumer-groups.sh --bootstrap-server my-kafka:9092 \
 * old consumer만 제거 가능
 * new consumer는 latest commited offset이 만료되면 group이 제거되므로, group metadata를 제거할 필요가 없다
 ```sh
-$ kafka-cli kafka-consumer-groups.sh --zookeeper [zookeeper endpoint] \
+$ kafka-cli kafka-consumer-groups.sh --bootstrap-server [broker endpoint] \
                                      --group [consumer group] \
                                      --delete
 ```
@@ -228,7 +263,7 @@ $ kafka-cli kafka-consumer-groups.sh --zookeeper [zookeeper endpoint] \
 * message key가 있는 topic에 partition을 추가할 경우 key에 mapping된 partition이 변경될 수 있다
 * partition 감소가 필요할 경우 topic 재생성
 ```sh
-$ kafka-cli kafka-topics.sh --zookeeper [zookeeper endpoint] \
+$ kafka-cli kafka-topics.sh --bootstrap-server [broker endpoint] \
                             --create \
                             --topic [topic] \
                             --partitions [추가할 partition 개수] \
@@ -243,14 +278,12 @@ $ kafka-cli kafka-topics.sh --zookeeper [zookeeper endpoint] \
 #### 1. new partition configuration 생성
 ```sh
 $ kafka-cli kafka-reassign-partitions.sh --bootstrap-server [broker endpoint] \
-                                         --zookeeper [zookeeper endpoint] \
                                          --topics-to-move-json-file topic-to-move.json \
                                          --broker-list [broker list] \  # partition을 분배할 broker list
                                          --generate
 
 ## example
 $ kafka-cli kafka-reassign-partitions.sh --bootstrap-server my-kafka:9092 \
-                                         --zookeeper my-zookeeper:2181 \
                                          --topics-to-move-json-file topic-to-move.json \
                                          --broker-list "0,1,2" \
                                          --generate 
@@ -282,7 +315,6 @@ Proposed partition reassignment configuration
 * 아래 명령어로 partition reassignment 시작
 ```sh
 $ kafka-cli kafka-reassign-partitions.sh --bootstrap-server [broker endpoint] \
-                                         --zookeeper [zookeeper endpoint] \
                                          --reassignment-json-file expand-cluster-reassignment.json \
                                          --execute
 ...
@@ -293,7 +325,6 @@ Successfully started reassignment of partitions.
 * assignments 진행 확인
 ```sh
 $ kafka-cli kafka-reassign-partitions.sh --bootstrap-server [broker endpoint] \
-                                         --zookeeper [zookeeper endpoint] \
                                          --reassignment-json-file expand-cluster-reassignment.json \
                                          --verify
 
@@ -307,7 +338,6 @@ Reassignment of partition test10-8 completed successfully
 * partition assignment만 rollback되며 cluster의 broker 생성/추가는 rollback되지 않는다
 ```sh
 $ kafka-cli kafka-reassign-partitions.sh --bootstrap-server [broker endpoint] \
-                                         --zookeeper [zookeeper endpoint] \
                                          --reassignment-json-file original-state.json \
                                          --execute
 ```
