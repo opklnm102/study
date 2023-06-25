@@ -64,16 +64,17 @@ test.offset.topic  0          0
 ```
 * `--topic` 대신 `--all-topics`를 지정하면 모든 topic에 대해 실행
 
-#### Offset reset option
+#### Offset reset options
 | offset reset option | Description | Example |
 |:--|:--|:--|
-| --to-datetime [YYYY-MM-DDTHH:mm:SS.sss±hh:mm] | Reset to datetime, datetime 이후 offset으로 이동 | 2020-03-01 00:00:00(UTC) 이후 offset으로 이동, `--to-datetime 2020-03-01T00:00:00Z` |
-| --by-duration [PnDTnHnMnS] | Reset by duration | 1주일 전 offset으로 이동, `--by-duration P7D` |
-| --to-earliest | Reset to earliest, 사용 가능한 가장 과거 offset | `--to-earliest` |
-| --to-latest | Reset to latest, 사용 가능한 가장 최신 offset | `--to-latest`  |
-| --to-offset [Long] | Reset to offset, 원하는 offset으로 이동 | offset 10으로 이동, `--to-offset 10` |
+| --to-datetime [YYYY-MM-DDTHH:mm:SS.sss±hh:mm] | Reset to datetime<br>datetime 이후 offset으로 이동 | 2020-03-01 00:00:00(UTC) 이후 offset으로 이동<br>`--to-datetime 2020-03-01T00:00:00Z` |
+| --by-duration [PnDTnHnMnS] | Reset by duration<br>현재 timestamp에서 기간 단위로 offset 이동 | 1주일 전 offset으로 이동<br>`--by-duration P7D` |
+| --to-earliest | Reset to earliest<br>사용 가능한 가장 과거로 offset 이동 | `--to-earliest` |
+| --to-latest | Reset to latest<br>사용 가능한 가장 최신으로 offset 이동 | `--to-latest`  |
+| --to-current | 현재로 offset 이동  | `--to-current` |
+| --to-offset [Long] | Reset to offset<br>원하는 offset으로 이동 | offset 10으로 이동, `--to-offset 10` |
 | --shify-by [+/- Long] | Shift offset by 'n' | current offset에서 -10, `--shift-by -10` |
-| --from-file [PATH_TO_FILE] | Reset from file, reset plan이 있는 file을 이용해 reset | `--from-file reset-plan.csv` |
+| --from-file [PATH_TO_FILE] | Reset from file<br>reset plan이 있는 file을 이용해 reset | `--from-file reset-plan.csv` |
 
 <br>
 
