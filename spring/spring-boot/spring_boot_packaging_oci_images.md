@@ -8,6 +8,7 @@
 ## Buildpacks support
 * [Cloud Native Buildpacks (CNB)](https://buildpacks.io/)을 사용해 `bootBuildImage` task에서 [OCI image](https://github.com/opencontainers/image-spec) 생성
 * [jib](https://github.com/GoogleContainerTools/jib)처럼 `Dockerfile` 없이 image를 생성하나 docker daemon 필요
+  * [Docker for Mac](https://docs.docker.com/desktop/install/mac-install), [Rancher Desktop](https://rancherdesktop.io) 등으로 docker 설치
 * Spring Boot 2.3부터 가능
 * layered image를 생성하므로 image cache를 활용해 다음 build time이 단축된다
 
@@ -19,13 +20,12 @@
 $ ./gradlew bootBuildImage
 ```
 
-
 <br>
 
-## image name custom
+### image name custom
 * default
 ```
-docker.io/library/${project.name}:${project.version}
+docker.io/library/${project.artifactId}:${project.version}
 ```
 
 * custom
@@ -34,11 +34,13 @@ bootBuildImage {
   imageName = "example.com/library/${project.name}"
 }
 ```
-
+```sh
+$ ./gradlew bootBuildImage --imageName=<image name>:<image tag>
+```
 
 <br>
 
-## publish image
+### publish image
 ```groovy
 bootBuildImage {
   publish = true
@@ -48,6 +50,42 @@ bootBuildImage {
 	  }
   }
 }
+```
+
+<br>
+
+### Connection to the Docker daemon error
+* docker 설치 후 아래 error가 발생하면 아래 방법 중 하나로 조치
+```java
+Connection to the Docker daemon at 'localhost' failed with error "[2] No such file or directory"; ensure the Docker daemon is running and accessible
+```
+
+* bootBuildImage task에 host 설정을 추가하거나
+```groovy
+tasks.named("bootBuildImage") {
+  docker {
+    // for docker
+    host = "unix:///var/run/docker.sock"
+    host = "unix://${System.properties['user.home']}/.docker/run/docker.sock"
+
+    // for podman
+    host = "unix:///run/user/1000/podman/podman.sock"
+
+    // for rancher desktop
+    host = "unix://${System.properties['user.home']}/.rd/docker.sock"
+
+    bindHostToBuilder = true  // optional
+  }
+}
+```
+
+* 아래 명령어를 실행
+```sh
+## for docker
+$ sudo ln -s $HOME/.docker/run/docker.sock /var/run/docker.sock
+
+## for rancher desktop
+$ sudo ln -s $HOME/.rd/docker.sock /var/run/docker.sock
 ```
 
 
