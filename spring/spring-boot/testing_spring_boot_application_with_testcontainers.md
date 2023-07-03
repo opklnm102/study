@@ -335,6 +335,7 @@ class SimpleKafkaApplicationTests {
 ### docker compose + Singleton containers
 * Singleton containers를 사용하면 여러 test class에 대해 한번만 시작되는 container를 정의할 수 있다
 * 기본 class가 로드될 떄 시작되어 모든 상속 test class에서 사용되고, test가 끝나면 testcontainer core에 의해 시작된 Ryuk container가 singleton container를 중지시킨다
+* [Test Fixtures](#test-fixtures)를 사용해도 공유된다
 ```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class SimpleTests extends ComposeContainer {
@@ -363,16 +364,20 @@ public class SimpleTests extends ComposeContainer {
 @ActiveProfiles("test")  // optional
 public abstract class ComposeContainer {
 
-    // shared container - shared between test modules
-    @Container
-    private static final DockerComposeContainer<?> CONTAINERS = new DockerComposeContainer<>(new File("docker-compose-test.yml"))
-            .withExposedService("mysql_1", 3306, Wait.forListeningPort());
+  // shared container - shared between test modules
+  private static final DockerComposeContainer<?> CONTAINERS;
 
-    @DynamicPropertySource
-    static void dbProperties(DynamicPropertyRegistry registry) {
-        registry.add("DB_HOST", () -> CONTAINERS.getServiceHost("mysql_1", 3306));
-        registry.add("DB_PORT", () -> CONTAINERS.getServicePort("mysql_1", 3306));
-    }
+  static {
+    CONTAINERS = new DockerComposeContainer<>(new File("docker-compose-test.yml"))
+            .withExposedService("mysql_1", 3306, Wait.forListeningPort());
+    CONTAINERS.start();
+  }
+    
+  @DynamicPropertySource
+  static void dbProperties(DynamicPropertyRegistry registry) {
+    registry.add("DB_HOST", () -> CONTAINERS.getServiceHost("mysql_1", 3306));
+    registry.add("DB_PORT", () -> CONTAINERS.getServicePort("mysql_1", 3306));
+  }
 }
 ```
 
