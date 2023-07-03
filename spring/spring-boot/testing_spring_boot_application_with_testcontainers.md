@@ -217,6 +217,121 @@ public class JpaConfiguration {
 
 <br>
 
+### Kafka testing
+* dependency
+```gradle
+implementation 'org.springframework.kafka:spring-kafka'
+
+testImplementation 'org.springframework.boot:spring-boot-starter-test'
+testImplementation 'org.springframework.kafka:spring-kafka-test'
+testImplementation 'org.testcontainers:kafka'
+```
+
+* KafkaProducer
+```java
+@Component
+@Slf4j
+public class KafkaProducer {
+
+  private final KafkaTemplate<String, String> kafkaTemplate;
+
+  public KafkaProducer(KafkaTemplate<String, String> kafkaTemplate) {
+    this.kafkaTemplate = kafkaTemplate;
+  }
+
+  public void send(String topic, String payload) {
+    kafkaTemplate.send(topic, payload);
+    log.info("Message: " + payload + " sent to topic: " + topic);
+  }
+}
+```
+* KafkaConsumer
+```java
+@Component
+@Slf4j
+public class KafkaConsumer {
+
+  private CountDownLatch latch;
+  private String payload;
+
+  public KafkaConsumer() {
+    resetLatch();
+  }
+
+  @KafkaListener(topics = "test")
+  public void receiveTestTopics(ConsumerRecord<String, String> consumerRecord) {
+    log.info("Receiver on topic : " + consumerRecord.toString());
+    payload = consumerRecord.toString();
+    latch.countDown();
+  }
+
+  public void resetLatch() {
+    latch = new CountDownLatch(1);
+  }
+
+  public CountDownLatch getLatch() {
+    return latch;
+  }
+
+  public String getPayload() {
+    return payload;
+  }
+}
+```
+* KafkaExtension
+```java
+class KafkaExtension implements BeforeAllCallback, AfterAllCallback {
+
+  private KafkaContainer kafka;
+
+  @Override
+  public void beforeAll(ExtensionContext context) throws Exception {
+    kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.3.2"));
+    kafka.start();
+
+    System.setProperty("spring.kafka.bootstrap-servers", kafka.getBootstrapServers());  // for Kafka AdminClient
+    System.setProperty("spring.kafka.producer.bootstrap-servers", kafka.getBootstrapServers());  // for Kafka producer
+    System.setProperty("spring.kafka.consumer.bootstrap-servers", kafka.getBootstrapServers());  // for Kafka consumer
+  }
+
+  @Override
+  public void afterAll(ExtensionContext context) throws Exception {
+    // do nothing, Testcontainers handles container shutdown
+  }
+}
+```
+* Test Case
+```java
+@SpringBootTest
+@ExtendWith(KafkaExtension.class)
+@DirtiesContext
+class SimpleKafkaApplicationTests {
+
+  @Autowired
+  private KafkaProducer kafkaProducer;
+
+  @Autowired
+  private KafkaConsumer kafkaConsumer;
+
+  @Test
+  void test() throws Exception {
+    // given
+    var data = "sending test message ";
+
+    // when
+    kafkaProducer.send("test", data + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+
+    // then
+    var messageConsumed = kafkaConsumer.getLatch().await(20, TimeUnit.SECONDS);
+
+    assertThat(messageConsumed).isTrue();
+    assertThat(kafkaConsumer.getPayload()).contains(data);
+  }
+}
+```
+
+<br>
+
 ### docker compose + Singleton containers
 * Singleton containers를 사용하면 여러 test class에 대해 한번만 시작되는 container를 정의할 수 있다
 * 기본 class가 로드될 떄 시작되어 모든 상속 test class에서 사용되고, test가 끝나면 testcontainer core에 의해 시작된 Ryuk container가 singleton container를 중지시킨다
