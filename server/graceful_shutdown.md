@@ -134,10 +134,11 @@ public class TomcatConnectorGracefulShutdownHandler implements TomcatConnectorCu
 ### How
 * `server.shutdown` property로 설정
 ```yaml
-server.shutdown=graceful  # or immediate
-
-# shutdown timeout 설정
-spring.lifecycle.timeout-per-shutdown-phase=20s
+server:
+  shutdown: graceful  # default. immediate
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 60s  # default. 30s
 ```
 
 * `DefaultLifecycleProcessor`(LifecycleProcessor 구현체)가 `WebServerGracefulShutdownLifecycle`(SmartLifecycle 구현체)를 이용해 WebServer(e.g. Tomcat, Netty...)를 stop 시킨다
@@ -200,7 +201,8 @@ class WebServerGracefulShutdownLifecycle implements SmartLifecycle {
 2020-09-09 06:01:07.864  INFO 1 --- [extShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
 2020-09-09 06:01:07.872  INFO 1 --- [extShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
 ```
-
+* 위처럼 설정하면 application이 sigterm signal을 수신하면 request 수신을 중단하며 현재 처리 중인 request를 위해 60s 동안 shutdown process가 대기하게 된다
+* 위 설정만으로는 `@Async`, `ThreadPoolTaskExecutor`, `ThreadPoolTaskScheduler` 등을 이용한 asynchronous task에 대한 graceful shutdown이 처리되지 않기 때문에 이를 위해 Executor에 setWaitForTasksToCompleteOnShutdown(boolean), setAwaitTerminationSeconds(integer) 설정이 필요하다
 
 <br>
 
@@ -292,6 +294,31 @@ public class TaskExecutorGracefulShutdownHandler implements ApplicationListener<
 ```
 * Asynchronous task 처리를 위해 대기 시간을 길게 주면 처리를 보장할 수 있다
 
+* 다른 방법으로는 직접 생성하는 ThreadPoolTaskExecutor의 경우는 설정해줄 수 있지만 auto configuration으로 생성되는 bean에는 설정해줄 수 없기 때문에 `BeanPostProcessor`를 이용한다
+```java
+@ConditionalOnProperty(value = "server.shutdown", havingValue = "graceful")
+@Configuration
+public class AsyncTaskGracefulShutdownConfiguration {
+ 
+  @Bean
+  public BeanPostProcessor taskExecutorGracefulShutdownBeanPostProcessor(LifecycleProperties lifecycleProperties) {
+    return new BeanPostProcessor() {
+      @Override
+      public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        if (bean instanceof ThreadPoolTaskExecutor) {
+          ((ThreadPoolTaskExecutor) bean).setWaitForTasksToCompleteOnShutdown(true);
+          ((ThreadPoolTaskExecutor) bean).setAwaitTerminationSeconds(Math.toIntExact(lifecycleProperties.getTimeoutPerShutdownPhase().toSeconds()));
+        } else if (bean instanceof ThreadPoolTaskScheduler) {
+          ((ThreadPoolTaskScheduler) bean).setWaitForTasksToCompleteOnShutdown(true);
+          ((ThreadPoolTaskScheduler) bean).setAwaitTerminationSeconds(Math.toIntExact(lifecycleProperties.getTimeoutPerShutdownPhase().toSeconds()));
+        }
+        return bean;
+      }
+    };
+  }
+}
+```
+
 <br>
 
 ### Spring WebFlux
@@ -376,7 +403,9 @@ public class TaskExecutorGracefulShutdownLifecycle implements SmartLifecycle {
 ## Kubernetes Environment
 * Kubernetes 환경에서 graceful shutdown 위해 container가 아래의 flow에 맞게 동작해야 한다
 
-![kubernetes_graceful_shutdown_process](./images/kubernetes_graceful_shutdown_process.png)
+<div align="center">
+  <img src="./images/kubernetes_graceful_shutdown_process.png" alt="kubernetes_graceful_shutdown_process" width="70%" height="70%"/>
+</div>
 
 1. Pod는 deploy, scale 등으로 인해 종료시 `SIGTERM` signal 수신
 2. Application(Pod)는 GET /health에 HTTP status 500 response하여 readinessProbe failed
@@ -384,7 +413,33 @@ public class TaskExecutorGracefulShutdownLifecycle implements SmartLifecycle {
 4. Application start graceful shutdown(e.g. DB Connection close..)
 5. Kubernetes는 terminationGracePeriodSeconds(default. 30s) 후 application으로 `SIGKILL` signal로 강제 종료
 
-![kubernetes_pod_termination_process](./images/kubernetes_pod_termination_process.png)
+<div align="center">
+  <img src="./images/kubernetes_pod_termination_process.png" alt="kubernetes_pod_termination_process" width="70%" height="70%"/>
+</div>
+
+* 위의 3번 과정 동안 유입되는 traffic을 방지하기 위해 `preStop hook`을 이용하며 `preStop + timeout-per-shutdown-phase < terminationGracePeriodSeconds`를 지켜야한다
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+spec:
+...
+  template:
+    spec:
+      terminationGracePeriodSeconds: 75
+      containers:
+        ...
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10"]
+          env:
+            ...
+            - name: SPRING_LIFECYCLE_TIMEOUT-PER-SHUTDOWN-PHASE
+              value: "60s"
+```
+<div align="center">
+  <img src="./images/kubernetes_graceful_shutdown_process2.png" alt="kubernetes_graceful_shutdown_process2" width="70%" height="70%"/>
+</div>
 
 <br>
 
