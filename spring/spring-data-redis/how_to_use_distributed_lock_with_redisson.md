@@ -184,3 +184,9 @@ public class StockService {
 > * [레디스와 분산 락(1/2) - 레디스를 활용한 분산 락과 안전하고 빠른 락의 구현](https://hyperconnect.github.io/2019/11/15/redis-distributed-lock-1.html)
 > * [HINCRBY](http://redisgate.kr/redis/command/hincrby.php)
 > * [PEXPIRE](http://redisgate.kr/redis/command/pexpire.php)
+
+<br>
+
+> #### Further reading
+> * [Lettuce Replacement: Why Redisson is the Best Lettuce Alternative](https://redisson.org/lettuce-replacement-why-redisson-is-the-best-lettuce-alternative.html)
+> * [Feature Comparison: Redisson vs Lettuce](https://redisson.org/feature-comparison-redisson-vs-lettuce.html)
