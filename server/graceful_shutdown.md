@@ -37,6 +37,7 @@
 ### third party library
 * [timpeeters/spring-boot-graceful-shutdown - Github](https://github.com/timpeeters/spring-boot-graceful-shutdown)
 * [SchweizerischeBundesbahnen/springboot-graceful-shutdown - Github](https://github.com/SchweizerischeBundesbahnen/springboot-graceful-shutdown)
+* [gesellix/graceful-shutdown-spring-boot - GitHub](https://github.com/gesellix/graceful-shutdown-spring-boot)
 * etc...
 
 <br>
@@ -440,6 +441,75 @@ spec:
 <div align="center">
   <img src="./images/kubernetes_graceful_shutdown_process2.png" alt="kubernetes_graceful_shutdown_process2" width="70%" height="70%"/>
 </div>
+
+* 언어나 framework가 지원하지 않거나 application에서 graceful shutdown을 구현할 수 없는 경우 `preStop hook`을 길게주면 효과가 있다
+
+<br>
+
+### Spring Boot actuator + readiness/livenessProbe
+* actuator에 health check에 readiness/livenss probe를 위한 check가 추가되었으나 auto configuration으로 설정된 많은 컴포넌트를 확인한다
+* `GET /actuator/health/readiness or liveness`로 확인 가능
+* 체크하는 항목
+  * diskSpace
+  * livenessState
+  * ping
+  * readinessState
+  * refreshScope
+  * redis
+  * db
+* MySQL, Redis 등의 dependency가 문제가 있을 때 서비스가 traffic을 받아도 무의미한 경우 dependency의 가용성도 확인 필요
+  * dependency의 장애시 application restart는 거의 도움이 되지 않으니 readiness probe만 추가해서 traffic 차단하기만해도 충분하다
+* spring boot configuration
+```yaml
+management:
+  endpoint:
+    health:
+      probes.enabled: true
+      show-details: always  # for debugging
+      group:
+        readiness:  // traffic ready
+          include:
+          - readinessState
+          - db
+          - redis
+          show-details: always  # for debugging
+        liveness:  // alive
+          include:
+          - livenessState
+          show-details: always  # for debugging
+```
+* kubernetes manifest
+```yaml
+...
+ports:
+  - name: app-port
+    containerPort: 8080
+livenessProbe:
+  httpGet:
+    path: /actuator/health/liveness
+    port: app-port
+readinessProbe:
+  httpGet:
+    path: /actuator/health/readiness
+    port: app-port
+  timeoutSeconds: 10
+startupProbe:
+  httpGet:
+    path: /actuator/health/liveness
+    port: app-port
+  initialDelaySeconds: 60
+  failureThreshold: 30
+lifecycle:
+  preStop:
+    exec:
+      command: ["sh", "-c", "sleep 10"]
+```
+
+* test
+```sh
+$ echo "GET {HOST}/actuator/health/readiness" | vegeta attack -rate=1 -duration=10s | vegeta report
+```
+* [vegeta](../test/load-testing/vegeta.md)를 참고하여 다양한 시나리오 작성 가능
 
 <br>
 
