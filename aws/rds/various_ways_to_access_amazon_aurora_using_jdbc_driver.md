@@ -62,33 +62,33 @@ spring:
 @Setter
 @Configuration
 public class ReplicationDatasourceProperties {
-    protected String username;
-    protected String password;
-    protected String driverClassName;
-    protected String poolName;
-    protected String jdbcUrl;
-    protected Integer maximumPoolSize;
+  protected String username;
+  protected String password;
+  protected String driverClassName;
+  protected String poolName;
+  protected String jdbcUrl;
+  protected Integer maximumPoolSize;
 
-    @ConfigurationProperties(prefix = "spring.datasource.replication.writer")
-    public static class Writer extends ReplicationDatasourceProperties {
-    }
+  @ConfigurationProperties(prefix = "spring.datasource.replication.writer")
+  public static class Writer extends ReplicationDatasourceProperties {
+  }
 
-    @ConfigurationProperties(prefix = "spring.datasource.replication.reader")
-    public static class Reader extends ReplicationDatasourceProperties {
-    }
+  @ConfigurationProperties(prefix = "spring.datasource.replication.reader")
+  public static class Reader extends ReplicationDatasourceProperties {
+  }
 }
 ```
 
 * Transaction의 read-only 여부에 따라 사용할 DataSource를 분기하기 위한 설정
 ```java
 public class ReplicationRoutingDataSource extends AbstractRoutingDataSource {
-    public static final String READ = "read";
-    public static final String WRITE = "write";
+  public static final String READ = "read";
+  public static final String WRITE = "write";
 
-    @Override
-    protected Object determineCurrentLookupKey() {
-        return TransactionSynchronizationManager.isCurrentTransactionReadOnly() ? READ : WRITE;
-    }
+  @Override
+  protected Object determineCurrentLookupKey() {
+    return TransactionSynchronizationManager.isCurrentTransactionReadOnly() ? READ : WRITE;
+  }
 }
 ```
 
@@ -96,33 +96,65 @@ public class ReplicationRoutingDataSource extends AbstractRoutingDataSource {
 ```java
 @Configuration
 @EnableConfigurationProperties(value = {
-        ReplicationDatasourceProperties.Writer.class,
-        ReplicationDatasourceProperties.Reader.class
+  ReplicationDatasourceProperties.Writer.class,
+  ReplicationDatasourceProperties.Reader.class
 })
 public class ReplicationDatasourceConfiguration {
 
-    @Bean
-    public DataSource dataSource(ReplicationDatasourceProperties.Writer writerProperties,
-                                 ReplicationDatasourceProperties.Reader readerProperties) {
-        var dataSourceMap = Map.<Object, Object>of(ReplicationRoutingDataSource.WRITE, createDataSource(writerProperties),
+  @Bean
+  public DataSource dataSource(ReplicationDatasourceProperties.Writer writerProperties,
+                               ReplicationDatasourceProperties.Reader readerProperties) {
+    var dataSourceMap = Map.<Object, Object>of(ReplicationRoutingDataSource.WRITE, createDataSource(writerProperties),
                 ReplicationRoutingDataSource.READ, createDataSource(readerProperties));
-        var replicationDataSource = new ReplicationRoutingDataSource();
-        replicationDataSource.setTargetDataSources(dataSourceMap);
-        replicationDataSource.setDefaultTargetDataSource(dataSourceMap.get(ReplicationRoutingDataSource.WRITE));
-        replicationDataSource.afterPropertiesSet();
-        return new LazyConnectionDataSourceProxy(replicationDataSource);
-    }
+    var replicationDataSource = new ReplicationRoutingDataSource();
+    replicationDataSource.setTargetDataSources(dataSourceMap);
+    replicationDataSource.setDefaultTargetDataSource(dataSourceMap.get(ReplicationRoutingDataSource.WRITE));
+    replicationDataSource.afterPropertiesSet();
+    return new LazyConnectionDataSourceProxy(replicationDataSource);
+  }
 
-    private DataSource createDataSource(ReplicationDatasourceProperties properties) {
-        var hikariConfig = new HikariConfig();
-        hikariConfig.setDriverClassName(properties.getDriverClassName());
-        hikariConfig.setPoolName(properties.getPoolName());
-        hikariConfig.setMaximumPoolSize(properties.getMaximumPoolSize());
-        hikariConfig.setJdbcUrl(properties.getJdbcUrl());
-        hikariConfig.setUsername(properties.getUsername());
-        hikariConfig.setPassword(properties.getPassword());
-        return new HikariDataSource(hikariConfig);
-    }
+  private DataSource createDataSource(ReplicationDatasourceProperties properties) {
+    var hikariConfig = new HikariConfig();
+    hikariConfig.setDriverClassName(properties.getDriverClassName());
+    hikariConfig.setPoolName(properties.getPoolName());
+    hikariConfig.setMaximumPoolSize(properties.getMaximumPoolSize());
+    hikariConfig.setJdbcUrl(properties.getJdbcUrl());
+    hikariConfig.setUsername(properties.getUsername());
+    hikariConfig.setPassword(properties.getPassword());
+    return new HikariDataSource(hikariConfig);
+  }
+}
+```
+
+* 위의 설정보다 더 간단한 HikariConfig를 사용한 버전
+```java
+@Configuration
+public class ReplicationDatasourceConfiguration {
+
+  @Primary
+  @Bean(name = "hikariConfig")
+  @ConfigurationProperties(prefix = "spring.datasource.hikari")
+  public HikariConfig hikariConfig() {
+    return new HikariConfig();
+  }
+
+  @Bean(name = "readerHikariConfig")
+  @ConfigurationProperties(prefix = "spring.datasource.read")
+  public HikariConfig readerHikariConfig() {
+    return new HikariConfig();
+  }
+
+  @Bean("dataSource")
+  public DataSource dataSource(@Qualifier("hikariConfig") HikariConfig hikariConfig,
+                               @Qualifier("readerHikariConfig") HikariConfig readerHikariConfig) {
+    var dataSourceMap = Map.<Object, Object>of(ReplicationRoutingDataSource.WRITE, new HikariDataSource(hikariConfig),
+                ReplicationRoutingDataSource.READ, new HikariDataSource(readerHikariConfig));
+    var replicationRoutingDataSource = new ReplicationRoutingDataSource();
+    replicationRoutingDataSource.setTargetDataSources(dataSourceMap);
+    replicationRoutingDataSource.setDefaultTargetDataSource(dataSourceMap.get(ReplicationRoutingDataSource.WRITE));
+    replicationRoutingDataSource.afterPropertiesSet();
+    return new LazyConnectionDataSourceProxy(replicationRoutingDataSource);
+  }
 }
 ```
 
@@ -130,17 +162,18 @@ public class ReplicationDatasourceConfiguration {
 ```java
 @Configuration
 public class JpaConfiguration {
-    @Bean
-    public LocalContainerEntityManagerFactoryBean entityManagerFactory(EntityManagerFactoryBuilder builder, DataSource dataSource) {
-        return builder.dataSource(dataSource)
-                      .packages(me.dong.test.domain.TestDomainPackages.class)
-                      .build();
-    }
 
-    @Bean
-    public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory) {
-        return new JpaTransactionManager(entityManagerFactory);
-    }
+  @Bean
+  public LocalContainerEntityManagerFactoryBean entityManagerFactory(EntityManagerFactoryBuilder builder, DataSource dataSource) {
+    return builder.dataSource(dataSource)
+                  .packages(me.dong.test.domain.TestDomainPackages.class)
+                  .build();
+  }
+
+  @Bean
+  public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory) {
+    return new JpaTransactionManager(entityManagerFactory);
+  }
 }
 ```
 
@@ -150,29 +183,29 @@ public class JpaConfiguration {
 @Service
 public class ReplicationService {
 
-    private final DataSource dataSource;
+  private final DataSource dataSource;
 
-    public ReplicationService(DataSource dataSource) {
-        this.dataSource = dataSource;
-    }
+  public ReplicationService(DataSource dataSource) {
+    this.dataSource = dataSource;
+  }
 
-    @Transactional(readOnly = true)
-    public void read() {
-        try (var connection = dataSource.getConnection()) {
-            log.info("read url : {}", connection.getMetaData().getURL());
-        } catch (SQLException e) {
-            log.error(e.getMessage(), e);
-        }
+  @Transactional(readOnly = true)
+  public void read() {
+    try (var connection = dataSource.getConnection()) {
+      log.info("read url : {}", connection.getMetaData().getURL());
+    } catch (SQLException e) {
+      log.error(e.getMessage(), e);
     }
+  }
 
-    @Transactional
-    public void write() {
-        try (var connection = dataSource.getConnection()) {
-            log.info("write url : {}", connection.getMetaData().getURL());
-        } catch (SQLException e) {
-            log.error(e.getMessage(), e);
-        }
+  @Transactional
+  public void write() {
+    try (var connection = dataSource.getConnection()) {
+      log.info("write url : {}", connection.getMetaData().getURL());
+    } catch (SQLException e) {
+      log.error(e.getMessage(), e);
     }
+  }
 }
 ```
 
@@ -622,7 +655,7 @@ validConnectionTimeout 여부에 따라 network 사용률에 큰 차이가 있�
 * build.gradle 
 ```gradle
 dependencies {
-  implementation("software.aws.rds:aws-mysql-jdbc:1.1.0")
+  implementation 'software.aws.rds:aws-mysql-jdbc:1.1.9'
 }
 ```
 ```
