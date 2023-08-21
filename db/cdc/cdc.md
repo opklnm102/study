@@ -138,10 +138,12 @@
 * 과도한 부하로 인해 batch processing(일,주,월 단위)을 하기 때문에 CDC에 비해 실시간성을 확보하기 어렵다
   * DW(data warehouse)에 적재하거나 백업하는 용도로 사용
 * batch processing이기 때문에 1번에 옮기는 data size가 크고, 그로 인해 network 비용 부담 발생
+* 지연된 commit에 따라 데이터 누락 가능성이 있기 때문에 충분한 sliding window를 가져가야한다
 
 <br>
 
 ### CDC
+* ETL에 비해 source data storage에 부하가 적다
 * data 자체가 아닌 transcation을 옮기기 때문에 data size가 작다
   * `ETL`에 비해 network 비용 부담이 적다
   * 먼 거리 data 전송에 유리
