@@ -6,7 +6,7 @@
 <br>
 
 ## Maxwell
-* MySQL binlog를 읽고 row update를 JSON으로 Kafka, Kinesis or other streaming platforms에 쓰는 application
+* MySQL binlog(binary log)를 읽고 row update를 JSON으로 Kafka, Kinesis or other streaming platforms에 쓰는 application
 * 운영 overhead가 적기 때문에 MySQL과 쓸곳만 있으면 된다
 * Use Case
   * ETL
@@ -15,6 +15,96 @@
   * search indexing
   * inter-service communication
 * MySQL binlog가 변경되는 것을 확인할 때마다 maxwell.heartbeats에 heartbeats를 보닌다
+* [data bootstrap](https://maxwells-daemon.io/bootstrapping)을 통해 `select * from table`의 결과를 stream으로 출력해 전체 dataset을 만들 수 있다
+  * binlog의 last offset을 사용하는게 아님
+  * where 절 지원
+* database, table까지 지정하여 event streaming 가능
+  * binlog의 특정 지점(offset)부터 시작 가능
+* event data structure는 직관적이고 단순함
+* metadata를 maxwell이라는 database에 table로 persistent하게 관리하기 때문에 reliability 보장
+  * metadata table - bootstrap, columns, databases, heartbeats, positions, schemas, tables
+* kafka producer 사용시 [debezium-connector-mysql](https://github.com/debezium/debezium/tree/main/debezium-connector-mysql)에 비해 구성이 쉽다
+  * debezium-connector-mysql - MySQL + Kafka + Kafka Connect 필요
+  * maxwell - MySQL + Kafka 필요
+
+
+<br>
+
+### maxwell 동작
+* [mysql-binlog-connector-java](https://github.com/osheroff/mysql-binlog-connector-java)를 MySQL binlog client로 사용해서 binlog를 streaming
+```sql
+mysql> show processlist;
+
++----------+---------+-----------+--------+-------------+-------+---------------------------------------------------------------+
+| Id       | User    | Host      | db     | Command     | Time  | State                                                         |
++----------+---------+-----------+--------+-------------+-------+---------------------------------------------------------------+
+| 55260727 | maxwell | 10.0.0.48 | <null> | Binlog Dump | 89293 | Master has sent all binlog to slave; waiting for more updates |
++----------+---------+-----------+--------+-------------+-------+---------------------------------------------------------------+
+```
+
+* `show master status;`로 binlog file, position 조회 후 이정보를 가지고 binlog stream 연결
+```sql
+mysql> show master status;
++----------------------------+----------+--------------+------------------+-------------------+
+| File                       | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set |
++----------------------------+----------+--------------+------------------+-------------------+
+| mysql-bin-changelog.042620 | 41784573 |              |                  |                   |
++----------------------------+----------+--------------+------------------+-------------------+ 
+```
+* [BinlogConnectorEventListener](https://github.com/zendesk/maxwell/blob/master/src/main/java/com/zendesk/maxwell/replication/BinlogConnectorEventListener.java)가 queue에 event 적재
+```java
+// 아래 코드는 불필요한 부분을 제거한 요약
+class BinlogConnectorEventListener implements BinaryLogClient.EventListener {
+  ...
+  public void onEvent(Event event) {
+    ...
+		EventType eventType = event.getHeader().getEventType();
+		BinlogConnectorEvent ep = new BinlogConnectorEvent(event, client.getBinlogFilename(), client.getGtidSet(), gtid, outputConfig);
+
+		while (mustStop.get() != true) {
+      ...
+			if ( queue.offer(ep, 100, TimeUnit.MILLISECONDS ) ) {
+				break;
+			}
+		}
+  }
+}
+```
+
+* [BinlogConnectorReplicator](https://github.com/zendesk/maxwell/blob/master/src/main/java/com/zendesk/maxwell/replication/BinlogConnectorReplicator.java)가 binlog event를 처리
+```java
+public class BinlogConnectorReplicator extends RunLoopProcess implements Replicator, BinaryLogClient.LifecycleListener {
+  ...
+  public RowMap getRow() throws Exception {
+		BinlogConnectorEvent event;
+
+		while (true) {
+			event = pollEvent();
+
+			switch (event.getType()) {
+				case WRITE_ROWS:
+				case EXT_WRITE_ROWS:
+				case UPDATE_ROWS:
+				case EXT_UPDATE_ROWS:
+				case DELETE_ROWS:
+				case EXT_DELETE_ROWS:
+					queue.offerFirst(event);
+					rowBuffer = getTransactionRows(event);
+					break;
+...  
+```
+
+<br>
+
+### [MySQL binlog Connector Java]((https://github.com/osheroff/mysql-binlog-connector-java)
+* MySQL binary log를 읽어 query, event를 해석해 다른 시스템에 데이터를 동기화하는데 사용
+* DB에서 발생하는 변경 사항을 모니터링하고, 이를 외부 시스템으로 전송하여 복제하거나 분석하는데 활용
+  * e.g. DB 복제, data warehouse, 실시간 분석 등
+
+#### 장점
+* 실시간 복제 - binary log를 사용해 변경 사항을 거의 실시간(near real time)으로 전송하여 데이터 복제
+* 데이터 분석 - event를 분석하여 데이터 변경 내역을 추적(CDC, Change Data Capture)하거나 분석
+* 백업 및 복구 - 장애 발생시 binary log를 이용해 데이터 복구
 
 <br>
 
@@ -57,6 +147,9 @@ maxwell: {
 }
 ```
 
+
+<br>
+
 ## Maxwell 사용하기
 
 ### Configure MySQL
@@ -93,11 +186,14 @@ mysql> GRANT ALL ON maxwell.* TO 'maxwell'@'localhost';
 mysql> GRANT SELECT, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO 'maxwell'@'localhost';
 ```
 
+<br>
+
 ### Run Maxwell
 * docker 기반으로 설명
 
 
 #### Stdout
+* CDC event를 test할 때 유용한 producer
 ```sh
 $ docker run -it --rm zendesk/maxwell bin/maxwell --user=$MYSQL_USERNAME \
     --password=$MYSQL_PASSWORD --host=$MYSQL_HOST --producer=stdout
@@ -204,6 +300,8 @@ spec:
             - name: HTTP_PORT
               value: "8080"
 ```
+
+<br>
 
 ## Metrics
 * `/metrics`
@@ -422,10 +520,104 @@ maxwell_messages_succeeded_meter_total 0.0
 maxwell_row_meter_total 13.0
 ```
 
+## docker compose로 구성
+* MySQL + Kafka + Maxwell
+```yaml
+version: "3.9"
+services:
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+   volumes:
+     - ./src/test/resources/data:/docker-entrypoint-initdb.d/
+    restart: always
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: root!@
+      MYSQL_DATABASE: sample
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test1234!
+
+  kafka:
+    container_name: kafka_local
+    image: confluentinc/cp-kafka:7.3.2
+    ports:
+      - "9092:9092"
+      - "9997:9997"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_JMX_PORT: 9997
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote.rmi.port=9997
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+    volumes:
+      - ./kafka/kafka-update-run.sh:/tmp/kafka-update-run.sh
+    command: "bash -c 'if [ ! -f /tmp/kafka-update-run.sh ]; then echo \"ERROR: Did you forget the update_run.sh file?\" && exit 1 ; else /tmp/kafka-update-run.sh && /etc/confluent/docker/run ; fi'"
+    healthcheck:
+      test: [ "CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8010:8080"
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9997
+      DYNAMIC_CONFIG_ENABLED: "true"
+
+  maxwell:
+    container_name: maxwell
+    image: zendesk/maxwell:v1.40.2
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka
+      - mysql
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USERNAME: maxwell
+      MYSQL_PASSWORD: password
+      MAXWELL_PRODUCER: stdout
+      KAFKA_BROKERS: kafka:29092
+      MAXWELL_OPTIONS: |
+        --log_level=info
+        --jdbc_options=useSSL=false&connectTimeout=30000&autoReconnect=true
+        --filter=exclude:*.*,include:sample.*
+        --producer_partition_by=primary_key
+        --kafka_topic=maxwell.%{database}.%{table}
+        --kafka_version=3.4.0
+        --ddl_kafka_topic=maxwell.ddl
+        --metrics_prefix=maxwell
+        --metrics_type=http
+        --http_port=8080
+        --binlog_heartbeat=true
+```
+
 
 <br><br>
 
 > #### Reference
 > * [zendesk/maxwell - GitHub](https://github.com/zendesk/maxwell)
-> * [Maxwell Docs](http://maxwells-daemon.io)
+> * [Maxwell Docs](https://maxwells-daemon.io)
 > * [zendesk/maxwell - Docker Hub](https://hub.docker.com/r/zendesk/maxwell)
