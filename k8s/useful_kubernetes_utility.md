@@ -189,10 +189,11 @@ EOF
 
 ### Install
 ```sh
-$ curl -O https://raw.githubusercontent.com/ahmetb/kubectl-alias/master/.kubectl_aliases
+$ curl -sS -o ~/.kubectl_aliases https://raw.githubusercontent.com/ahmetb/kubectl-aliases/master/.kubectl_aliases
 
 $ cat >> ~/.zshrc << EOF
-[ -f ~/.kubectl_aliases ] && source ~/.kubectl_aliases   
+[ -f ~/.kubectl_aliases ] && source ~/.kubectl_aliases
+function kubectl() { echo "+ kubectl $@">&2; command kubectl $@; }
 EOF
 ```
 
