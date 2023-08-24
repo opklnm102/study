@@ -29,3 +29,18 @@
 * kubectl logs시 container의 host에 설정된 timezone 기반으로 timestamp 출력
   * `kubectl logs —timestamps`
 
+
+<br>
+
+## Security
+### root 시용 X
+* root 대신 container 전용 user 사용
+```dockerfile
+RUN useradd --create-home -s /usr/sbin/nologin -u 1000 app
+WORKDIR /home/app
+USER app
+```
+* result
+```sh
+app:x:1000:1000::/home/app:/usr/sbin/nologin
+```
