@@ -727,6 +727,99 @@ $ helm uninstall <release-name> -n <operator-namespace>
 ```
 
 
+<br>
+
+## [kubectl-view-utilization](https://github.com/etopeter/kubectl-view-utilization)
+* cluster resource 사용률을 보여주는 plugin
+* bash + awk + kubectl로 동작
+* cluster capacity를 추정하고 overprovisioned resource를 확인시 사용
+
+<br>
+
+### Install
+```sh
+$ kubectl krew install view-utilization
+
+## brew
+$ brew tap etopeter/tap
+$ brew install kubectl-view-utilization
+```
+
+<br>
+
+### Usage
+* 기본적으로 current context에서 동작하며 `--context`로 context를 변경할 수 있다
+```sh
+$ kubectl view-utilization
+Resource      Requests  %Requests        Limits  %Limits   Allocatable   Schedulable         Free
+CPU              54822         69         18053       22         79100         24278        24278
+Memory    214502998016         66  229927550976       71  321488551936  106985553920  91561000960
+```
+* Allocatable - 할당 가능한 resource
+* Schedulable(= allocatable - requests) - pod schedule에 사용할 수 있는 resource
+
+#### readable format
+```sh
+$ kubectl view-utilization -h
+Resource   Req   %R   Lim   %L  Alloc  Sched  Free
+CPU         54  69%    18  22%     79     24    24
+Memory    200G  66%  214G  71%   299G   100G   85G
+```
+
+#### label filter
+* `topology.kubernetes.io/zone=ap-northeast-2a` label로 조회
+```sh
+$ kubectl view-utilization -h -l topology.kubernetes.io/zone=ap-northeast-2a
+Resource  Req   %R  Lim   %L  Alloc  Sched  Free
+CPU        12  54%  5.5  23%     23     10    10
+Memory    47G  52%  51G  56%    90G    43G   39G
+```
+
+#### nodes 별 조회
+```sh
+$ kubectl view-utilization nodes
+CPU   : ▂▁▂▁▂▂▂▁▃▃
+Memory: ▅▆▂▇▇▇▆▇▅▂
+                                                  CPU                                   Memory
+Node                                              Requests  %Requests  Limits  %Limits     Requests  %Requests       Limits  %Limits
+ip-10-0-0-16.ap-northeast-1.compute.internal      2125         26    3400       42   6315573248         19   8642363392       26
+...
+```
+
+#### namespaces 별 조회
+```sh
+$ kubectl view-utilization namespaces -h
+             CPU        Memory
+Namespace     Req  Lim   Req   Lim
+analitics     6.6   10   14G   21G
+kube-system   3.5  4.2  5.1G  7.6G
+lt             13   21   27G   42G
+monitoring   0.35  3.5  1.8G  3.5G
+qa             13   21   27G   42G
+rc            6.6   10   14G   21G
+```
+
+#### json format으로 조회
+```sh
+$ kubectl view-utilization -o json
+{
+  "CPU": {
+    "requested": 43740,
+    "limits": 71281,
+    "allocatable": 60800,
+    "schedulable": 17060,
+    "free": 0
+  },
+  "Memory": {
+    "requested": 94942265344,
+    "limits": 148056834048,
+    "allocatable": 254661525504,
+    "schedulable": 159719260160,
+    "free": 106604691456
+  }
+}
+```
+
 <br><br>
 
 > #### Reference
@@ -748,3 +841,4 @@ $ helm uninstall <release-name> -n <operator-namespace>
 > * [we-dcode/kubetunnel - GitHub](https://github.com/we-dcode/kubetunnel)
 > * [groundcover-com/caretta - GitHub](https://github.com/groundcover-com/caretta)
 > * [k8spacket - GitHub](https://github.com/k8spacket/k8spacket)
+> * [etopeter/kubectl-view-utilization - GitHub](https://github.com/etopeter/kubectl-view-utilization)
