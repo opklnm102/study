@@ -31,11 +31,17 @@ $ helm plugin install https://github.com/databus23/helm-diff
 $ helm plugin install https://github.com/jkroepke/helm-secrets
 ```
 
-* run as container
+* [run as container](https://github.com/helmfile/helmfile/pkgs/container/helmfile)
 ```sh
-$ docker run --rm --net=host -v "${HOME}/.kube:/root/.kube" -v "${HOME}/.config/helm:/root/.config/helm" -v "${PWD}:/wd" --workdir /wd quay.io/roboll/helmfile:v0.142.0 helmfile sync
+$ docker run --rm --net=host -v "${HOME}/.kube:/root/.kube" -v "${HOME}/.config/helm:/root/.config/helm" -v "${PWD}:/wd" --workdir /wd ghcr.io/helmfile/helmfile:latest helmfile sync
 ```
 
+* download [releases](https://github.com/helmfile/helmfile/releases) binary
+```sh
+$ wget https://github.com/helmfile/helmfile/releases/download/v0.155.1/helmfile_0.155.1_linux_amd64.tar.gz
+$ tar -xzvf helmfile_0.155.1_linux_amd64.tar.gz
+$ ./helmfile version
+```
 
 <br>
 
