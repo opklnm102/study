@@ -44,7 +44,7 @@
   * EKS 1.24에서 container runtime으로 containerd만 지원하므로 불필요한 argument로 node bootstrap의 `--kubelet-extra-args`에서 `--container-runtime`을 제거 필요
 * kubelet의 `kubeAPIQPS` 50, `kubeAPIBurst` 100으로 증가
   * kubelet은 더 많은 API query를 처리하여 응답 시간, 성능이 개선되어 Pod 실행이 더 빨라지고 cluster 작업에 더 효과적으로 변경
-* fine grained Pod topology를 사용 가능
+* [fine grained Pod topology](https://kubernetes.io/blog/2023/04/17/fine-grained-pod-topology-spread-features-beta)를 사용 가능
   * `minDomain` - Pod가 분산되어야하는 최소 도메인 수 지정
   * `nodeAffinityPolicy`, `nodeTaintPolicy` - node affinity, node taint, topologySpreadConstraints의 matchLabelsKeys를 따른다
 * [StatefulSetAutoDeletePVC](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention)
@@ -84,7 +84,7 @@ $ kubectl get pod -A -o jsonpath='{range.items[?(@.metadata.annotations.kubernet
 * PSS와 [Pod Security Admission](https://kubernetes.io/docs/concepts/security/pod-security-admission) 사용
 * [Pod Security Standards (PSS) and Pod Security Admission (PSA)](https://aws.github.io/aws-eks-best-practices/security/docs/pods/#pod-security-standards-pss-and-pod-security-admission-psa)
 * [Implementing Pod Security Standards in Amazon EKS](https://aws.amazon.com/ko/blogs/containers/implementing-pod-security-standards-in-amazon-eks)
-* [https://kubernetes.io/docs/tasks/configure-pod-container/migrate-from-psp](Migrate from PodSecurityPolicy to the Built-In PodSecurity Admission Controller)
+* [Migrate from PodSecurityPolicy to the Built-In PodSecurity Admission Controller](https://kubernetes.io/docs/tasks/configure-pod-container/migrate-from-psp)
 * [Mapping PodSecurityPolicies to Pod Security Standards](https://kubernetes.io/docs/reference/access-authn-authz/psp-to-pod-security-standards)
 
 ### migration PAC(Policy-as-code) solution
@@ -99,7 +99,7 @@ $ kubectl get pod -A -o jsonpath='{range.items[?(@.metadata.annotations.kubernet
 > * [Updating a cluster - Amazon EKS Docs](https://docs.aws.amazon.com/eks/latest/userguide/update-cluster.html)
 > * [Amazon EKS Kubernetes versions - Amazon EKS Docs](https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html)
 > * [Amazon EKS platform versions](https://docs.aws.amazon.com/eks/latest/userguide/platform-versions.html)
-* [k8s 1.25 changelog](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.25.md#changelog-since-v1240)
-* [k8s 1.26 changelog](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.26.md)
-* [k8s 1.27 changelog](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.27.md)
-* [Pod security policy (PSP) removal FAQ](https://docs.aws.amazon.com/eks/latest/userguide/pod-security-policy-removal-faq.html)
+> * [k8s 1.25 changelog](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.25.md#changelog-since-v1240)
+> * [k8s 1.26 changelog](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.26.md)
+> * [k8s 1.27 changelog](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.27.md)
+> * [Pod security policy (PSP) removal FAQ](https://docs.aws.amazon.com/eks/latest/userguide/pod-security-policy-removal-faq.html)
