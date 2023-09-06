@@ -324,6 +324,7 @@ $ kubetail app2 -c container1 -n namespace1
 <br>
 
 ### Install
+* script
 ```sh
 $ sh -c "$(curl -sSL https://git.io/install-kubent)"
 
@@ -331,6 +332,19 @@ $ sh -c "$(curl -sSL https://git.io/install-kubent)"
 > Detecting latest version
 > Downloading version 0.4.0
 > Done. kubent was installed to /usr/local/bin/..
+```
+
+* brew
+```sh
+$ brew install kubent
+```
+
+* container
+```sh
+$ docker run -it --rm \
+    -v "${HOME}/.kube/config:/.kubeconfig" \
+    ghcr.io/doitintl/kube-no-trouble:latest \
+    -k /.kubeconfig
 ```
 
 <br>
