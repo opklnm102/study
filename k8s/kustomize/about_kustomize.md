@@ -142,11 +142,13 @@ resources:
 
 <br>
 
-### patchesStrategicMerge
+### patches
 * base에서 변경할 설정이 담긴 resource 지정
 ```yaml
-patchesStrategicMerge:
-  - deployment.yaml
+patches:
+  - path: deployment.yaml
+    target:
+      kind: Deployment
 ```
 
 <br>
@@ -304,6 +306,74 @@ spec:
 
 <br>
 
+## kustomize + Helm
+* kustomize에서 helm을 사용
+* helm chart에 없는 resource를 추가할 때 유용
+
+### 1. Make a kustomization file
+```sh
+.
+├── kustomization.yaml
+├── namespace.yaml  # additional resource
+├── secret.yaml   # additional resource
+└── values.yaml
+```
+* kustomization.yaml
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+helmCharts:
+  - name: cert-manager
+    repo: https://charts.jetstack.io
+    version: v1.12.4
+    releaseName: my-cert-manager
+    namespace: cert-manager
+    valuesFile: values.yaml
+    includeCRDs: true
+
+resources:
+  - ./namespace.yaml
+  - ./secret.yaml
+```
+* values.yaml
+```yaml
+replicaCount: 2
+installCRDs: true
+```
+
+<br>
+
+### 2. Build
+* helm repository를 등록하지 않고, helm chart를 local에 download -> manifest rendering 순서로 동작
+```sh
+$ kubectl kustomize --enable-helm . -o rendered.yaml
+```
+```sh
+.
+├── charts
+│   ├── cert-manager
+│   └── cert-manager-v1.12.4.tgz
+├── kustomization.yaml
+├── namespace.yaml
+├── rendered.yaml
+├── secret.yaml
+└── values.yaml
+```
+
+<br>
+
+### 3. Deploy
+```sh
+$ kubectl apply -f rendered.yaml
+
+## or build + deploy
+$ kubectl kustomize --enable-helm . | kubectl apply -f -
+```
+
+
+<br>
+
 ## Conclusion
 * helm chart가 제공되는 addon은 helm으로 관리하고, 자체 서비스를 helm chart로 관리하기 어렵다면 plain yaml보다는 kustomize로 관리해보는 것을 추천한다
 
@@ -317,6 +387,7 @@ spec:
 > * [kustomize glossary](https://kubectl.docs.kubernetes.io/references/kustomize/glossary/)
 > * [Declarative Management of Kubernetes Objects Using Kustomize - Kubernetes Docs](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/)
 > * [Configure a Pod to Use a ConfigMap - Kubernetes Docs](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/)
+> * [kustomization of a helm chart](https://github.com/kubernetes-sigs/kustomize/blob/master/examples/chart.md)
 
 <br>
 
