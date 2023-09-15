@@ -22,6 +22,17 @@
 
 <br>
 
+## Amazon EKS auto scaling
+* Cluster Autoscaler or Karpenter 이용
+
+| Autoscaler | Description |
+|:--|:--|
+| [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) | [AWS Auto Scaling Group](https://docs.aws.amazon.com/autoscaling/ec2/userguide/auto-scaling-groups.html) 사용 |
+| [Karpenter](https://karpenter.sh) | [createFleet](https://docs.aws.amazon.com/ko_kr/AWSEC2/latest/APIReference/API_CreateFleet.html) API 사용 |
+
+
+<br>
+
 ## Cluster Autoscaler(CA)
 * cluster의 node scaling하는 역할
   * Pod에서 요청한 리소스(resources.request)보다 cluster의 resource가 부족한 경우 node 추가
