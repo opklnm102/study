@@ -30,7 +30,7 @@
 
 <br>
 
-### maxwell 동작
+## maxwell 동작
 * [mysql-binlog-connector-java](https://github.com/osheroff/mysql-binlog-connector-java)를 MySQL binlog client로 사용해서 binlog를 streaming
 ```sql
 mysql> show processlist;
@@ -94,9 +94,10 @@ public class BinlogConnectorReplicator extends RunLoopProcess implements Replica
 ...  
 ```
 
+
 <br>
 
-### [MySQL binlog Connector Java]((https://github.com/osheroff/mysql-binlog-connector-java)
+## [MySQL binlog Connector Java](https://github.com/osheroff/mysql-binlog-connector-java)
 * MySQL binary log를 읽어 query, event를 해석해 다른 시스템에 데이터를 동기화하는데 사용
 * DB에서 발생하는 변경 사항을 모니터링하고, 이를 외부 시스템으로 전송하여 복제하거나 분석하는데 활용
   * e.g. DB 복제, data warehouse, 실시간 분석 등
@@ -300,6 +301,7 @@ spec:
             - name: HTTP_PORT
               value: "8080"
 ```
+
 
 <br>
 
@@ -520,6 +522,9 @@ maxwell_messages_succeeded_meter_total 0.0
 maxwell_row_meter_total 13.0
 ```
 
+
+<br>
+
 ## docker compose로 구성
 * MySQL + Kafka + Maxwell
 ```yaml
@@ -612,6 +617,48 @@ services:
         --metrics_type=http
         --http_port=8080
         --binlog_heartbeat=true
+```
+
+
+<br>
+
+## Troubleshooting
+### binlog file 관련 에러 발생시 조치
+```java
+2023-08-28 04:14:45 WARN  BinlogConnectorReplicator - communications failure in binlog:
+com.github.shyiko.mysql.binlog.network.ServerException: Could not find first log file name in binary log index file
+    at com.github.shyiko.mysql.binlog.BinaryLogClient.listenForEventPackets(BinaryLogClient.java:1043) [mysql-binlog-connector-java-0.27.4.jar:0.27.4]
+    at com.github.shyiko.mysql.binlog.BinaryLogClient.connect(BinaryLogClient.java:631) [mysql-binlog-connector-java-0.27.4.jar:0.27.4]
+    at com.github.shyiko.mysql.binlog.BinaryLogClient$7.run(BinaryLogClient.java:932) [mysql-binlog-connector-java-0.27.4.jar:0.27.4]
+    at java.lang.Thread.run(Thread.java:829) [?:?]
+2023-08-28 04:14:45 INFO  BinlogConnectorReplicator - Binlog disconnected.
+...
+```
+
+#### 1. maxwell 정지
+```sh
+$ kubectl scale --replicas=0 deployment/maxwell
+```
+
+#### 2. maxwell schema에서 이슈가 발생한 구간을 찾는다
+* schemas table의 최근 데이터를 확인
+
+#### 3. 데이터 조작
+* 이슈가 발생한 binlog를 skip하거나 전체 데이터를 cleaning
+* `SHOW TABLES FROM maxwell;`로 확인한 table에 대해 TRUNCATE하는게 신속하게 복구할 수 있다
+```sql 
+TRUNCATE TABLE maxwell.bootstrap;
+TRUNCATE TABLE maxwell.columns;
+TRUNCATE TABLE maxwell.`databases`;
+TRUNCATE TABLE maxwell.heartbeats;
+TRUNCATE TABLE maxwell.positions;
+TRUNCATE TABLE maxwell.`schemas`;
+TRUNCATE TABLE maxwell.tables;
+```
+
+#### 4. maxwell 시작
+```sh
+$ kubectl scale --replicas=1 deployment/maxwell
 ```
 
 
