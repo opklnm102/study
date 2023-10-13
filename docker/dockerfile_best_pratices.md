@@ -529,8 +529,47 @@ $ docker run postgres --help
 $ docker run --rm -it postgres bash
 ```
 
+
+<br>
+
 ## sudo 사용 X
 * sudo 사용일 필요할 경우 `gosu` 사용
+
+
+<br>
+
+## ONBUILD
+* 부모 dockerfile이 자식 dockerfile에게 제공되는 명령어
+  * 하위 dockerfile의 모든 명령보다 먼저 ONBUILD가 먼저 실행
+* 부모 dockerfile을 기본 이미지로 사용하는 자식 dockerfile에서 반드시 진행되어야 하는 파일 복사나, 환경 변수 설정과 같은 작업을 자동화할 때 사용
+* [ONBUILD](https://docs.docker.com/engine/reference/builder/#onbuild)에서 ADD, COPY 사용시 리소스가 누락되면 이미지 빌드에 실패할 수 있으니 주의 필요
+
+
+<br>
+
+## SHELL
+* dockerfile에서 shell command 사용 사능
+```dockerfile
+SHELL ["/bin/bash", "-c", "ls"]
+```
+
+
+<br>
+
+## Metadata 생성
+* docker image는 모든 파일을 `tar`로 압축한 후 metadata를 추가한 것
+* metadata로 사용자들에게 유용한 정보를 제공
+```dockerfile
+FROM ubuntu:latest  
+LABEL maintainer="Your Name <youremail@example.com>"  
+LABEL description="This is a simple Dockerfile example that uses the LABEL and EXPOSE instructions."  
+RUN apt-get update && \  
+apt-get install -y nginx  
+EXPOSE 80  
+CMD ["nginx", "-g", "daemon off;"]
+```
+* EXPOSE - 어떤 port가 노출되는지를 나타내며 실제 network에는 영향이 없다
+* LABEL - docker inspect로 확인할 수 있으며 이미지의 목적, 작성자 등 다양한 용도로 활용
 
 
 <br>
@@ -736,3 +775,4 @@ ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"
 > * [Broken by default: why you should avoid most Dockerfile example](https://pythonspeed.com/articles/dockerizing-python-is-hard/)
 > * [Java Example with Gradle and Docker - codefresh.io](https://codefresh.io/docs/docs/learn-by-example/java/gradle/)
 > * [Best pratices for writing Dockerfiles - Docker Docs](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/)
+> * [10 Secrets to Improve Your Dockerfile](https://aws.plainenglish.io/10-secrets-to-improve-your-dockerfile-40ac54aa5bf2)
