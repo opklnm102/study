@@ -172,7 +172,7 @@ spec:
 <br>
 
 ## Test
-* sample
+### Sample
 ```yaml
 apiVersion: v1
 kind: Namespace
@@ -277,23 +277,47 @@ spec:
                 command: ["sleep", "10"]
 ```
 
+<br>
+
+### curl
 * 간단히 `curl` 이용
 ```sh
 $ while true; do curl https://test.example.com/health; echo "\n"; sleep 1; done
 ```
 
+<br>
+
+### vegeta
 * load testing tool [vegeta](https://github.com/tsenart/vegeta)를 이용
+* as-is
 ```sh
-$ echo "GET https://test.example.com/health" | vegeta attack -duration=60s -rate=1000 | tee results.txt | vegeta report
-Requests      [total, rate, throughput]  60000, 1000.02, 996.32
-Duration      [total, attack, wait]      59.999783354s, 59.999059582s, 723.772µs
-Latencies     [mean, 50, 95, 99, max]    136.958326ms, 553.588µs, 10.9967ms, 5.001062432s, 5.089183568s
-Bytes In      [total, mean]              690719, 11.51
-Bytes Out     [total, mean]              0, 0.00
-Success       [ratio]                    99.63%
-Status Codes  [code:count]               200:59779  502:221
+$ echo "GET https://test.example.com/health" | vegeta attack -duration=60s -rate=1000 | tee results.bin | vegeta report
+
+Requests      [total, rate, throughput]         12000, 100.01, 94.16
+Duration      [total, attack, wait]             2m0s, 2m0s, 20.348ms
+Latencies     [min, mean, 50, 90, 95, 99, max]  7.271ms, 589.571ms, 18.941ms, 65.114ms, 10.005s, 10.036s, 10.177s
+Bytes In      [total, mean]                     645759, 53.81
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           94.17%
+Status Codes  [code:count]                      200:11300  502:27  503:1  504:672
 Error Set:
+503 Service Unavailable
 502 Bad Gateway
+504 Gateway Timeout
+```
+
+* to-be
+```sh
+$ echo "GET https://test.example.com/health" | vegeta attack -duration=60s -rate=1000 | tee results.bin | vegeta report
+
+Requests      [total, rate, throughput]         10000, 100.01, 99.99
+Duration      [total, attack, wait]             1m40s, 1m40s, 24.59ms
+Latencies     [min, mean, 50, 90, 95, 99, max]  9.425ms, 18.498ms, 13.822ms, 24.119ms, 37.336ms, 121.803ms, 276.791ms
+Bytes In      [total, mean]                     490000, 49.00
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           100.00%
+Status Codes  [code:count]                      200:10000
+Error Set:
 ```
 
 
