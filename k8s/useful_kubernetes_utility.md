@@ -627,8 +627,14 @@ default      └─Pod/app-6f9f5bd5d5-d4q7w  True           22h
 <br>
 
 ### Install
+* Shell script
 ```sh
 $ sh <(curl -Ls https://kubeshark.co/install)
+```
+* Homebrew
+```sh
+$ brew tap kubeshark/kubeshark
+$ brew install kubeshark
 ```
 
 <br>
