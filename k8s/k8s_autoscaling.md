@@ -43,9 +43,15 @@
 <br>
 
 ## HPA + CA를 사용했을 때
+* Cluster Autoscaler workflow
 <div align="center">
-  <img src="./images/autoscaling_with_ca_hpa.png" alt="autoscaling with ca hpa" width="50%" height="50%"/>
-  <img src="./images/cluster_autoscaler_workflow.png" alt="cluster autoscaler workflow" width="50%" height="50%"/>
+  <img src="./images/cluster_autoscaler_workflow.png" alt="cluster autoscaler workflow" width="75%" height="75%"/>
+</div>
+
+* EKS + CA workflow
+<div align="center">
+  <img src="./images/autoscaling_with_ca_hpa.png" alt="autoscaling with ca hpa" width="75%" height="75%"/>
+  <img src="./images/eks_cluster_autoscaler_workflow.png" alt="eks_cluster_autoscaler_workflow" width="75%" height="75%"/>
 </div>
 
 ### [Scale out](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md#how-does-scale-up-work)
