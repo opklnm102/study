@@ -22,7 +22,7 @@ $ helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.g
 
 <br>
 
-### [pluto](https://github.com/FairwindsOps/pluto)를 사용해 검증
+### pluto를 사용해 검증
 * [FairwindsOps/pluto](https://github.com/FairwindsOps/pluto) - deprecated kubernetes api를 찾는 tool
 * helm release 및 k8s object가 더 이상 API를 사용하지 않는지 검증
 
@@ -49,6 +49,29 @@ $ pluto detect-files -t k8s=v1.22.2  -d .
 NAME                                     KIND                      VERSION                          REPLACEMENT                 REMOVED   DEPRECATED
 kafka-pdb                                PodDisruptionBudget       policy/v1beta1                   policy/v1                   false     true
 ...
+```
+
+<br>
+
+### kubent를 사용해 검증
+* [kubent](https://github.com/doitintl/kube-no-trouble)에 대한 자세한 내용은 [Kube No Trouble - kubent](../../k8s/useful_kubernetes_utility.md#kube-no-trouble---kubent) 참고
+
+#### Install
+* homebrew
+```sh
+$ brew install kubent
+```
+* container
+```sh
+$ docker run -it --rm \
+    -v "${HOME}/.kube/config:/.kubeconfig" \
+    ghcr.io/doitintl/kube-no-trouble:latest \
+    -k /.kubeconfig
+```
+
+#### Usage
+```sh
+$ kubent -t 1.28
 ```
 
 <br>
