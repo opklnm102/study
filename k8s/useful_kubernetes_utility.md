@@ -366,8 +366,21 @@ $ ./kubent
 ...
 ```
 
+* target version
+```sh
+$ kubent -t 1.28
+```
+
+* directory의 모든 file 검증
+```sh
+$ FILES=($(ls *.yaml)); kubent ${FILES[@]/#/-f} --helm3=false -c=false
+```
+
 #### Use in CI
-* CI에서 아래의 script로 실행
+* CI/CD pipeline에서 사용해 배포 전에 검증
+```sh
+test -z "$(kubent)"                 # if stdout output is empty, means no issues were found equivalent to [ -z "$(kubent)" ]
+```
 ```sh
 if ! OUTPUT="$(kubent)"; then       # check for non-zero return code first
   echo "kubent failed to run!"
