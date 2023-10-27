@@ -22,6 +22,8 @@
 * [kubeshark](#kubeshark)
 * [kubectl-graph](#kube-graph)
 * [KubeTunnel](#kubetunnel)
+* [kubectl-view-utilization](#kubectl-view-utilization)
+* [Kor](#kor)
 
 <br>
 
@@ -853,6 +855,100 @@ $ kubectl view-utilization -o json
 }
 ```
 
+
+<br>
+
+## [Kor](https://github.com/etopeter/kubectl-view-utilization)
+* Kubernetes Orphaned Resources Finder
+* [미사용](https://github.com/yonahd/kor#supported-resources-and-limitations) kubernetes resource를 조회
+  * ConfigMaps
+  * Secrets
+  * Services
+  * ServiceAccounts
+  * Deployments
+  * StatefulSets
+  * ...
+* cluster 내에서 CronJob으로 배포하여 slack으로 받아볼 수 있다
+* 미사용이지만 kor에서 무시하려면 `kor/used=true` label 추가
+
+<br>
+
+### Install
+* Homebrew
+```sh
+$ brew install kor
+```
+* Container
+```sh
+$ docker run --rm -i yonahdissen/kor
+
+$ docker run --rm -i -v "/path/to/.kube/config:/root/.kube/config" yonahdissen/kor all
+```
+* Helm
+```sh
+$ helm upgrade -i kor \
+    --namespace kor \
+    --create-namespace \
+    --set cronJob.enabled=true
+    ./charts/kor
+```
+
+<br>
+
+### Usage
+
+#### Command
+```sh
+$ kor [subcommand] --help
+```
+* cluster의 모든 미사용 리소스 조회
+```sh
+$ kor all
+```
+
+* namespace의 모든 미사용 리소스 조회
+```sh
+$ kor all -n my-namesapce
+```
+
+#### Import
+* Go library로 사용
+```go
+import (
+    "github.com/yonahd/kor/pkg/kor"
+)
+
+func main() {
+    myNamespaces := kor.IncludeExcludeLists{
+        IncludeListStr: "my-namespace1, my-namespace2",
+    }
+    outputFormat := "json" // Set to "json" for JSON output
+
+    if outputFormat == "json" {
+        jsonResponse, err := kor.GetUnusedDeploymentsStructured(myNamespaces, kubeconfig, "json")
+        if err != nil {
+            // Handle error
+        }
+        // Process the JSON response
+        // ...
+    } else {
+        kor.GetUnusedDeployments(namespace)
+    }
+}
+```
+
+#### CronJob으로 slack 전송
+```sh
+$ helm upgrade -i kor \
+    --namespace kor \
+    --create-namespace \
+    --set cronJob.slackChannel=<slack-channel> \
+    --set cronJob.slackToken=<slack-token> \
+    --set cronJob.schedule="0 1 * * 1" \
+    ./charts/kor
+```
+
+
 <br><br>
 
 > #### Reference
@@ -875,3 +971,4 @@ $ kubectl view-utilization -o json
 > * [groundcover-com/caretta - GitHub](https://github.com/groundcover-com/caretta)
 > * [k8spacket - GitHub](https://github.com/k8spacket/k8spacket)
 > * [etopeter/kubectl-view-utilization - GitHub](https://github.com/etopeter/kubectl-view-utilization)
+> * [yonahd/kor - GitHub](https://github.com/yonahd/kor)
