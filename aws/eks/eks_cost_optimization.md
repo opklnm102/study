@@ -557,6 +557,7 @@ spec:
 * EC2 Spot 사용
 * 일관성 있게 빠른 node provisioning 시간을 통해 시간/비용 낭비 최소화
 * 운영 overhead를 줄여 비즈니스 가치 제공에 집중 가능
+* Cluster Autoscaler와 달리 ASG(Auto Scaling Group)를 사용하지 않고 직접 EC2 Fleet API 호출
 
 #### Usage
 <div align="center">
@@ -580,6 +581,337 @@ spec:
 ```
 
 
+### 5. AutoScaling 최적화
+* spot instance, RI, on-demand를 혼합하여 사용하고 on-demand 보다 저렴한 spot instance를 우선적으로 사용
+* Graviton, Intel를 혼합하여 multi-arch 사용하고 Intel 보다 가성비가 좋은 Graviton 우선적으로 사용
+* 일정 비율은 on-demand로 유지하여 spot instance가 일시에 회수될 경우에 대한 대비 필요
+
+#### Cluster Autoscaler Priority Expander 사용
+* CA는 node group에 동일한 spec의 node를 사용한다고 가정하여 동작하고, 요구 사항에 따라 pod scheduling 정책이 달라지기 때문에 on-demand, spot node group 분리 필요
+* spot instance capacity를 적극적으로 확보하려면 여러 AZ에서 다양한 family & size를 사용하는게 유리 -> spot node group도 다양한 vCPU/memory 조합으로 여러개 생성
+
+<div align="center">
+  <img src="./images/autoscaling_ca.png" alt="autoscaling_ca" width="75%" height="75%" />
+</div>
+
+* region에 cpu,memory,arch 등의 spec에 맞는 instance type을 찾기 위해 [ec2-instance-selector](https://github.com/aws/amazon-ec2-instance-selector) 사용
+```sh
+$ curl -Lo ec2-instance-selector https://github.com/aws/amazon-ec2-instance-selector/releases/download/v2.4.0/ec2-instance-selector-`uname | tr '[:upper:]' '[:lower:]'`-amd64 && chmod +x ec2-instance-selector
+
+$ ./ec2-instance-selector --memory 16 --vcpus 4 --cpu-architecture x86_64 --region ap-northeast-2
+$ ./ec2-instance-selector --memory 16 --vcpus 4 --cpu-architecture arm64 --region ap-northeast-2
+```
+
+* 동일한 instance size(vCPU=4, memory=16G)로 node group 생성
+  * Graviton spot node group
+  * Intel spot node group
+  * Graviton on-demand node group
+  * Intel on-demand node group
+
+```sh
+## on-demand-intel
+$ eksctl create nodegroup --cluster=${CLUSTER_NAME} \
+                          --region=${AWS_REGION} \
+                          --managed \
+                          --name=ng-ondemand-intel-4vcpu \
+                          --instance-types=m5.xlarge,m5a.xlarge,m5d.xlarge,m6i.xlarge \
+                          --node-labels="intent=apps" \
+                          --nodes 1 --nodes-min 1 --nodes-max 3
+
+## spot-intel
+$ eksctl create nodegroup --cluster=${CLUSTER_NAME} \
+                          --region=${AWS_REGION} \
+                          --managed \
+                          --spot \
+                          --name=ng-spot-intel-4vcpu \
+                          --instance-types=m5.xlarge,m5a.xlarge,m5d.xlarge,m6i.xlarge \
+                          --node-labels="intent=apps" \
+                          --nodes 1 --nodes-min 1 --nodes-max 3
+
+## on-demand-arm
+$ eksctl create nodegroup --cluster=${CLUSTER_NAME} \
+                          --region=${AWS_REGION} \
+                          --managed \
+                          --name=ng-ondemand-arm-4vcpu \
+                          --instance-types=m6g.xlarge,t4g.xlarge \
+                          --node-labels="intent=apps" \
+                          --nodes 1 --nodes-min 1 --nodes-max 3
+
+## spot-arm
+$ eksctl create nodegroup --cluster=${CLUSTER_NAME} \
+                          --region=${AWS_REGION} \
+                          --managed \
+                          --spot \
+                          --name=ng-spot-arm-4vcpu \
+                          --instance-types=m6g.xlarge,t4g.xlarge \
+                          --node-labels="intent=apps" \
+                          --nodes 1 --nodes-min 1 --nodes-max 3
+```
+
+* Cluster Autoscaler Priority Expander 설정
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler
+  namespace: kube-system
+spec:
+...
+  command:
+    ....
+    - --expander=priority
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-autoscaler-priority-expander
+  namespace: kube-system
+data:
+  priorities: |-
+    10:
+      - ng-ondemand-intel-4vcpu
+    20:
+      - ng-ondemand-arm-4vcpu
+    30:
+      - ng-spot-intel-4vcpu
+    40:
+      - ng-spot-arm-4vcpu
+```
+
+
+#### Cluster Autoscaler Priority Expander 사용
+* 위 방법보다 조금 더 효과적으로 비용 절감을 위해 **작은 사이즈로 충분한 경우라면 최적의 사이즈로 확장** 한다라는 요구사항 추가
+* large를 사용한다면 CA는 node group에 동일한 spec의 node를 사용한다고 가정하여 동작하기 때문에 아래처럼 8개의 node group 필요
+  * xlarge spot capacity가 부족할 경우 large spot을 사용하여 **여유로운 spot capacity 확보**
+  * 디테일하게 비용 최적화된 auto scaling을 구현하기 위해서는 다수의 node group을 구성하고 관리(적절한 우선 순위 지정)해야하기 때문에 cluster upgrade, 운영에 많은 노력 필요
+
+<div align="center">
+  <img src="./images/autoscaling_ca2.png" alt="autoscaling_ca2" width="75%" height="75%" />
+</div>
+
+* 2가지 instance size로 node group 생성한 후 `priority,least-waste` expander 사용
+  * 1st - vCPU=2, memory=8G
+  * 2nd - vCPU=4, memory=16G	
+
+```sh
+## on-demand-intel
+$ eksctl create nodegroup --cluster=${CLUSTER_NAME} \
+                          --region=${AWS_REGION} \
+                          --managed \
+                          --name=ng-ondemand-intel-2vcpu \
+                          --instance-types=m5.large,m5a.large,m5ad.large,m5d.large,m5zn.large,m6i.large \
+                          --node-labels="intent=apps" \
+                          --nodes 1 --nodes-min 1 --nodes-max 3
+  
+## spot-intel
+$ eksctl create nodegroup --cluster=${CLUSTER_NAME} \
+                          --region=${AWS_REGION} \
+                          --managed \
+                          --spot \
+                          --name=ng-spot-intel-2vcpu \
+                          --instance-types=m5.large,m5a.large,m5ad.large,m5d.large,m5zn.large,m6i.large \
+                          --node-labels="intent=apps" \
+                          --nodes 1 --nodes-min 1 --nodes-max 3
+
+## on-demand-arm
+$ eksctl create nodegroup --cluster=${CLUSTER_NAME} \
+                          --region=${AWS_REGION} \
+                          --managed \
+                          --name=ng-ondemand-arm-2vcpu \
+                          --instance-types=m6g.large,t4g.large \
+                          --node-labels="intent=apps" \
+                          --nodes 1 --nodes-min 1 --nodes-max 3
+
+## spot-arm
+$ eksctl create nodegroup --cluster=${CLUSTER_NAME} \
+                          --region=${AWS_REGION} \
+                          --managed \
+                          --spot \
+                          --name=ng-spot-arm-2vcpu \
+                          --instance-types=m6g.large,t4g.large \
+                          --node-labels="intent=apps" \
+                          --nodes 1 --nodes-min 1 --nodes-max 3
+```
+
+* Cluster Autoscaler Expander 설정
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler
+  namespace: kube-system
+spec:
+...
+  command:
+    ....
+    - --expander=priority,least-waste
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-autoscaler-priority-expander
+  namespace: kube-system
+data:
+  priorities: |-
+    10:
+      - ng-ondemand-intel-*
+    20:
+      - ng-ondemand-arm-*
+    30:
+      - ng-spot-intel-*
+    40:
+      - ng-spot-arm-*
+```
+* 높은 우선 순위를 가지는 node group을 priority expander가 선별 -> least-waste expander가 node group을 선별 -> 여러개라면 node group 무작위로 1개 선택
+
+#### Karpenter
+* ASG(Auto Scaling Group)를 사용하지 않고, Provisioner CRD를 사용해 간단하게 정의 가능
+* instance type에 동일한 cpu, memory를 가정하지 않기 때문에 여러개의 node group을 사용한 복잡한 구성이 불필요하고, Pod를 실행하기에 최적의 type을 선택한다
+* RI를 우선적으로 사용하기 위해 `spec.weight` 사용
+  * Provisioner간의 우선순위 지정하며 높을수록 더 높은 우선순위
+  * 정의하지 않으면 weight는 0이라고 가정
+```yaml
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: reserved-instance
+spec:
+  weight: 50  # here
+  requirements:
+  - key: "node.kubernetes.io/instance-type"
+    operator: In
+    values: ["c4.2xlarge"]
+  limits:
+    cpu: 100
+```
+
+* 위의 요구사항을 위해 Karpenter를 사용
+  * on-demand보다 저렴한 spot instance를 우선적으로 사용
+  * Intel 보다 가성비가 좋은 Graviton 우선적으로 사용
+  * 작은 사이즈로 충분한 경우라면 최적의 사이즈로 확장
+
+```yaml
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: default
+spec:
+  labels:
+    intent: apps
+  requirements:
+    - key: karpenter.sh/capacity-type
+      operator: In
+      values: ["spot", "on-demand"]
+    - key: kubernetes.io/arch
+      operator: In
+      values: ["amd64", "arm64"]
+    - key: karpenter.k8s.aws/instance-size
+      operator: In
+      values: ["xlarge"]
+```
+* CA에서는 최소 4개의 node group이 필요했고, 사이즈를 추가로 늘릴 때마다 해당 배수만큼 node group도 증가시켜야했지만 Karpenter에서는 default Provisioner를 생성하는 것만으로 충분
+  * Provisioner에서 여러 type이 정의된 경우 비용과 용량을 최적화한 instance를 우선하기 때문
+
+#### Karpenter에서 on-demand vs spot 비율 조정하기
+* spot instance가 일시에 회수될 경우를 대비하여 on-demand와 spot 비율을 2:8로 설정
+* `capacity-spread` label의 값을 겹치지 않게 on-demand와 spot Provisioner를 생성하고, `topologySpreadConstraints`으로 고르게 분산
+```yaml
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: on-demand
+spec:
+  labels:
+    intent: apps
+  weight: 100
+  requirements:
+    - key: "karpenter.sh/capacity-type"
+      operator: In
+      values: [ "on-demand"]
+    - key: karpenter.k8s.aws/instance-size
+      operator: NotIn
+      values: [nano, micro, small, medium]
+    - key: capacity-spread  # here
+      operator: In
+      values:
+      - "1"
+...
+---
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: spot
+spec:
+  labels:
+    intent: apps
+  weight: 50
+  requirements:
+    - key: "karpenter.sh/capacity-type"
+      operator: In
+      values: [ "spot"]
+    - key: karpenter.k8s.aws/instance-size
+      operator: NotIn
+      values: [nano, micro, small, medium]
+    - key: capacity-spread  # here
+      operator: In
+      values:
+      - "2"
+      - "3"
+      - "4"
+      - "5"
+...
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inflate-weight
+spec:
+  replica: 0
+  selector:
+    matchLabels:
+      app: inflate-weight
+  template:
+    metadata:
+      labels:
+        app: inflate-weight
+    spec:
+      nodeSelector:
+        intent: apps
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: capacity-spread
+          whenUnsatisfiable: DoNotSchedule    
+          labelSelector:
+            matchLabels:
+              app: inflate-weight  
+      containers:
+        - name: inflate
+          image: public.ecr.aws/eks-distro/kubernetes/pause:3.2
+          resources:
+            requests:
+              cpu: 1
+              memory: 1.5Gi
+```
+
+* scale out하면서, watch로 CAPACITY-TYPE 비율 확인
+```sh
+$ kubectl scale deploy/inflate-weight --replicas 1
+$ kubectl scale deploy/inflate-weight --replicas 2
+$ kubectl scale deploy/inflate-weight --replicas 3
+$ kubectl scale deploy/inflate-weight --replicas 4
+$ kubectl scale deploy/inflate-weight --replicas 5
+
+$ watch kubectl get nodes -L karpenter.sh/capacity-type,capacity-spread,karpenter.k8s.aws/instance-family,karpenter.k8s.aws/instance-size
+
+NAME                                                 STATUS   ROLES    AGE     VERSION                CAPACITY-TYPE   CAPACITY-SPREAD   INSTANCE-FAMILY   INSTANCE-SIZE
+ip-192-168-104-244.ap-northeast-2.compute.internal   Ready    <none>   91s     v1.24.10-eks-48e63af   spot            5                 c4                large
+ip-192-168-116-33.ap-northeast-2.compute.internal    Ready    <none>   3m13s   v1.24.10-eks-48e63af   on-demand       1                 c5a               large
+ip-192-168-121-44.ap-northeast-2.compute.internal    Ready    <none>   2m35s   v1.24.10-eks-48e63af   spot            3                 c4                large
+ip-192-168-160-214.ap-northeast-2.compute.internal   Ready    <none>   2m51s   v1.24.10-eks-48e63af   spot            2                 c4                large
+ip-192-168-173-67.ap-northeast-2.compute.internal    Ready    <none>   2m1s    v1.24.10-eks-48e63af   spot            4                 c4                large
+```
+
+
 <br><br>
 
 > #### Reference
@@ -589,3 +921,4 @@ spec:
 > * [Amazon EKS에서 Topology Aware Hint 기능을 활용하여 Cross-AZ 통신 비용 절감하기](https://aws.amazon.com/ko/blogs/tech/amazon-eks-reduce-cross-az-traffic-costs-with-topology-aware-hints)
 > * [Exploring the effect of Topology Aware Hints on network traffic in Amazon Elastic Kubernetes Service](https://aws.amazon.com/ko/blogs/containers/exploring-the-effect-of-topology-aware-hints-on-network-traffic-in-amazon-elastic-kubernetes-service)
 > * [Optimizing Network Performance using Topology Aware Routing with Calico eBPF and Standard Linux dataplane](https://www.tigera.io/blog/optimizing-network-performance-using-topology-aware-routing-with-calico-ebpf-and-standard-linux-dataplane)
+> * [Amazon EKS 클러스터를 비용 효율적으로 오토스케일링하기](https://aws.amazon.com/ko/blogs/tech/amazon-eks-cluster-auto-scaling-karpenter-bp)
