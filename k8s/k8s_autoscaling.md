@@ -8,6 +8,31 @@
 ## Auto scaling
 * autoscaling은 사용자가 정의한 schedule & event에 따라 server를 자동으로 증가/감소시키는 기능
 * autoscaling을 통해 application은 traffic에 탄력적으로 대응할 수 있다
+* application 마다 CPU, memory 사용률이 다르므로 다양한 instance type을 사용
+* scaling 속도가 빠르면서 적절한 instance를 비용 효율적으로 사용해야한다
+
+<br>
+
+### 일반적인 traffic pattern
+<div align="center">
+  <img src="./images/autoscaling_normal_traffic.png" alt="autoscaling_normal_traffic" width="75%" height="75%"/>
+</div>
+
+* 시간에 따라 증가하는 traffic pattern
+* traffic 증가 폭이 완만
+* traffic이 많이 들어오는 시간을 미리 예측할 수 있다
+* CPU 사용률, request/sec 등을 기반으로 점진적으로 scaling
+
+<br>
+
+### Spike traffic pattern
+<div align="center">
+  <img src="./images/autoscaling_spike_traffic.png" alt="autoscaling_spike_traffic" width="75%" height="75%"/>
+</div>
+
+* 이벤트 오픈 시점에 traffic이 폭증하는 pattern
+* 사전에 scale out 후 피크 타임이 지나면 scale in
+* 사전에 인지를 못하는 경우에도 가능한 빨리 scaling
 
 
 <br>
@@ -88,6 +113,8 @@
   * autoscaler를 복잡하며 tuning하기 어려울 수 있다
   * custom userdata 추가를 위해 Launch template 관리 필요
   * workload에 따라 필요한 instance type이 다르다면 여러 ASG 필요
+* API Limit
+  * ASG를 사용하기 때문에 AWS API limit에 도달할 수 있다
 * [Karpenter](https://karpenter.sh)는 이런 문제를 해결하기 위해 탄생
 
 
