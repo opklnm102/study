@@ -36,7 +36,7 @@
 | Stream | O | X | X(deprecated) |
 | Batch | O | O | O |
 | 언어 | Java | Python | Yaml |
-| 작업 단위 | Spring Boot, Spring Cloud 기반 Application | Python | Container |
+| 작업 단위 | Spring Boot, Spring Cloud 기반 Application | - Python<br>- Container with [KubernetesPodOperator](https://airflow.apache.org/docs/apache-airflow-providers-cncf-kubernetes/stable/operators.html) | Container |
 
 
 <br><br>
