@@ -55,8 +55,9 @@
 |:--|:--|
 | [Cluster Autoscaler(CA)](https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler) | cluster node auto scaling<br>Karpenter로 대체 |
 | [AWS Node Termination Handler(NTH)](https://github.com/aws/aws-node-termination-handler) | EC2 lifecycle(e.g. Spot)에 따른 node termination 처리<br>Karpenter로 대체 |
-| [Karpenter](https://karpenter.sh) | cluster node auto scaling<br>node 관리를 위한 EC2 권한 필요 |
+| [Karpenter](https://karpenter.sh) | cluster node auto scaling<br>node 관리를 위한 EC2, SQS 권한 필요 |
 | [cluster-overprovisioner](https://github.com/codecentric/cluster-overprovisioner) | 빠른 Pod 배포를 위한 여유 리소스 확보 |
+| [Descheduler](https://github.com/kubernetes-sigs/descheduler) | 잘못 schedule된 Pod 정리 |
 
 
 <br>
