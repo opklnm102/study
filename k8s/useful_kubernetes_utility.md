@@ -24,6 +24,7 @@
 * [KubeTunnel](#kubetunnel)
 * [kubectl-view-utilization](#kubectl-view-utilization)
 * [Kor](#kor)
+* [list all resources in same namespace](#list-all-resources-in-same-namespace)
 
 <br>
 
@@ -946,6 +947,23 @@ $ helm upgrade -i kor \
     --set cronJob.slackToken=<slack-token> \
     --set cronJob.schedule="0 1 * * 1" \
     ./charts/kor
+```
+
+
+<br>
+
+## List all resources in same namespace
+* `kubectl -n <namespace> get all`에는 ingress, secrets, endpoints, pv, pvc, cm, CRDs 등의 리소스가 포함되지 않기 때문에 아래의 명령어 사용
+```sh
+$ kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl get --show-kind --ignore-not-found -n <namespace>
+```
+
+* alias 지정
+```sh
+alias kl="kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl get --show-kind --ignore-not-found -n"
+
+## usage
+$ kl kube-system
 ```
 
 
