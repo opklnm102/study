@@ -21,7 +21,8 @@
   <img src="./images/aws_vpc_cni.png" alt="aws_vpc_cni" width="70%" height="70%"/>
 </div>
 
-* Amazon EKS는 Amazon VPC CNI(Container Network Interface) plugin을 통해 기본 VPC networking 지원
+* Amazon EKS는 [Amazon VPC CNI(Container Network Interface)](https://github.com/aws/amazon-vpc-cni-k8s) plugin을 통해 기본 VPC networking 지원
+  * [CNI(Container Network Interface)](https://github.com/containernetworking/cni)는 container가 어떻게 network에 접근하고, host는 container에 어떻게 network를 할당하고 해제하는지를 정의한 명세
   * EKS managed addon을 제공하지만 설정 수정을 위해 [advanced configuration](https://aws.amazon.com/ko/blogs/containers/amazon-eks-add-ons-advanced-configuration)을 지원하나 제한이 있어 편하진 않다
   * [helm chart](https://artifacthub.io/packages/helm/aws/aws-vpc-cni)는 EKS managed addon보다 자유도가 높다
 * EC2 instance 하나에 다수의 IP를 지정할 수 있는데, 이를 이용해 VPC IP를 Pod에 할당해주는 CNI
@@ -85,26 +86,26 @@ instance type별 max pod 수 = ENI의 수 x (ENI 당 제공하는 IP의 수 - 1)
   <img src="./images/aws_vpc_cni_prefix_delegation.png" alt="aws_vpc_cni_prefix_delegation" width="70%" height="70%"/>
 </div>
 
-* `/28` prefix를 사용하여 ENI에 secondary ip를 할당하는 방식보다 빠르고 pod 수 제한이 증가
+* `/28` prefix를 사용하여 ENI에 secondary IP를 할당하는 방식보다 **빠르고(EC2 API call 감소) 더 많은 Pod 배포 가능(Pod 수 제한 증가)**
+  * ENI에 붙일 수 있는 최대 secondary IP의 개수만큼 prefix 할당 가능
+  * 빠른 IP 할당을 위해 prefix를 pooling하는 **Warm Prefix** 기능 제공
 * AWS Console에서 Node ENI에 `/28` CIDR가 할당된 것을 확인 가능
 * 더 작은 instance type에서 Pod 실행 시간과 Pod의 밀도가 중요하고 security 요구사항이 node level security group으로 충족될 수 있는 경우 좋은 networking mode
   * 여러 Pod들이 해당 ENI와 연결된 security group에서 공유
   * Pod마다 security group 필요시 sgp(security group for pods) 사용
-* nitro instance만 사용하도록 설정 with karpenter
-```yaml
-apiVersion: karpenter.sh/v1beta1
-kind: NodePool
-...
-spec:
-  template:
-    spec:
-      requirements:
-        - key: karpenter.k8s.aws/instance-hypervisor
-          operator: In
-          values: ["nitro"]
-```
 
-* setting
+#### default mode vs prefix mode
+| Instance Type | Maximum network interfaces | Private IPv4 addresses per interface | Maximum Pods with default mode | Maximum Pods with prefix mode |
+|:--|:--|:--|:--|:--|
+| m7g.large	| 3	| 10 | 29 | 110 |
+| m5.xlarge | 4 | 15 | 58 | 110 |
+| t3.xmall | 3 | 4 | 11 | 110 |
+
+* 110 = default kubelet max pods
+* prefix mode를 사용하면 EC2의 IP limit으로 Pod를 생성하지 못하는 경우는 없지만 충분한 subnet의 IP 확보 필요
+
+
+#### Setting
 ```sh
 $ kubectl set env ds aws-node -n kube-system ENABLE_PREFIX_DELEGATION=true
 
@@ -117,6 +118,20 @@ $ kubectl describe ds aws-node -n kube-system | grep -i delegation
 * 적용 확인
 ```sh
 $ kubectl describe node <node name> | grep 'pods\|PrivateIPv4Address'
+```
+
+* nitro instance만 사용하도록 설정 with karpenter
+```yaml
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+...
+spec:
+  template:
+    spec:
+      requirements:
+        - key: karpenter.k8s.aws/instance-hypervisor
+          operator: In
+          values: ["nitro"]
 ```
 
 <br>
@@ -181,6 +196,7 @@ $ ./max-pods-calculator.sh --instance-type m5.2xlarge --cni-version 1.9.0
 ## Conclusion
 * Amazon VPC CNI를 사용하면 EC2 host networking과 동일한 성능으로 VPC에서 실제 IP를 사용할 수 있고, VPC 내의 AZ 간 routing(cross zone traffic)에 추가 overlay가 필요하지 않은 장점이 있어 특별한 이슈가 없으면 간단하고 성능이 우수한 AWS native solution인 Amazon VPC CNI를 사용 권장
 * Amazon VPC CNI는 ENI로 인해 Pod 수 제한이 있어 작은 instance의 경우 실행할 수 있는 Pod 수가 상당히 적을 수 있다
+* EC2 API throttling으로 인해 IP 할당을 못해 Pod가 시작에 지연이 발생할 수 있으며 시작 시간에 민감한 배치 서비스라면 다른 CNI를 고려
 * 이런 경우 instance type 당 Pod 수 제한이 없는 [Calico](https://www.tigera.io/project-calico)를 사용
 
 
