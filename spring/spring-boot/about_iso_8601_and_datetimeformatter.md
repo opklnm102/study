@@ -75,6 +75,7 @@ public class DateTimeFormatterTest {
 <br>
 
 ### ms가 생략되어 있는 시간을 LocalDateTime으로 변환하기
+* 소수점 이하 자릿수가 유동적인 ISO 8601 형식의 문자열을 LocalDateTime으로 변환
 ```java
 var formatter = new DateTimeFormatterBuilder()
                 .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
