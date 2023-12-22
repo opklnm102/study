@@ -225,35 +225,3 @@ security delete-generic-password -a "${user_name}" -s "aws.opklnm102.me"
 
 > #### Further reading
 > * [pexpect](https://github.com/pexpect/pexpect)
-
-
-
-
-
-
-
-
-
-
-
-
-https://www.google.com/search?q=expect%EB%9E%80&oq=expect%EB%9E%80&aqs=chrome..69i57j0i433l2j0j0i433j0l2j69i60.1811j0j7&sourceid=chrome&ie=UTF-8
-
-https://www.joinc.co.kr/w/Site/JPerl/expect
-https://zetawiki.com/wiki/%EB%A6%AC%EB%88%85%EC%8A%A4_expect
-https://ktdsoss.tistory.com/149
-http://abh0518.net/tok/?p=623
-http://btsweet.blogspot.com/2014/05/sftp-automation-with-expect.html
-
-https://zetawiki.com/wiki/Bash_%EC%8A%A4%ED%81%AC%EB%A6%BD%ED%8A%B8%EC%97%90_expect_%EC%8A%A4%ED%81%AC%EB%A6%BD%ED%8A%B8_%EB%84%A3%EA%B8%B0
-
-
-http://board.theko.co.kr/bbs/board.php?bo_table=B13&wr_id=37
-
-https://ktdsoss.tistory.com/151
-
-https://medium.com/@jyson88/linux-expect-%EC%82%AC%EC%9A%A9%EB%B2%95-43fab859d85d
-
-https://kwonnam.pe.kr/wiki/linux/expect
-https://ipex.tistory.com/entry/expect-%EB%A5%BC-%EC%9D%B4%EC%9A%A9%ED%95%9C-scp-%EC%9E%90%EB%8F%99-%EC%8A%A4%ED%81%AC%EB%A6%BD%ED%8A%B8-%EC%9E%91%EC%84%B1
-https://dazemonkey.tistory.com/129
