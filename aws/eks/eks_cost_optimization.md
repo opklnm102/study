@@ -102,9 +102,15 @@
 ### 1. AWS Load Balancer Controller IP mode 사용
 * AWS ELB(ALB/NLB)의 instance target type 사용시 kube-proxy의 iptables rule을 경유하기 때문에 cross zone traffic 발생
 * [AWS Load Balancer Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.6/) IP mode 사용하여 external traffic이 Pod로 바로 도달하게 설정
-* zero downtime deployment를 위해 pod readiness gate + preStop + graceful shutdown 설정 필요
-  * 신규 request 처리를 위해 readiness/liveness probe + pod readiness gate 설정
-  * in-flight request 처리를 위한 graceful shutdown + preStop 설정
+* Pros
+  * route traffic directly to the Pod IP
+  * ALB(Application Load Balancer)의 sticky sessions을 사용 가능
+* Cons
+  * Pod IP를 ENI의 secondary IP로 사용하는 [amazon-vpc-cni-k8s](https://github.com/aws/amazon-vpc-cni-k8s) 같은 CNI에 종속
+  * zero downtime deployment를 위해 pod readiness gate + preStop + graceful shutdown 설정 필요
+    * 신규 request 처리를 위해 readiness/liveness probe + pod readiness gate 설정
+    * in-flight request 처리를 위한 graceful shutdown + preStop 설정
+
 
 #### Instance mode vs IP mode
 <div align="center">
@@ -112,7 +118,8 @@
   <img src="./images/alb_ip_mode.png" alt="alb_ip_mode" width="45%" height="45%" />
 </div>
 
-* Cluster IP를 이용한 cluster internal traffic은 여전히 cross zone traffic cose 발생
+* Cluster IP를 이용한 cluster internal traffic은 여전히 cross zone traffic cost 발생
+* instance mode에서 target group의 모든 instance로 health check가 주기적으로 발생하는데, health check로 DDos 같은 효과가 발생하여 Pod가 적다면 Pod가 죽을 수 있다
 
 #### Usage
 ```yaml
