@@ -213,17 +213,17 @@ public record PersonSaveCommandRequest(
 #### As-is 
 * @ConfigurationProperties + @EnableConfigurationProperties 조합
 ```java
-@EnableConfigurationProperties(HotelStoryRestTemplateConfig.HotelStoryProperties.class)
+@EnableConfigurationProperties(XXXRestTemplateConfig.XXXProperties.class)
 @Configuration
-public class HotelStoryRestTemplateConfig {
+public class XXXRestTemplateConfig {
   ...
  
     @Getter
     @Setter
-    @ConfigurationProperties(prefix = "hotelstory.api")
-    public static class HotelStoryProperties {
+    @ConfigurationProperties(prefix = "xxx.api")
+    public static class XXXProperties {
         private String url;
-        private String authToken;
+        private String key;
         private int timeout;
     }
 }
@@ -239,18 +239,18 @@ public class XXApplication {
 }
  
 @Configuration
-public class HotelStoryRestTemplateConfig {
+public class XXXRestTemplateConfig {
   ...
  
     @Getter
-    @ConfigurationProperties(prefix = "hotelstory.api")
-    public static class HotelStoryProperties {
+    @ConfigurationProperties(prefix = "xxx.api")
+    public static class XXXProperties {
         private String url;
-        private String authToken;
+        private String key;
         private int timeout;
  
       @ConstructorBinding
-      public HotelStoryProperties(...) {
+      public XXXProperties(...) {
         ...
       }
     }
@@ -261,8 +261,8 @@ public class HotelStoryRestTemplateConfig {
 * record 사용으로 immutable
 * 생성자가 하나면 @ConstructorBinding가 필요 없고, 여러개라면 원하는 생성자에 @ConstructorBinding 설정 필요
 ```java
-@ConfigurationProperties(prefix = "hotelstory.api")
-public record HotelStoryProperties(String url, String authToken, int timeout) {
+@ConfigurationProperties(prefix = "xxx.api")
+public record XXXProperties(String url, String key, int timeout) {
 }
 ```
 
