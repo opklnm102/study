@@ -7,7 +7,10 @@
 
 ## Issue
 * Data Flow
-![Data Stream Kafka to S3](./images/data_stream_kafka_to_s3.png)
+
+<div align="center">
+  <img src="./images/data_stream_kafka_to_s3.png" alt="data stream kafka to s3" width="80%" height="80%" />
+</div>
 
 ```yaml
 ...
