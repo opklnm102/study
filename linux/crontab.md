@@ -52,7 +52,7 @@ $ crontab -u [user] [command]
 
 <br>
 
-## crontab 표현식
+## crontab 표현식(Cron expression)
 ```sh
 .---------------- minute (0 - 59)
 |  .------------- hour (0 - 23)
@@ -66,51 +66,99 @@ $ crontab -u [user] [command]
 * * * * * huekim /etc/test.sh > test.log 2>&1
 0 * * * * huekim ls -al > ls.log 2>&1
 ```
-* `@reboot` - run once after reboot
-* `@yearly` - 매년(0 0 1 1 *)
-* `@annually` - 매년(0 0 1 1 *)
-* `@monthly` - 매월(0 0 1 * *)
-* `@weekly` - 매주(0 0 * * 0)
-* `@daily` - 매일(0 0 * * *)
-* `@hourly` - 매시간(0 * * * *)
+* allow list 개념으로 동작
+* 각 필드에는 값과 특수문자의 조합 사용 가능
+
+| 필드 | 가능한 값 | 가능한 특수 문자 |
+|:--|:--|:--|
+| minute(분) | 0 ~ 59 | * , - / |
+| hour(시) | 0 ~ 23 | * , - / |
+| day of month(일) | 1 ~ 31 | * , - ? L W |
+| month(월) | (1 - 12) or jan,feb,mar,apr ... | * , - / |
+| day of week(요일) | (0 - 6) (Sunday=0 or 7) or sun,mon,tue,wed,thu,fri,sat | * , - ? L # |
+, - / ? L #
 
 <br>
 
-### 매분 실행
-```sh
-* * * * * /etc/test.sh
-```
-* `*` - 범위 내 모든 값을 의미
+### 특수 문자
+| 특수 문자 | 설명 |
+|:--|:--|
+| * | 범위 내 모든 값 |
+| ? | 특정 값이 아닌 모든 값, 특정 일을 선택할 때는 Day-of-month or Day-of-week 중 하나는 `?`를 사용해야한다 |
+| - | 범위 |
+| , | 여러 값 |
+| / | 증분 값(초기값 / 증가치) |
+| L | 범위의 마지막 값 |
+| W | 가장 가까운 평일 |
+| # | N번째 특정 요일, 4#3(3번째 목요일) |
 
 <br>
 
-### 매주 일요일 9시 30분에 실행
-```sh
-30 9 * * 0 /etc/test.sh
-```
+### 주석
+* cron expression spec을 기억하기 쉽지 않으므로 cron expression을 사용할 때는 정확히 무슨 의미인지 주석을 추가하자
+  * e.g. `* 23-10 ? * *` - Every minute, between 08:00 ~ 19:59, every day
+* [Cron Expression Descriptor](https://bradymholt.github.io/cron-expression-descriptor)를 이용하면 편하다
+
 
 <br>
 
-### 매시간 0, 20, 40분에 실행
-```sh
-0,20,40 * * * * /etc/test.sh
-```
-* `,` - 각 값을 구분시 사용
+## Example
+### server time zone = UTC, UTC 기준으로 실행할 경우
+| Cron expression | Description |
+|:--|:--|
+| `@reboot` | run once after reboot |
+| `@yearly` | 매년(0 0 1 1 *) |
+| `@annually` | 매년(0 0 1 1 *) |
+| `@monthly` | 매월(0 0 1 * *) |
+| `@weekly` | 매주(0 0 * * 0) |
+| `@daily` | 매일(0 0 * * *) |
+| `@hourly` | 매시간(0 * * * *) |
+| `* * * * *`, `*/1 * * * ?` | 매분 실행 |
+| `30 9 * * 0` | 매주 일요일 9시 30분에 실행 |
+| `0,20,40 * * * *` | 매시간 0, 20, 40분에 실행 |
+| `0-30 1 * * *` | 매일 1시 0 ~ 30분 동안 매분 실행 |
+| `*/10 * * * * `| 매 10분마다 실행 |
+| `31 */1 * * ?` | 매시간 31분마다 실행 |
+| `30 2 * * MON` | 월요일, 02:30 마다 실행 |
 
 <br>
 
-### 매일 1시 0 ~ 30분 동안 매분 실행
-```sh
-0-30 1 * * * /etc/test.sh
-```
-* `-` - 연결된 범위
+### server timezone = UTC, KST(UTC+09:00) 기준으로 실행할 경우
+| Cron expression | Description |
+|:--|:--|
+| `0/5 0-11 ? * MON-FRI` |	월~금, 09:00 ~ 20:59 동안 5분 마다 실행 |
+| `* 23-10 ? * *` | 매일 08:00 ~ 19:59 동안 1분 마다 실행 |
+| `* 23-10 ? * *` 와 `0-30 11 ? * * *` 함께 사용  | 매일 08:00 ~ 20:30 동안 1분 마다 실행 |
+| `0 17 1-30 1,3,5,7,8,10,12 *` 와 `0 17 1-29 4,6,9,11 *`, `0 17 1-27 2 *` 함께 사용 | 매달 1일을 제외하고 02:00 마다 실행 |
 
-<br>
+* 계산하기 어려우므로 아래의 python script를 사용하여 계산
+```python
+from datetime import datetime, timezone, timedelta
 
-### 매 10분마다 실행
-```sh
-*/10 * * * * /etc/test.sh
+from croniter import croniter_range
+from dateutil.relativedelta import relativedelta
+
+KST = timezone(timedelta(hours=9))
+
+# KST로 넘어온 시간을 UTC로 변환한다음 cron 식을 돌리고, 다시 KST로 변환하여 보여준다
+def show_cron_date(cron_expression, start_at=datetime.now(), relative_delta_month=1):
+  start_at_utc = start_at.astimezone(timezone.utc)
+  end_date_utc = start_at_utc + relativedelta(months=relative_delta_month)
+
+  for date in croniter_range(start_at_utc, end_date_utc, cron_expression):
+    date_kst = date.astimezone(KST)
+    print(f"{date_kst.strftime('%a, %b %d, %Y, %I:%M %p %Z')}")
+
+
+if __name__ == '__main__':
+    show_cron_date("0 12 * * *")
+    show_cron_date(cron_expression="0 23,0-12 * * SUN-FRI", start_at=datetime.strptime("2024-01-26 14:00:00", "%Y-%m-%d %H:%M:%S"))
+    show_cron_date(cron_expression="0 23,0-12 * * SUN-FRI")
+    show_cron_date(cron_expression="0 23,0-10 * * MON-FRI")
+    show_cron_date(cron_expression="0-30 11 * * *")
+    show_cron_date(cron_expression="0 17 L * *", relative_delta_month=5)
 ```
+* [CronTool - Cron expression editor & debugger](https://tool.crontap.com/cronjob-debugger)를 사용하면 달력표시로 확인할 수 있고, cron에 대한 test, 원하는 시간대에 대한 cron expression을 생성할 수 있어서 편하다
 
 
 <br>
