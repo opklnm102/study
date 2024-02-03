@@ -71,8 +71,16 @@
 ### 3. Logback + Spring Boot dependency 설정
 * gradle dependency 추가
 ```gradle
-implementation 'io.sentry:sentry-spring-boot-starter:5.2.0'
-implementation 'io.sentry:sentry-logback:5.2.0'
+sentryVersion=7.3.0
+
+implementation "io.sentry:sentry-spring-boot-starter-jakarta:${sentryVersion}"
+implementation "io.sentry:sentry-logback:${sentryVersion}"
+```
+
+#### Spring Boot 3.0 미만이면?
+```gradle
+implementation "io.sentry:sentry-spring-boot-starter:${sentryVersion}"
+implementation "io.sentry:sentry-logback:${sentryVersion}"
 ```
 
 #### Spring Boot 2.1 미만이면?
@@ -157,6 +165,64 @@ public ServletContextInitializer sentryServletContextInitializer() {
 
 <br>
 
+## Optimization
+
+### 불필요한 error filtering 하기
+* 불필요한 error event를 미전송하도록 최적화
+```java
+@Configuration
+public class SentryConfig {
+
+  /**
+   * error가 발생했을 때, 어떤 error인지 확인하고, 특정 error는 보내지 않도록 처리
+   */
+  @Bean
+  @Profile({"dev", "staging", "prod"})
+  public SentryOptions.BeforeSendCallback beforeSendCallback() {
+    return (event, hint) -> {
+      if (!event.isErrored()) {
+        return null;
+      }
+
+    return switch (event.getThrowable()) {
+      case null -> null;
+      case HttpMessageNotReadableException ignored -> null;
+      case MissingServletRequestParameterException ignored -> null;
+      case TypeMismatchException ignored -> null;
+      case MethodArgumentNotValidException ignored -> null;
+      default -> event;
+      };
+    };
+  }
+
+  @Bean
+  @Profile({"local", "test"})
+  public SentryOptions.BeforeSendCallback nonOpsBeforeSendCallback() {
+    return (event, hint) -> null;
+  }
+}
+```
+
+* local에서 sentry 비활성화하기
+```yaml
+## application-local.yml
+sentry:
+  enabled: false
+```
+
+<br>
+
+### 불필요한 transactions filtering 하기
+* performance monitoring이 필요 없는 app이라면 transactions을 미전송하도록 최적화
+```yaml
+## traces sample rate 수정
+sentry:
+  traces-sample-rate: 0
+```
+
+
+<br>
+
 ## 주의 사항
 * plan별로 error capacity가 있어 관리 필요
   * ignore 처리해도 capacity count에 포함되므로 error 발생을 줄이거나 filter를 잘 사용하여 과다한 error event를 줄일 필요가 있음
@@ -177,3 +243,5 @@ public ServletContextInitializer sentryServletContextInitializer() {
 > * [Java Configuration - Sentry Docs](https://docs.sentry.io/platforms/java/configuration/)
 > * [Java Logback - Sentry Docs](https://docs.sentry.io/platforms/java/guides/logback/)
 > * [Spring Boot - Sentry Docs](https://docs.sentry.io/platforms/java/guides/spring-boot/)
+> * [Filtering - Sentry Docs](https://docs.sentry.io/platforms/java/guides/spring/configuration/filtering)
+> * [Set Up Performance - Sentry Docs](https://docs.sentry.io/platforms/java/performance)
