@@ -13,6 +13,7 @@
 * [kubectl-aliases](#kubectl-aliases)
 * [kubectl-neat](#kubectl-neat)
 * [Kubetail](#kubetail)
+* [stern](#stern)
 * [Kube No Trouble - kubent](#kube-no-trouble---kubent)
 * [kubectl-view-secret](#kubectl-view-secret)
 * [kubectl-whoami](#kubectl-whoami)
@@ -310,6 +311,84 @@ $ kubetail app1,app2
 $ kubetail "^app1|.*my-demo.*" --regex
 
 $ kubetail app2 -c container1 -n namespace1
+```
+
+
+<br>
+
+## Stern
+* multiple pod or container log tailing tool
+* 모든 pod의 log를 함께 볼 수 있어서 `kubectl logs` 보다 편리
+
+<br>
+
+### Install
+* asdf
+```sh
+$ asdf plugin-add stern
+$ asdf install stern latest
+```
+
+* brew
+```sh
+$ brew install stern
+```
+
+* krew
+```sh
+$ kubectl krew install stern
+```
+
+* container
+```sh
+## zshrc
+stern() {
+  docker run -it --rm ghcr.io/stern/stern "$@"
+}
+
+## usage
+$ stern --version
+```
+
+#### config file
+* default config file path는 `~/.config/stern/config.yaml`이며 `--config` or `STERNCONFIG` 환경 변수로 수정 가능
+```yaml
+# <flag name>: <value>
+tail: 10
+max-log-requests: 999
+timestamps: short
+```
+
+<br>
+
+### Usage
+```sh
+$ stern pod-query [flags]
+```
+
+* show timestamp
+```sh
+$ stern [pod] -t
+```
+
+* 최근 10분 log부터 조회
+```sh
+$ stern [pod] -t --since 10m
+```
+
+* namespace 지정
+```sh
+$ stern -n default [pod]
+```
+
+* label selector 사용
+```sh
+$ stern -A -l release=canary
+```
+
+* multi container pod에서 특정 container log만 조회
+```sh
+$ stern [pod] -c [container]
 ```
 
 
@@ -990,3 +1069,4 @@ $ kl kube-system
 > * [k8spacket - GitHub](https://github.com/k8spacket/k8spacket)
 > * [etopeter/kubectl-view-utilization - GitHub](https://github.com/etopeter/kubectl-view-utilization)
 > * [yonahd/kor - GitHub](https://github.com/yonahd/kor)
+> * [stern/stern - GitHub](https://github.com/stern/stern)
