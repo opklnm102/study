@@ -143,12 +143,16 @@ GET http://aaa.com/search/?q=aaa&version=1 HTTP/1.1
 | 3xx | Redirection | 요청을 처리하기위해 추가적인 동작 필요 <br> 받은 URI로 다시 요청 |
 | 301 | Moved Permanently <br> (영구 이동) | 지정한 리소스가 새로운 URI로 이동 <br> 이동할 곳의 새로운 URI는 응답 헤더 Location에 기록 |
 | 303 | See Other <br> (다른 위치 보기) | 다른 위치로 요청 <br> 요청에 대한 처리 결과를 응답 헤더 Location에 표시된 URI에서 GET으로 취득 가능 <br> POST요청 처리 후 결과화면으로 리다이렉트 시킬 경우 자주 사용 |
+| 304 | Not Modified | HTTP caching header가 동작 중일 때 사용 |
 | 307 | Temporary Redirect <br> (임시 리다이렉션) | 임시로 리다이렉션 요청이 필요 |
 | 4xx | Client Error | 클라이언트의 요청 메시지에 오류가 있을 경우 |
 | 400 | Bad Request <br> (잘못된 요청) | 파라미터를 잘못 넣었을 경우 |
 | 401 | Unauthorized <br> (권한 없음) | 지정한 리소스에 대한 액세스 권한이 없을 경우 인증 필요 <br> 응답 헤더 WWW-Authenticate에 필요한 인증 방식을 지정 |
 | 403 | Forbidden(금지됨) | 지정한 리소스에 대한 액세스 금지 |
 | 404 | Not Found | 지정한 리소스를 찾을 수 없을 경우 |
+| 405 | Method Not Allowed | 허용되지 않은 HTTP method 사용 |
+| 422 | Unprocessable Entity | validation error에 사용 |
+| 429 | Too Many Requests | rate limit로 인해 request가 거부되는 경우 |
 | 5xx | Server Error | 서버 측 사정에 의해서 메시지 처리에 문제가 발생한 경우 <br> 서버의 부하, DB 처리과정 오류, 서버에서 Exception 발생 |
 | 500 | Internal Server Error | 서버쪽에서 에러 발생 |
 | 502 | Bad Gateway | Gateway 또는 Proxy 역할을 하는 서버가 그 뒷단의 서버로부터 잘못된 응답을 받을 경우 |
