@@ -190,14 +190,24 @@ GET http://aaa.com/search/?q=aaa&version=1 HTTP/1.1
 
 <br>
 
-## URI
-* 구조
+## URI(Uniform Resource Identifier)
+### Structure
+<div align="center">
+  <img src="./images/structure_of_url.png" alt="structure_of_url" width="80%" height="80%" />
+</div>
+
 ```
 <schema name> : <계층적인 부분>[? <질의> ][ # <fragment> ]
 
 // example
 http://www.example.com?search=xxx#summary
 ```
+다음의 여러 요소로 이루어진다
+* http, https, ftp 등 protocol
+* `.`으로 구분된 domain name과 port
+* `/`로 구분된 리소스 경로
+* `?`로 시작하고 key-value로(e.g. a=b&c=d) 구성된 parameters
+* 리소스의 특정 section을 bookmark하는데 사용되는 `#`로 표시되는 fragments(or anchor)
 
 <br>
 
