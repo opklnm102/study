@@ -329,6 +329,24 @@ for node_name in "${nodes[@]}"; do
 done
 ```
 
+* node labe이 아닌 status.nodeInfo.kubeletVersion를 이용
+```sh
+apiVersion: v1
+kind: Node
+status:
+  nodeInfo:
+    architecture: amd64
+    kubeletVersion: v1.28.5-eks-xxxxxx
+
+## script
+K8S_VERSION=1.28
+nodes=$(kubectl get no -o json | jq -r '.items[] | select(.status.nodeInfo.kubeletVersion | test("v'$K8S_VERSION'")).metadata.name')
+for node_name in "${nodes[@]}"; do
+  echo "$node_name"
+  kubectl cordon $node_name
+done
+```
+
 #### evict시 `PodDisruptionBudget`에 영향을 받아 안전하게 진행된다
 ```sh
 ...
