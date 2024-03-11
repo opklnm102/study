@@ -30,18 +30,18 @@ Content-Type: application/json; charset=utf-8
 
 <br>
 
-## HTTP 메소드
-| 메소드명 | 의미 | CRUD와 매핑되는 역할 |
-|:---|:---|:---:|
-| GET | 리소스 취득 | Read(조회) |
-| POST | 리소스 생성, 리소스 데이터 추가 | Create(생성) |
-| PUT | 리소스 변경 | Update(변경) |
-| PATCH | 리소스 변경 | Partial Update(부분 변경) |
-| DELETE | 리소스 삭제 | Delete(삭제) |
-| HEAD | 리소스의 헤더(meta data) 취득 | |
-| OPTIONS | 리소스가 서포트하는 메소드 취득 | |
-| TRACE | 루프백 시험에 사용 | |
-| CONNECT | 프록시 동작의 터널 접속으로 변경| |
+## HTTP method
+| method | description | CRUD와 매핑되는 역할 | URI | request | response |
+|:---|:---|:---:|:---|:---|:---|
+| GET | 리소스 취득 | Read(조회) | GET /products | - | HTTP/1.1 200 + body |
+| POST | 리소스 생성, 리소스 데이터 추가 | Create(생성) | POST /products | { "name": "xxx"} | HTTP/1.1 200 or 201 |
+| PUT | 리소스 변경 | Update(변경) | PUT /products/123 | { "name": "xxx"} | HTTP/1.1 200 or 204 |
+| PATCH | 리소스 변경 | Partial Update(부분 변경) | PATCH /products/123 | { "name": "xxx" } | HTTP/1.1 200 or 204 |
+| DELETE | 리소스 삭제 | Delete(삭제) | DELETE /products/123 | - | HTTP/1.1 200 |
+| HEAD | 리소스의 헤더(meta data) 취득 | - | HEAD /products | - | HTTP/1.1 200 + empty body |
+| OPTIONS | 리소스가 서포트하는 메소드 취득 | - | OPTIONS /products | - | HTTP/1.1 200 |
+| TRACE | 루프백 시험에 사용 | - | TRACE /index.html | - | - |
+| CONNECT | 프록시 동작의 터널 접속으로 변경 | - | CONNECT /xxx.com:80 | Host: xxx | - |
 
 <br>
 
