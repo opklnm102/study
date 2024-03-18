@@ -6,8 +6,14 @@
 <br>
 
 ## hard delete? soft delete?
-* hard delete - physical delete라고 하며 실제로 삭제되는 것을 의미
-* soft delete - logical delete라고 하며 실제로 삭제되지 않고, 삭제된 것을 의미하는 필드를 두어 구분하는 것을 의미
+* hard delete
+  * physical delete라고 하며 실제로 삭제되는 것을 의미
+* soft delete
+  * logical delete라고 하며 실제로 삭제되지 않고, 삭제된 것을 의미하는 필드(e.g. deleted_at)를 두어 구분하는 것을 의미
+  * soft delete에 대한 로직을 이해해야 부정확한 데이터가 만들어내지 않으며, index, unique 등 생성시 soft delete에 대해 고려가 필요하므로 **복잡성 증가**되는 문제가 있다
+* soft delete
+  * 과거 데이터 유지가 필요한 경우 별도로 삭제 storage에 저장하고, 원본은 hard delete
+  * CDC - audit log(e.g. binlog)를 이용해 데이터 변경 기록을 저장
 
 
 <br>
@@ -163,3 +169,4 @@ public class ProductService {
 
 > #### Reference
 > * [How to Implement a Soft Delete with Spring JPA](https://www.baeldung.com/spring-jpa-soft-delete)
+> * [The Day Soft Deletes Caused Chaos](https://blog.bemi.io/soft-deleting-chaos)
