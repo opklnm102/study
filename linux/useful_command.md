@@ -21,6 +21,13 @@ $ tail -f *.log
 * 해당 경로에 있는 모든 로그 파일을 파일명으로 구분해서 추적하므로 여러 창에서 각 파일을 추적할 필요가 없다
 
 
+## mkdir
+* 여러개의 directory를 만들어야할 경우
+```sh
+mkdir -p /var/log/app/jvm/{gc,heap,fatal}
+```
+
+
 <br>
 
 ## fd + as-tree
