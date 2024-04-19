@@ -761,6 +761,54 @@ EXPOSE 8080
 ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]
 ```
 
+* 위 image는 gradlew를 사용하므로 gradle dependency에 변경이 생기면 `RUN ./gradlew build || return 0`에서 gradle download time이 발생
+  * Java image download time + gradle download time + application build time이 소요
+  * gradle image를 builder image로 사용하면 gralde download time을 최적화할 수 있다
+
+```dockerfile
+# build
+FROM gradle:8-jdk21 AS builder
+
+ENV APP_HOME=/home/app
+WORKDIR $APP_HOME
+
+COPY build.gradle settings.gradle $APP_HOME
+RUN gradle build --no-daemon || return 0
+COPY . .
+## spring boot 3.2
+RUN gradle build --no-daemon \
+    && mkdir -p target/extracted  \
+    && java -Djarmode=layertools -jar /home/app/build/libs/*.jar extract --destination target/extracted
+
+# runtime
+FROM eclipse-temurin:21-alpine
+
+ENV APP_HOME=/home/app
+
+RUN addgroup -g 3000 app  \
+    && adduser -u 1000 -G app -S app
+USER app
+WORKDIR $APP_HOME
+
+ARG EXTRACTED=${APP_HOME}/target/extracted
+COPY --from=builder --chown=app:app ${EXTRACTED}/dependencies/ ./
+COPY --from=builder --chown=app:app ${EXTRACTED}/spring-boot-loader/ ./
+COPY --from=builder --chown=app:app ${EXTRACTED}/snapshot-dependencies/ ./
+COPY --from=builder --chown=app:app ${EXTRACTED}/application/ ./
+
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
+```
+
+#### image build time 비교
+* 위처럼 gradle depdency cache 사용 안할시 매번 58s 소요되므로 gradle depdency cache 여부에 따른 build time 비교해보자
+
+| | gradlew | gradlew + --no-daemon | Gradle image | Gradle image + --no-daemon |
+|:--|:--|:--|:--|:--|
+| non cached gradle dependency | 79s | 76s | 62s | 62s |
+| cached gradle dependency | 34s | 33s | 32s | 30s |
+
+* 정리해보면 container image cache + gradle depdency cache + grade image + --no-daemon을 사용하면 최적의 build time을 가져갈 수 있다
+
 
 <br><br>
 
