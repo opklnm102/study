@@ -221,6 +221,43 @@ public class WebConfiguration implements WebMvcConfigurer {
 }
 ```
 
+### Async 공통 처리 추가
+* CallableProcessingInterceptor, DeferredResultProcessingInterceptor 사용
+```java
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+
+  @Override
+  public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
+    configurer.registerCallableInterceptors(new CallableProcessingInterceptor() {
+    
+      @Override
+      public <T> Object handleError(NativeWebRequest request, Callable<T> task, Throwable t) throws Exception {
+        return CallableProcessingInterceptor.super.handleError(request, task, t);
+      }
+
+      @Override
+      public <T> Object handleTimeout(NativeWebRequest request, Callable<T> task) throws Exception {
+        return CallableProcessingInterceptor.super.handleTimeout(request, task);
+      }
+    });
+
+    configurer.registerDeferredResultInterceptors(new DeferredResultProcessingInterceptor() {
+      @Override
+      public <T> boolean handleError(NativeWebRequest request, DeferredResult<T> deferredResult, Throwable t) throws Exception {
+        return DeferredResultProcessingInterceptor.super.handleError(request, deferredResult, t);
+      }
+
+      @Override
+      public <T> boolean handleTimeout(NativeWebRequest request, DeferredResult<T> deferredResult) throws Exception {
+        deferredResult.setResult((T) "timeout");;
+        return true;
+      }
+    });
+  }
+}
+```
+
 
 <br><br>
 
