@@ -6,20 +6,42 @@
 <br>
 
 ## 용어 정리
+
+### ISO 8601
 * **ISO 8601** *Data elements and interchange formats - Information interchange - Representation of dates and times* 은 [날짜](https://ko.wikipedia.org/wiki/%EB%82%A0%EC%A7%9C)와 [시간](https://ko.wikipedia.org/wiki/%EC%8B%9C%EA%B0%84)과 관련된 데이터 교환을 다루는 [국제 표준](https://ko.wikipedia.org/wiki/%EA%B5%AD%EC%A0%9C_%ED%91%9C%EC%A4%80)
-  * UTC 혹은 UTC + offset (time zone)으로 표현
-    * 2018-09-16T18:08:42+09:00 - asia/seoul
-    * 2018-09-16T18:08:42Z - UTC
-    * 2018-09-16T18:08:42 - local time(zone을 명시하지 않으면 local로 인식)
-  * 사람이 즉시 인지하기 쉽다
-* Unix Timestamp
-  * [POSIX](https://ko.wikipedia.org/wiki/POSIX) 시간이나 Epoch 시간이라고 부르기도 한다
-  * 1970-01-01 00:00:00 [협정 세계시](https://ko.wikipedia.org/wiki/%ED%98%91%EC%A0%95_%EC%84%B8%EA%B3%84%EC%8B%9C)(UTC)부터의 경과 시간을 초(or 밀리초)로 환산하여 정수로 표현
-  * ex) 1500179801 (ISO 8601:2017-07-16T04:36:41Z)
-  * 사람이 즉시 인지하기 어렵다
-* ZonedDateTime
-  * Java8에서 추가된 [ISO-8601](https://ko.wikipedia.org/wiki/ISO_8601) 달력 시스템에서 정의하고 있는 time zone의 날짜와 시간을 저장하는 클래스
-  * `2016-04-01T16:54:05.739+09:00[Asia/Seoul]`로 표현하고, 맨 뒤에 +09:00[Asia/Seoul] 같이 협정 세계시와의 시차(+9시간)와 ZoneId(Asia/Seoul) 정보가 붙는다
+* UTC 혹은 UTC + offset (time zone)으로 표현
+  * 2018-09-16T18:08:42+09:00 - asia/seoul
+  * 2018-09-16T18:08:42Z - UTC
+  * 2018-09-16T18:08:42 - local time(zone을 명시하지 않으면 local로 인식)
+* 사람이 즉시 인지하기 쉽다
+
+<br>
+
+### Unix Timestamp
+* [POSIX](https://ko.wikipedia.org/wiki/POSIX) 시간이나 Epoch 시간이라고 부르기도 한다
+* 1970-01-01 00:00:00 [협정 세계시](https://ko.wikipedia.org/wiki/%ED%98%91%EC%A0%95_%EC%84%B8%EA%B3%84%EC%8B%9C)(UTC)부터의 경과 시간을 초(or 밀리초)로 환산하여 정수로 표현
+* ex) 1500179801 (ISO 8601:2017-07-16T04:36:41Z)
+* 사람이 즉시 인지하기 어렵다
+
+<br>
+
+### OffsetDateTime
+* LocalDateTime + ZoneOffset
+  * ZoneOffset - UTC 기준 시간을 표현(e.g. +09:00(Asia/Seoul))
+* Instant와 같이 nanoseconds 정밀도로 표현
+* DB, network 통신시 timestamp 사용에 유리
+
+<br>
+
+### ZonedDateTime
+* Java8에서 추가된 [ISO-8601](https://ko.wikipedia.org/wiki/ISO_8601) 달력 시스템에서 정의하고 있는 time zone의 날짜와 시간을 저장하는 클래스
+* `2016-04-01T16:54:05.739+09:00[Asia/Seoul]`로 표현하고, 맨 뒤에 +09:00[Asia/Seoul] 같이 협정 세계시와의 시차(+9시간)와 ZoneId(Asia/Seoul) 정보가 붙는다
+* OffsetDateTime + ZoneRegion
+  * ZoneRegion - timezone을 표현(e.g. Asia/Seoul)
+* OffsetDateTime과 달리 [DST(Daylight Saving Time)](https://ko.wikipedia.org/wiki/%EC%9D%BC%EA%B4%91_%EC%A0%88%EC%95%BD_%EC%8B%9C%EA%B0%84%EC%A0%9C) 즉 summer time 정보가 들어가 있어서 ZoneRules로 DST를 인식하고 처리한다
+* global service에서는 DST 처리까지 해주는 ZonedDateTime 사용하는게 좋다
+
+<br>
 
 ### 날짜만 필요한 경우
 * Unix Timestamp
@@ -41,6 +63,7 @@
 * Presentation Layer에서 time zone을 설정하고 그 외 나머지 Layer에선 time zone에 대한 설정을 가급적 바꾸지 않는다
   * 다양한 time zone에 대한 헷갈릴 수 있는 요소 제거
  
+
 <br>
 
 ## 주의 사항
@@ -48,15 +71,21 @@
   * Milli second 까지 가져왔다면 1000으로 나누고 소숫점을 버려야 timestamp와 같아진다
   * javascript - `new Date().getTime()` —> miili second까지 가져오는 함수
 * 시간을 생성 후 time zone을 적용하면 time zone이 적용 된 시간이라는 의미
-  * `2017-07-16T09:00:00+09:00 == 2017-07-16T00:00:00Z`
+  * `2017-07-16T09:00:00+09:00` -> Asia/Seoul
+  * `2017-07-16T00:00:00Z` -> UTC
 * time zone이 적용된 시간이 필요하면 시간을 가져올 때 time zone을 적용해서 생성해야 한다
-* DB 에 저장되는 시간은 특별한 시간을 제외하고는 UTC 형식이어야 한다
+* DB에 저장되는 시간은 특별한 시간을 제외하고는 **UTC**여야 한다
   * 예외) 통계를 위한 특정일자 등
 * Type을 예측할 수 없는 String은 사용하지 말자
   * ex) "yyyyMMdd"인지, "1501123882" 형식인지 알 수 없다
 * 만약 초 단위의 차이에 의해 결과가 달라지는 로직이 있다면, 시간 동기화를 어떻게 할것인가?
   * 시간을 생성하는 머신의 시간이 잘못 설정되어 있는 경우
- 
+* UTC를 사용하지 않는다면 offset, time zone을 함께 저장
+  * display_at - 2022-06-22 01:00:00
+  * display_at_offset - Asis/Seoul
+  * display_at_timezone - +09:00
+  * 동일 time zone일지라도 DST에 따라 offset이 달라지므로 offset or time zone을 함게 저장해야한다
+
 
 <br>
 
@@ -198,9 +227,23 @@ public class ZonedDateTimeAttributeConverter implements AttributeConverter<Zoned
 }
 ```
 
+* hibernate 설정으로 DB에 저장되는 시간의 time zone UTC로 변경
+```yaml
+spring:
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+```
+* UTC로 저장된 시간을 조회해서 application 응답시 Asia/Seoul로 응답
+```java
+TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
+```
+
 ---
 
-<br>
+<br><br>
 
 > #### Reference
 > * [REST API 날짜/시간 표현 정하기](https://www.popit.kr/rest-api-%EB%82%A0%EC%A7%9C%EC%8B%9C%EA%B0%84-%ED%91%9C%ED%98%84-%EC%A0%95%ED%95%98%EA%B8%B0/)
