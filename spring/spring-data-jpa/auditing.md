@@ -4,7 +4,7 @@
 
 <br>
 
-* `AuditingEntityListener`를 사용해 생성일시, 수정일시, 생성자, 수정자에 대한 기록을 자동으로 남길 수 있다
+* `AuditingEntityListener`를 사용해 변경 사항을 추적하기 위해 필요한 생성일시, 수정일시, 생성자, 수정자에 대한 기록을 자동으로 남길 수 있다
 * 상속을 통해 Entity에 대한 중복을 제거할 수 있다
 
 
@@ -95,13 +95,13 @@ public abstract class BaseEntity {
   
   @PrePersist
   public void prePersist() {
-  this.createdAt = ZonedDateTime.now();
-  this.updatedAt = ZonedDateTime.now();
+    this.createdAt = ZonedDateTime.now();
+    this.updatedAt = this.createdAt;
   }
 
   @PreUpdate
   public void preUpdate() {
-  this.updatedAt = ZonedDateTime.now();
+    this.updatedAt = ZonedDateTime.now();
   }
 }
 ```
@@ -169,6 +169,12 @@ public class JpaConfiguration {
   }
 }
 ```
+
+
+<br>
+
+## Limitations of JPA Auditing
+* `@Query`를 이용한 JPQL, native query, [jOOQ](https://www.jooq.org) 같이 Entity lifecycle이 외부에서 data 조작을 하게되면 JPA Auditing이 동작하지 않는다
 
 
 <br><br>
