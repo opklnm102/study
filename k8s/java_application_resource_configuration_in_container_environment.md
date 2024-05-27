@@ -107,6 +107,10 @@ VM settings:
     Max. Heap Size (Estimated): 48.38M
     Using VM: OpenJDK 64-Bit Server VM
 ...
+
+## PrintFlagsFinal로 확인 가능
+$ java -XX:+PrintFlagsFinal -version | grep "MaxHeapSize"
+  size_t MaxHeapSize                              = 3007315968                                {product} {ergonomic}
 ```
 
 * 70% 지정
@@ -238,6 +242,22 @@ $1 ==> 2
 * JVM이 계산한 ActiveProcessorCount는 시간이 지날수록 변하므로 명시적으로 설정하는게 좋다
   * e.g. cpu.request: 4000m + -XX:ActiveProcessorCount=4 설정
 * cpu 사용률 profiling 후 cpu.reqeust 설정, cpu.limit 설정 X, ActiveProcessorCount 설정
+
+
+<br>
+
+## cpu 설정에 따른 GC 확인
+```sh
+$ java -XX:+PrintFlagsFinal -version | grep "Use*.*GC "
+
+  bool UseAdaptiveSizePolicyWithSystemGC        = false                                     {product} {default}
+  bool UseConcMarkSweepGC                       = false                                     {product} {default}
+  bool UseG1GC                                  = true                                      {product} {ergonomic}  # G1 GC 활성화
+  bool UseMaximumCompactionOnSystemGC           = true                                      {product} {default}
+  bool UseParallelGC                            = false                                     {product} {default}
+  bool UseParallelOldGC                         = false                                     {product} {default}
+  bool UseSerialGC                              = false                                     {product} {default}
+```
 
 
 <br><br>
