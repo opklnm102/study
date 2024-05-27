@@ -397,6 +397,8 @@ public class ObjectMapperConfig {
 ```
 
 
+<br>
+
 ## 5. @JsonFormat으로 하나하나 설정
 * 각각의 date format이 다른 경우 유용
 * Class를 만들 때마다 설정을 해줘야하며, 설정해주지 않는 실수 가능성이 높아 시간이 지날수록 관리가 어려워진다
@@ -404,6 +406,18 @@ public class ObjectMapperConfig {
 ```java
 @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 private LocalDateTime cancelRequestedAt;
+```
+
+
+<br>
+
+## ZonedDateTime 사용시 timezone 설정
+* `-Duser.timezone=Asia/Seoul` java options을 사용하거나 아래의 jackson properties를 이용하여 jackson에서 ser/deser시에 time zone을 설정할 수 있다
+* server에서도 timezone을 설정할 수는 있지만 server에서는 UTC를 사용하고 유저에게 보여줄 때 client에서 timezone에 맞게 변환하여 보여주는게 가장 좋다
+```yaml
+spring:
+  jackson:
+    time-zone: Asia/Seoul
 ```
 
 
