@@ -195,13 +195,31 @@ $ ./migrate-deprecated-api v1.24.7 .
 * Amazon EKS cluster에서 사용할 subnet의 IP 2~3개 필요
   * 부족하면 upgrade가 실패 할 수 있다
   * subnet, security group이 없어도 실패할 수 있다
-* [Supported version skew](https://kubernetes.io/releases/version-skew-policy/#kube-apiserver)에 따르면 kube-apiserver는 minor version 1개 차이 허용, kubelet은 kube-apiserver와 minor version 2개 차이 허용
-  * 1.21 -> 1.23으로 2단계 upgrade하려면? 1단계씩 2번 진행 필요
+* [Supported version skew](https://kubernetes.io/releases/version-skew-policy/#kube-apiserver)에 따르면 kube-apiserver는 minor version 1개 차이 허용, kubelet은 kube-apiserver와 minor version 2~3개 차이 허용
+  * Kubernetes 1.28부터 kube-apiserver는 최대 3개의 minor version 아래의 kubelet을 지원
+
+| kube-apiserver | kubelet |
+|:--|:--|
+| 1.26 | 1.26, 1.25, 1.24 |
+| 1.27 | 1.27, 1.26, 1.25 |
+| 1.28 | 1.28, 1.27, 1.26, 1.25 |
+| 1.29 | 1.29, 1.28, 1.27, 1.26 |
+| 1.30 | 1.30, 1.29, 1.28, 1.27 |
+
+* 1.21 -> 1.23으로 2단계 upgrade하려면? 1단계씩 2번 진행 필요
 ```
-1. control plane 1.21 -> 1.22 
-2. data plane 1.21 -> 1.22 
-3. control plane 1.22 -> 1.23
-4. data plane 1.22 -> 1.23
+1. control plane 1.21 -> 1.22
+2. control plane 1.22 -> 1.23
+3. data plane 1.21 -> 1.23 
+```
+* kubelet 1.25 이상일 경우 kubelet <-> kube-apiserver의 3개의 버전 차이까지 업그레이드 가능
+  * 1.25 -> 1.28, 1.26 -> 1.29, 1.27 -> 1.30 가능
+
+```
+1. control plane 1.25 -> 1.26
+2. control plane 1.26 -> 1.27
+3. control plane 1.27 -> 1.28
+4. data plane 1.25 -> 1.28
 ```
 
 <br>
