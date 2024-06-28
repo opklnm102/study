@@ -5,6 +5,42 @@
 
 <br>
 
+## Summary
+
+### 시장 규모
+| Term | Description |
+|:--|:--|
+| TAM(Total Addressable Market) | 기업이 목표로하는 서비스의 전체 시장<br>기업이 궁극적으로 도달하고 싶어하는 목표 |
+| SAM(Servicable Available Market) | 제공하고 있는 제품/서비스의 실제 목표하는 유효 시장<br>주요 경쟁자와 경쟁자가 만들어가고 있는 목표 시장의 규모 |
+| SOM(Servicable Obtainable Market) | 1차 점유를 목적으로 하는 수익 시장, 초기 시장 진입 전략 및 목표 점유율, 가격 정책 등을 고려한 내가 도달해서 수익을 창출할 수 있는 시장 규모 |
+
+<br>
+
+### 광고 비용
+| Term | Description |
+|:--|:--|
+| CPM(Cost Per Mile) | 광고 1,000회 노출당 드는 비용 |
+| CPC(Cost Per Click) | 고객이 광고를 클릭하느데 드는 비용<br> = (총 비용 / 총 클릭 수) |
+| CPI(Cost Per Install) | 고객이 서비스를 설치하는데 드는 비용<br> = (총 비용 / 총 설치 수) |
+| CPA(Cost Per Action) | 고객이 특정 행동을 하는데 드는 비용<br> = (총 비용 / 총 특정 행동 횟수) |
+| CTR(Click-Through Rate) | 광고 클릭률<br> = (총 클릭 수 / 총 노출 수) x 100 |
+| CVR(Conversion Rate) | 얼마나 많은 사람들이 광고를 보고 행동을 전환했는지<br> = (특정 행동으로 전환한 사람의 수 / 광고를 클릭한 사람의 수) x 100 |
+| CLV(Customer Lifetime Value) | 한 고객이 해당 기업에 기여하는 총 가치, 즉 고객이 일으키는 총 수익 |
+| eCPM(Effective Cost Per Mile) | 유효 광고 1,000회 노출 당 드는 비용<br> = (총 광고 비용 / 총 유효 노출 수) x 1000 |
+
+<br>
+
+### 활성 유저
+| Term | Description |
+|:--|:--|
+| AU(Active User) | 활성 유저<br>특정 기간 동안 접속한 총 유저 수를 의미 |
+| DAU(Daily Active User) | 일간 활성 유저 수 |
+| WAU(Weekly Active User) | 주간 활성 유저 수|
+| MAU(Monthly Active User) | 원간 활성 유저 수 |
+| NAU(New Active User) | 이번 달 서비스에서 처음으로 활동한 유저 수 |
+
+<br>
+
 ## ROAS(Return On Ads Spending)
 * 마케팅 비용 대비 매출의 비율
 * 마케팅의 효율성을 측정하기 위한 지표
