@@ -7,13 +7,82 @@
 
 ## kuberlr
 * [kuberlr(kube-ruler)](https://github.com/flavio/kuberlr)는 kubectl을 위한 simple wrapper
+
+<br>
+
+### Install
 * [GitHub Release](https://github.com/flavio/kuberlr/releases)에서 binary download 후 `kubectl`이라는 symlink 생성하면 cluster에 맞는 kubectl을 가져와서 사용
 ```sh
-$ curl -L -o kuberlr.tar.gz https://github.com/flavio/kuberlr/releases/download/v0.4.4/kuberlr_0.4.4_darwin_all.tar.gz \
-  && tar xzvf kuberlr.tar.gz 
+$ cat <<'EOF' > install_kuberlr
+#!/usr/bin/env bash
 
-$ cp kuberlr /bin/
-$ ln -s ~/bin/kuberlr ~/bin/kubectl
+# init_arch discovers the architecture for this system.
+init_arch() {
+  ARCH=$(uname -m)
+  case $ARCH in
+    armv5*) ARCH="armv5";;
+    armv6*) ARCH="armv6";;
+    armv7*) ARCH="arm";;
+    aarch64) ARCH="arm64";;
+    x86) ARCH="386";;
+    x86_64) ARCH="amd64";;
+    i686) ARCH="386";;
+    i386) ARCH="386";;
+  esac
+}
+
+# init_os discovers the operating system for this system.
+init_os() {
+  OS=$(echo `uname`|tr '[:upper:]' '[:lower:]')
+
+  case "$OS" in
+    # Minimalist GNU for Windows
+    mingw*|cygwin*) OS='windows';;
+  esac
+}
+
+download_binary() {
+  curl -L -o kuberlr.tar.gz https://github.com/flavio/kuberlr/releases/download/v${VERSION}/kuberlr_${VERSION}_${OS}_${ARCH}.tar.gz \
+  && tar xzvf kuberlr.tar.gz \
+  && cp kuberlr_${VERSION}_${OS}_${ARCH}/kuberlr /usr/local/bin/ \
+  && mv /usr/local/bin/kubectl /usr/local/bin/kubectl.tmp \
+  && ln -s /usr/local/bin/kuberlr /usr/local/bin/kubectl
+}
+
+VERSION="0.4.5"  # modify version
+init_os
+init_arch
+download_binary
+EOF
+
+$ chmod +x ./install_kuberlr
+$ sudo ./install_kuberlr
+```
+
+<br>
+
+### Usage
+* check kuberlr binaries
+```sh
+$ kuberlr bins
+system-wide kubectl binaries
+No binaries found.
+
+local kubectl binaries
++---+---------+-----------------------------------------------------+
+| # | VERSION | BINARY                                              |
++---+---------+-----------------------------------------------------+
+| 2 | 1.27.4  | /xxx/.kuberlr/darwin-amd64/kubectl1.27.4            |
+| 3 | 1.28.8  | /xxx/.kuberlr/darwin-amd64/kubectl1.28.8            |
++---+---------+-----------------------------------------------------+
+```
+
+<br>
+
+### Delete
+* `$HOME/.kuberlr/`의 각 버전별 kubectl을 제거하면 된다
+```
+$ rm /xxx/.kuberlr/darwin-amd64/kubectl1.28.8
 ```
 
 
