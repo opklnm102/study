@@ -49,6 +49,15 @@ https://<id>:<password or personal access token>@github.com
 https//jason:ghp_skfjskjdfksdljfi23fd@github.com
 ```
 
+* git credential에 저장된 값 확인
+```sh
+$ echo url=https://github.com/git/git.git | git credential fill
+protocol=https
+host=github.com
+username=mark-kim
+password=xxxxxx
+```
+
 
 <br>
 
