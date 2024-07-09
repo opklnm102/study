@@ -183,6 +183,23 @@ PS1='$(kube_ps1)'$PS1
 EOF
 ```
 
+<br>
+
+### Amazon EKS + kube-ps1
+```sh
+$ aws eks update-kubeconfig --region <region> --name <cluster>
+
+$ cat >> ~/.zshrc << EOF
+get_cluster_short() {
+  echo "$1" | cut -d : -f6 | cut -d / -f2
+}
+
+KUBE_PS1_CLUSTER_FUNCTION=get_cluster_short
+source "/usr/local/opt/kube-ps1/share/kube-ps1.sh"
+PS1='$(kube_ps1)'$PS1
+EOF
+```
+
 
 <br>
 
