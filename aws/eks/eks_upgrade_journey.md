@@ -222,6 +222,33 @@ $ ./migrate-deprecated-api v1.24.7 .
 4. data plane 1.25 -> 1.28
 ```
 
+* in-place upgrade 1.21 -> 1.30
+```
+## upgrade 1.21 -> 1.23
+control plane 1.21 -> 1.22
+control plane 1.22 -> 1.23
+data plane 1.21 -> 1.23
+
+## upgrade 1.23 -> 1.25
+control plane 1.23 -> 1.24
+control plane 1.24 -> 1.25
+data plane 1.23 -> 1.25
+
+## upgrade 1.25 -> 1.28
+control plane 1.25 -> 1.26
+control plane 1.26 -> 1.27
+control plane 1.27 -> 1.28
+data plane 1.25 -> 1.28
+
+## upgrade 1.28 -> 1.30
+control plane 1.28 -> 1.29
+control plane 1.29 -> 1.30
+data plane 1.28 -> 1.30
+```
+> in-place로 이정도를 진행할 일은 없어야하는게 좋긴한데... 아래는 예시
+> 이정도의 큰 차이의 upgade는 [blue/green or canary upgade](https://aws.amazon.com/ko/blogs/containers/blue-green-or-canary-amazon-eks-clusters-migration-for-stateless-argocd-workloads)를 고려
+
+
 <br>
 
 ### Upgrade Process
@@ -246,7 +273,7 @@ $ ./migrate-deprecated-api v1.24.7 .
 <br>
 
 ### 1. Upgrade control plane
-* upgrade
+* upgrade - 약 10 ~ 15분 소요
 ```sh
 $ aws eks update-cluster-version \
   --region [region code] \
@@ -283,6 +310,8 @@ $ kubectl version --short
 EKS와 동일한 kubernetes version의 Amazon EKS optimized AMI를 찾는다
   * custom AMI를 사용하려면 [Amazon EKS 최적화 Amazon Linux AMI 빌드 스크립](https://docs.aws.amazon.com/ko_kr/eks/latest/userguide/eks-ami-build-scripts.html) 참고
   * Amazon EKS optimized AMI release시 최신 AMI로 교체하는 것을 고려
+* karpenter 사용시 karpenter의 node group upgrade
+  * karpenter가 관리하는 node group은 control plane version에 맞추어 karpenter가 점진적으로 진행
 
 ```sh
 $ aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.22/amazon-linux-2/recommended/image_id | jq .
@@ -301,14 +330,18 @@ $ aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.22/amazon-linux-
 $ aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.22/amazon-linux-2/recommended/image_id --region ap-northeast-2 --query "Parameter.Value" --output text
 ami-07bc1db81a5580466
 ```
-* node group upgrade는 2가지 방법 중 선택할 수 있다
-   1. 기존 node group의 AMI 변경
-      * CloudFormation stack에서 node group의 AMI를 변경하면 CloudFormation에 의해 rolling upgrade 수행
-   2. new version node group 생성 후 migration
-      * 1번 보다 권장하는 방법
-      * Create new version node group -> old version node group `NoSchedule로 taint` -> old version node group drain
+node group upgrade는 2가지 방법 중 선택할 수 있다
+1. 기존 node group의 AMI 변경
+  * CloudFormation stack에서 node group의 AMI를 변경하면 CloudFormation에 의해 rolling upgrade 수행
+  * [upgrade EKS managed node group](https://docs.aws.amazon.com/cli/latest/reference/eks/update-nodegroup-version.html) - `aws eks update-nodegroup-version --cluster-name <cluster> --nodegroup-name <node group>` 사용
+    * [Managed node update behavior](https://docs.aws.amazon.com/eks/latest/userguide/managed-node-update-behavior.html)에 의해 4개의 node를 가진 node group에서 약 1시간 소요
+2. new version node group 생성 후 migration
+  * 속도, 안정성의 이유로 1번 보다 권장
+  * Create new version node group -> old version node group `NoSchedule로 taint` -> old version node group drain
+    * [create EKS managed node group](https://docs.aws.amazon.com/cli/latest/reference/eks/create-nodegroup.html) - `aws eks create-nodegroup --cluster-name <cluster> --nodegroup-name <node group> --subnets ... `
 
-* new version node group 생성 후 migration
+
+#### new version node group 생성 후 migration
 ```sh
 ## node group의 label 확인
 $ kubectl get no --show-labels | grep "node-group"
@@ -365,6 +398,56 @@ for node_name in "${nodes[@]}"; do
 done
 ```
 
+* jenkins pipeline
+```jenkins
+node {
+  timestamps {
+    stage("checkout") {
+      checkout scm
+    }
+    
+    stage("get kubeconfig") {
+      sh '''
+        aws eks update-kubeconfig --region ${REGION} --name ${CLUSTER_NAME} --profile ${AWS_PROFILE}
+      '''
+    }
+
+    stage('Cordon Nodes') {
+      sh """
+        echo "Cordoning nodes created by Karpenter..."
+        nodes=\$(kubectl get nodes -l "service,service!=karpenter" -o name)
+        for node in \$nodes; do
+          echo "Cordoning \$node..."
+          kubectl cordon "\$node"
+        done
+        echo "All selected nodes have been cordoned."
+      """
+    }
+    
+    stage('Rolling Update Deployments and StatefulSets') {
+      sh """
+      echo "Starting rolling update for all Deployments in all namespaces..."
+      kubectl get deploy --all-namespaces -o json | jq -r '.items[] | .metadata.namespace + " " + .metadata.name' | while read -r namespace deploy; do
+        echo "Updating Deployment \$deploy in \$namespace namespace..."
+        kubectl rollout restart deploy/\$deploy -n \$namespace
+        sleep 1
+      done
+      """
+
+      sh """
+        echo "Starting rolling update for all StatefulSets (excluding 'OnDelete' update strategy) in all namespaces..."
+        kubectl get statefulsets --all-namespaces -o json | jq -r '.items[] | select(.spec.updateStrategy.type!="OnDelete") | .metadata.namespace + " " + .metadata.name' | while read -r namespace sts; do
+          echo "Updating StatefulSet \$sts in \$namespace namespace..."
+          kubectl rollout restart statefulset/\$sts -n \$namespace
+          sleep 1
+        done
+      """
+    }
+  }
+}
+```
+
+
 #### evict시 `PodDisruptionBudget`에 영향을 받아 안전하게 진행된다
 ```sh
 ...
@@ -373,11 +456,11 @@ error when evicting pods/"kafka-2" -n "default" (will retry after 5s): Cannot ev
 pod/kafka-2 evicted
 ```
 
-
 <br>
 
 ### 4. Upgrade Add-on Node Group
 * [Amazon VPC CNI](https://github.com/aws/amazon-vpc-cni-k8s), [CoreDNS](https://coredns.io/), [kube-proxy](https://kubernetes.io/ko/docs/reference/command-line-tools-reference/kube-proxy/) 등 add-on upgrade
+* [EKS managed add-on](https://docs.aws.amazon.com/eks/latest/userguide/eks-add-ons.html)을 사용하면 AWS console, cli, terraform 등 AWS API를 사용해 더 간단하게 진행 가능
 
 #### Amazon VPC CNI
 * [Managing the Amazon VPC CNI add-on](https://docs.aws.amazon.com/eks/latest/userguide/managing-vpc-cni.html)에서 권장 버전을 찾아서 upgrade
@@ -475,3 +558,5 @@ $ suto systemctl kubelet status
 > #### Reference
 > * [Updating a cluster - Amazon EKS Docs](https://docs.aws.amazon.com/eks/latest/userguide/update-cluster.html)
 > * [Amazon EKS Upgrade Journey From 1.19 to 1.20](https://marcincuber.medium.com/amazon-eks-upgrade-journey-from-1-19-to-1-20-78c9a7edddb5)
+> * [Amazon EKS add-ons](https://docs.aws.amazon.com/eks/latest/userguide/eks-add-ons.html)
+> * [How do I plan an upgrade strategy for an Amazon EKS cluster?](https://repost.aws/knowledge-center/eks-plan-upgrade-cluster)
