@@ -66,14 +66,36 @@ spec:
 <br>
 
 ## DNS로 Pod 찾기
+* DNS query 가능한 Pod 생성
 ```sh
-## DNS 조회가 가능한 파드 만들기 
+## 
 $ kubectl run dnsutils --image=tutum/dnsutils --command -- sleep infinity
 
-## 새 파드로 DNS 조회 하기 
-$ kubectl exec -it dnsutils -- nslookup [domain]
+## other way
+$ cat <<EOF > dnsutils.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dnsutils
+  namespace: default
+spec:
+  containers:
+    - name: dnsutils
+      image: registry.k8s.io/e2e-test-images/jessie-dnsutils:1.7
+      command:
+        - sleep
+        - "infinity"
+      imagePullPolicy: IfNotPresent
+  restartPolicy: Always
+EOF
+
+$ kubectl apply -f dnsutils.yaml
 ```
 
+* Pod에서 DNS query
+```sh
+$ kubectl exec -it dnsutils -- nslookup [domain]
+```
 
 <br>
 
