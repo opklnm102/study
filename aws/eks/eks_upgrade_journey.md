@@ -294,6 +294,9 @@ $ aws eks describe-update \
   --name [cluster name] \
   --update-id [update id]
 
+## 30s마다 확인 
+$ while true; do date; aws eks describe-update --region <region code> --name <cluster name> --update-id <update id> | grep status; sleep 30s; done
+
 ## or
 $ kubectl version --short
 ```
