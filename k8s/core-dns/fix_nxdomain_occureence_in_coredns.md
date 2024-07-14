@@ -58,7 +58,7 @@ redis-1.redis.svc.cluster.local
 
 ### DNS Resolution flow
 <div align="left">
-  <img src="./images/dns_resolution_flow.png" alt="dns_resolution_flow" width="45%" height="45%" />
+  <img src="./images/dns_resolution_flow.png" alt="dns_resolution_flow" width="75%" height="75%" />
 </div>
 
 * Pod의 /etc/resolv.conf 확인
