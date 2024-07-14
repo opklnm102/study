@@ -36,12 +36,31 @@ $ kubectl label pod <pod name> app-
 ### 2. jmap으로 heap dump 생성 및 local로 다운로드
 * JVM process의 memory map 확인시 사용하며 heap memory를 dump하여 분석해볼 수 있다
 ```sh
+## dump all object in heap
 $ jmap -dump:live,format=b,file=<file name>.hprof <pid>
+
+## dump live object in heap
+$ jmap -dump:format=b,file=<file name>.hprof <pid>
 
 ## container의 heap dump 생성 후 local로 복사
 ## Pod에서 file path와 pid는 다를 수 있으나, pid는 일반적으로 1
 $ kubectl exec -it <pod name> -c <container name> -- jmap -dump:live,format=b,file=dump.hprof 1 \
   && kubectl cp -c <container name> <namespace>/<pod name>:/home/app/dump.hprof ~/dump.hprof
+```
+
+* memory usage, gc monitoring
+```sh
+## -h10 - 10줄마다 header print
+## -t - timestamp print
+$ jstat -gc -h10 -t <pid> <interval>
+
+## 10000ms마다 print
+$ jstat -gc -h10 -t 6705 10000
+```
+
+* thread dump - https://fastthread.io
+```sh
+$ jstack <pid> >> <file name>
 ```
 
 <br>
