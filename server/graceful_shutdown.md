@@ -2,11 +2,15 @@
 > date - 2020.08.28  
 > keyworkd - server, graceful shutdown, spring, kubernetes, nginx  
 > Spring Boot 환경에서 graceful shutdown에 대하여 고민하면서 알아본 것들을 정리  
-> source code는 [여기](https://github.com/opklnm102/graceful-shutdown-demo)에서 확인할 수 있다
+> source code는 [여기](https://github.com/opklnm102/graceful-shutdown-demo)에서 확인할 수 있다  
 
 <br>
 
 ## Graceful Shutdown이란?
+* Distributed system(e.g. MSA)에서는 shutdown process 중 원활한 전환을 보장하는 것이 무엇보다 중요하며 핵심 개념인 graceful shutdown은 service shutdown을 정교하게 조율하여 downtime을 최소화할 뿐만 아니라 data integrity도 보장
+* graceful shutdown은 system reliability의 핵심
+* chaos engineering, integration testing으로 graceful shutdown mechanisms 검증을 통해 잠재적인 중단에 대비
+* deployment, scaling, service incident를 처리하는데 있어 꼭 필요한 요소로 in-flight request 관리, data consistency 유지 등 여러가지 어려움이 있다
 * **grace period(유예 기간)을 두어 정상적인 종료를 위해 기다리고 종료**되는 것으로 처리 중인 task의 유실 가능성을 최소화하기 위해 사용
 * grace period는 `timeout`이라고 해석해도 무방할 듯하다
 * 보통 하나의 task 처리에 60s가 소요된다면 60s의 유예 기간을 두어 처리가 완료된 후 종료
@@ -15,6 +19,16 @@
   * message consumer(kafka 등)라면 새로운 message를 consume하지 않고, 현재 처리중인 message만 처리 후 종료
   * TCP sockett이면 abortive close가 아닌 **normal close**
 * 보통 application에서 `SIGINT(2)`, `SIGTERM(15)` signal에 대한 처리로 graceful shutdown을 구현
+
+
+<br>
+
+## Graceful Shutdown Stragegies
+* **Signal handling** - 정상적인 종료의 시작은 보통 SIGTERM signal 발생하므로 signal handling mechanisms를 구현하는게 필수
+* **Connection draining** - inbound traffic은 끊임없이 발생하기 때문에 connection draining을 통해 신규 inbound traffic이 수신되지 않도록 한다
+* **Dependency management** - MSA에서는 복잡한 관계를 가지므로 upstream, downstream service를 적절하게 처리하여 cascading failure를 방지해야 한다
+* **Data integrity** - flush buffer, persisting state 등으로 long-running or background task의 data integrity을 유지하는게 중요
+
 
 <br>
 
@@ -25,7 +39,8 @@
 
 <br>
 
-> 그러므로 Kubernetes 환경에서는 `SIGTERM(15)` signal 수신시 application이 사용 중이던 resource를 스스로 release하며 shutdown되도록 구현되어야 한다
+> 그러므로 Kubernetes 환경에서는 `SIGTERM(15)` signal 수신시 application이 사용 중이던 resource를 스스로 release하며 shutdown되도록 구현되어야 한다  
+> readinessProbe에 의한 connection draining을 통해 새로운 inbound traffic을 수신하지 않도록 한다(필요한 경우 outbound traffic은 발생)  
 
 <br>
 
@@ -59,44 +74,43 @@
 @Slf4j
 public class TomcatConnectorGracefulShutdownHandler implements TomcatConnectorCustomizer, ApplicationListener<ContextClosedEvent> {
 
-    private volatile Connector connector;
+  private volatile Connector connector;
+  private final long timeout;
 
-    private final long timeout;
+  public TomcatConnectorGracefulShutdownHandler(long timeout) {
+    this.timeout = timeout;
+  }
 
-    public TomcatConnectorGracefulShutdownHandler(long timeout) {
-        this.timeout = timeout;
-    }
+  @Override
+  public void customize(Connector connector) {
+    this.connector = connector;
+  }
 
-    @Override
-    public void customize(Connector connector) {
-        this.connector = connector;
-    }
+  @Override
+  public void onApplicationEvent(ContextClosedEvent event) {
+    log.info("graceful shutdown...");
+    connector.pause();
 
-    @Override
-    public void onApplicationEvent(ContextClosedEvent event) {
-        log.info("graceful shutdown...");
-        connector.pause();
+    Executor executor = connector.getProtocolHandler().getExecutor();
+    if (executor instanceof ThreadPoolExecutor) {
+      ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executor;
+      threadPoolExecutor.shutdown();
 
-        Executor executor = connector.getProtocolHandler().getExecutor();
-        if (executor instanceof ThreadPoolExecutor) {
-            ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executor;
-            threadPoolExecutor.shutdown();
+      try {
+        if(!threadPoolExecutor.awaitTermination(timeout, TimeUnit.SECONDS)) {
+          log.warn("Tomcat thread pool did not shutdown gracefully within {} seconds. Proceeding with forceful shutdown", timeout);
 
-            try {
-                if(!threadPoolExecutor.awaitTermination(timeout, TimeUnit.SECONDS)) {
-                    log.warn("Tomcat thread pool did not shutdown gracefully within {} seconds. Proceeding with forceful shutdown", timeout);
+          threadPoolExecutor.shutdownNow();
 
-                    threadPoolExecutor.shutdownNow();
-
-                    if(!threadPoolExecutor.awaitTermination(timeout, TimeUnit.SECONDS)) {
-                        log.error("Tomcat thread pool did not terminate");
-                    }
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+          if(!threadPoolExecutor.awaitTermination(timeout, TimeUnit.SECONDS)) {
+            log.error("Tomcat thread pool did not terminate");
+          }
         }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
     }
+  }
 }
 ```
 
@@ -146,35 +160,33 @@ spring:
 ```java
 class WebServerGracefulShutdownLifecycle implements SmartLifecycle {
 
-	private final WebServerManager serverManager;
+  private final WebServerManager serverManager;
+  private volatile boolean running;
 
-	private volatile boolean running;
+  WebServerGracefulShutdownLifecycle(WebServerManager serverManager) {
+	this.serverManager = serverManager;
+  }
 
-	WebServerGracefulShutdownLifecycle(WebServerManager serverManager) {
-		this.serverManager = serverManager;
-	}
+  @Override
+  public void start() {
+	this.running = true;
+  }
 
-	@Override
-	public void start() {
-		this.running = true;
-	}
+  @Override
+  public void stop() {
+    throw new UnsupportedOperationException("Stop must not be invoked directly");
+  }
 
-	@Override
-	public void stop() {
-		throw new UnsupportedOperationException("Stop must not be invoked directly");
-	}
+  @Override
+  public void stop(Runnable callback) {
+	this.running = false;
+	this.serverManager.shutDownGracefully(callback);
+  }
 
-	@Override
-	public void stop(Runnable callback) {
-		this.running = false;
-		this.serverManager.shutDownGracefully(callback);
-	}
-
-	@Override
-	public boolean isRunning() {
-		return this.running;
-	}
-
+  @Override
+  public boolean isRunning() {
+	return this.running;
+  }
 }
 ```
 
@@ -240,35 +252,34 @@ class WebServerGracefulShutdownLifecycle implements SmartLifecycle {
 @Slf4j
 public class TaskExecutorGracefulShutdownHandler implements ApplicationListener<ContextClosedEvent> {
 
-    private final List<Executor> executors;
+  private final List<Executor> executors;
+  private final long timeout;
 
-    private final long timeout;
+  public TaskExecutorGracefulShutdownHandler(List<Executor> executors, long timeout) {
+    this.executors = executors;
+    this.timeout = timeout;
+  }
 
-    public TaskExecutorGracefulShutdownHandler(List<Executor> executors, long timeout) {
-        this.executors = executors;
-        this.timeout = timeout;
+  @Override
+  public void onApplicationEvent(ContextClosedEvent event) {
+    log.info("graceful shutdown...");
+
+    try {
+      TimeUnit.SECONDS.sleep(timeout);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
 
-    @Override
-    public void onApplicationEvent(ContextClosedEvent event) {
-        log.info("graceful shutdown...");
-
-        try {
-            TimeUnit.SECONDS.sleep(timeout);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        for (Executor executor : executors) {
-            if (executor instanceof ThreadPoolTaskExecutor) {
-                ((ThreadPoolTaskExecutor) executor).shutdown();
-            }
-            if (executor instanceof ThreadPoolExecutor) {
-                ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executor;
-                threadPoolExecutor.shutdown();
-            }
-        }
+    for (Executor executor : executors) {
+      if (executor instanceof ThreadPoolTaskExecutor) {
+        ((ThreadPoolTaskExecutor) executor).shutdown();
+      }
+      if (executor instanceof ThreadPoolExecutor) {
+        ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executor;
+        threadPoolExecutor.shutdown();
+      }
     }
+  }
 }
 ```
 
@@ -341,60 +352,56 @@ public class AsyncTaskGracefulShutdownConfiguration {
 ```java
 @Slf4j
 public class TaskExecutorGracefulShutdownLifecycle implements SmartLifecycle {
+  private final List<Executor> executors;
+  private final long timeout;
+  private volatile boolean running;
 
-    private final List<Executor> executors;
+  public TaskExecutorGracefulShutdownLifecycle(List<Executor> executors, long timeout) {
+    this.executors = executors;
+    this.timeout = timeout;
+  }
 
-    private final long timeout;
+  @Override
+  public void start() {
+    this.running = true;
+  }
 
-    private volatile boolean running;
+  @Override
+  public void stop() {
+    this.running = false;
+    doStop();
+  }
 
-    public TaskExecutorGracefulShutdownLifecycle(List<Executor> executors, long timeout) {
-        this.executors = executors;
-        this.timeout = timeout;
+  @Override
+  public boolean isRunning() {
+    return running;
+  }
+
+  @Override
+  public int getPhase() {
+    return SmartLifecycle.DEFAULT_PHASE - 1;
+  }
+
+  private void doStop() {
+    log.info("Commencing graceful shutdown. Waiting for active task to complete");
+
+    try {
+      TimeUnit.SECONDS.sleep(timeout);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
 
-    @Override
-    public void start() {
-        this.running = true;
+    for (Executor executor : executors) {
+      if (executor instanceof ThreadPoolTaskExecutor) {
+        ((ThreadPoolTaskExecutor) executor).shutdown();
+      }
+      if (executor instanceof ThreadPoolExecutor) {
+        ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executor;
+        threadPoolExecutor.shutdown();
+      }
     }
-
-    @Override
-    public void stop() {
-        this.running = false;
-        doStop();
-    }
-
-    @Override
-    public boolean isRunning() {
-        return running;
-    }
-
-    @Override
-    public int getPhase() {
-        return SmartLifecycle.DEFAULT_PHASE - 1;
-    }
-
-    private void doStop() {
-        log.info("Commencing graceful shutdown. Waiting for active task to complete");
-
-        try {
-            TimeUnit.SECONDS.sleep(timeout);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        for (Executor executor : executors) {
-            if (executor instanceof ThreadPoolTaskExecutor) {
-                ((ThreadPoolTaskExecutor) executor).shutdown();
-            }
-            if (executor instanceof ThreadPoolExecutor) {
-                ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executor;
-                threadPoolExecutor.shutdown();
-            }
-        }
-
-        log.info("Graceful shutdown complete");
-    }
+    log.info("Graceful shutdown complete");
+  }
 }
 ```
 
@@ -563,11 +570,121 @@ ENTRYPOINT ["node", "app.js"]
 
 <br>
 
+### Python
+```python
+import asyncio
+import signal
+import random
+import os
+
+# Shared queue
+queue = asyncio.Queue()
+
+# Event to signal the producer to stop
+stop_event = asyncio.Event()
+
+async def producer():
+  while not stop_event.is_set():
+    # Simulate adding an event to the queue
+    event = "Event"
+    await queue.put(event)
+    print(f"Produced: {event}")
+    await asyncio.sleep(1) # Simulate some delay
+
+async def heavy_task(task_id):
+  # Simulate a heavy CPU-bound task
+  print(f"Heavy task {task_id} started")
+  await asyncio.sleep(5) # Simulate processing time
+  print(f"Heavy task {task_id} finished")
+
+async def consumer(consumer_id):
+  while True:
+    if stop_event.is_set() and queue.empty():
+      print(f"Consumer {consumer_id} exiting")
+      break
+    else:
+      # print queue length
+       print(f"Queue length: {queue.qsize()}")
+    
+    event = await queue.get() # This will wait until an item is available
+    print(f"Consumer {consumer_id} consumed: {event}")
+    # Simulate heavy task processing
+    await heavy_task(consumer_id)
+    queue.task_done() # Mark the task as done
+
+def signal_handler(sig, frame):
+  signal_name = signal.Signals(sig).name
+  print(f"⚡⚡⚡⚡⚡⚡ Signal caught: {signal_name} ⚡⚡⚡⚡⚡")
+  stop_event.set()
+
+# Set the signal handler
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+async def main():
+  # Start the producer
+  producer_task = asyncio.create_task(producer())
+    
+  # Start two consumers
+  consumer_tasks = [asyncio.create_task(consumer(i)) for i in range(2)]
+    
+  # Wait for the producer to stop
+  await stop_event.wait()
+    
+  # Wait for all consumers to finish processing the remaining tasks
+  await asyncio.gather(*consumer_tasks)
+    
+  print("All tasks processed. Exiting.")
+
+if __name__ == "__main__":
+  print(f"The process id: {os.getpid()}")
+  asyncio.run(main())
+```
+* producer - 주기적으로 queue에 event를 추가하는 것을 시뮬레이션
+* heavy_task - CPU bound processing을 시뮬
+* consumer - queue에서 event을 꺼내 처리한 후 완료 표시
+* signal_handler - SIGINT, SIGTERM singal이 발생하면 stop_event 설정
+* main - producer, consumer를 async로 시작, signal을 받으면 script는 producer가 중지될 떄 까지 기다린 다음, 모든 consumer가 나머지 작업 처리할 떄까지 기다린 후 종료
+
+```dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY async.py .
+
+ENTRYPOINT ["python", "async.py"]
+```
+```sh
+$ docker run -it <image>
+
+$ docker kill --signal="SIGTERM" <contaienr id>
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+spec:
+...
+  template:
+    spec:
+      terminationGracePeriodSeconds: 300
+      containers:
+        ...
+          env:
+            ...
+            - name: PYTHONUNBUFFERED
+              value: "1"
+```
+
+<br>
+
 ### Nginx
 * Nginx에서 `SIGTERM`은 fast shutdown 되므로 `SIGQUIT`를 사용해야 한다
 
 #### Nginx에서 처리하는 shutdown signal
 * master process
+
 | Signal | Description |
 |:--|:--|
 | TERM, INT | fast shutdown |
@@ -575,6 +692,7 @@ ENTRYPOINT ["node", "app.js"]
 | WINCH | graceful shutdown fo worker processes |
 
 * worker process
+
 | Signal | Description |
 |:--|:--|
 | TERM, INT | fast shutdown |
