@@ -27,7 +27,7 @@
 <br>
 
 ### Catch lately
-* exception을 처리할 수 있는 곳에서 catch해야한다. 즉 무분별한 `try catch` 금지
+* exception을 처리할 수 있는 곳에서 catch해야한다. 즉 무분별한 `try-catch` 금지
 * `checked exception`은 호출한 곳에서 바로 catch or throw 해야하하기 때문에 실패한 model이라고 말한다
 * catch & rethrow or method throws에 많은 exception으로 도배하는 원인이므로 catch lately를 위해 catch & rethrow하여 context를 담아 **custom runtime exception으로 변환**하는 것을 추천
 
@@ -408,6 +408,48 @@ public ApiResponse handleException() {
   ...
 }
 ```
+
+<br>
+
+### Multiple try-catch
+* exception 발생시 fallback 처리 중 exception이 발생할 경우 같이 연속된 `try-catch`를 사용하게되는데 try-catch에 숨어 있는 fallback을 [vavr](https://vavr-io.github.io) Try를 사용해 `try-reocver`로 readability을 향상
+
+#### without vavr
+```java
+try {
+  return callApi();
+} catch (BusinessException e) {
+  try {
+    return fallback();
+  } catch (Exception e2) {
+    return "fallback";
+  }
+} catch (Exception e) {
+  return "";
+}
+```
+
+#### with vavr
+```java
+// Java 21 이하에서 vavr 사용
+return Try.of(() -> callApi())
+          .recover(e -> Match(e).of(  // vavr pattern matching
+                    Case($(instanceOf(BusinessException.class)), Try.of(() -> fallback())
+                                                                   .recover((e1) -> "fallback")
+                                                                   .get()),
+                    Case($(instanceOf(Exception.class)), "")))
+          .get();
+
+// Java 21+
+return Try.of(() -> callApi())
+          .recover(ex -> switch (ex) {  // switch expression pattern matching
+                case BusinessException e -> Try.of(() -> fallback()).recover((e1) -> "fallback").get();
+                case Exception e -> "";
+                default -> "";
+          })
+          .get();
+```
+
 
 <br><br>
 
