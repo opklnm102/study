@@ -14,67 +14,78 @@
 * Spring Batch에 있던 retry 기능이 유틸성으로 패키지 분리
 * Spring Batch, Spring Integration, Spring Cloud 등에서 사용 중
   * `org.springframework.cloud.client.loadbalancer.InterceptorRetryPolicy`
+* [Circuit Breaker](https://martinfowler.com/bliki/CircuitBreaker.html) 같이 **Fault Tolerance**를 지원하는 기능
+  * circuit breaker - 기능이 지속적으로 실패하는 경우, 일정 시간 **차단**하여 장애가 전파되지 않도록 하는 것
+  * retry - 기능이 실패했을 경우 **다시 시도**, 계속 실패할 경우 대체 기능이 동작(fallback)하게 할 수 있다
+* retry를 활용하면 일시적인 network 장애 같은 상황에 대응할 수 있다
+  * 일시적인 장애가 아닌 경우 retry로 장애를 전파하게 되면 신뢰도가 하락할 수 있으며, retry로 인한 부하가 증가될 수 있으니 일시적인 장애가 아닌 경우 circuit breaker를 통해 차단하는게 좋다
+* retry interval이 길면 latency 증가로 UX에 영향을 주고, 짧으면 많은 retry로 인해 부하가 증가되므로 적절한 interval + count 설정 필요
 
 ---
+
 
 <br>
 
 ## Quick Start
 
-### 1. dependencies 추가
+### 1. Dependencies 추가
 ```gradle
 // build.gradle
 dependencies {
-    // current version : 1.2.2 RELEASE
-    compile('org.springframework.retry:spring-retry')
+  // spring-retry current version : 2.0.7
+  implementation("org.springframework.retry:spring-retry")  
+  implementation("org.springframework:spring-aspects")  // @Retryable 등 annotation 사용시 필요
 }
 ```
+
+<br>
 
 ### 2. Enabling Spring Retry
 ```java
 @Configuration
 @EnableRetry
 public class RetryConfiguration {
-    ...
+  ...
 }
 ```
+
+<br>
 
 ### 3. @Retryable 사용
 ```java
 public interface RemoteCaller {
-    public String call(String url) throws MyException;
+  public String call(String url) throws MyException;
 }
 
 @Component
 @Slf4j
 public class AnnotationRetryRemoteCaller implements RemoteCaller {
-
-    /**
-     * stateless retry
-     * <p>
-     * - MyException에 대해 최대 3번 시도
-     * - NullPointerException은 재시도하지 않는다
-     * - backoff 간격은 2000ms ~ 5000ms에서 랜덤으로 결정
-     *
-     * include - retry 가능 exception 설정
-     * exclude - retry 불가능 exception 설정 
-     * maxAttempts - 최대 시도 수
-     * backoff - retry 간격 설정
-     * @param url
-     * @return
-     */
-    @Retryable(include = MyException.class, exclude = NullPointerException.class,
+  /**
+   * stateless retry
+   * <p>
+   * - MyException에 대해 최대 3번 시도
+   * - NullPointerException은 재시도하지 않는다
+   * - backoff 간격은 2000ms ~ 5000ms에서 랜덤으로 결정
+   *
+   * retryFor - retry 가능 exception 설정
+   * noRetryFor - retry 불가능 exception 설정 
+   * maxAttempts - 최대 시도 수
+   * backoff - retry 간격 설정
+   * @param url
+   * @return
+   */
+  @Retryable(retryFor = MyException.class, noRetryFor = NullPointerException.class,
             maxAttempts = 3, backoff = @Backoff(delay = 2000, maxDelay = 5000), stateful = false)
-    @Override
-    public String call(String url) {
-        log.info("call : {}", url);
+  @Override
+  public String call(String url) {
+    log.info("call : {}", url);
 
-        if (true) {
-            throw new MyException();
-        }
-
-        return "OK";
+    if (true) {
+      throw new MyException();
     }
+
+    return "OK";
+  }
 }
 
 2018-06-27 23:44:47.302  INFO 2986 --- [pool-1-thread-1] m.d.r.AnnotationRetryRemoteCaller        : call : testUrl
@@ -82,25 +93,27 @@ public class AnnotationRetryRemoteCaller implements RemoteCaller {
 2018-06-27 23:44:55.880  INFO 2986 --- [pool-1-thread-1] m.d.r.AnnotationRetryRemoteCaller        : call : testUrl
 2018-06-27 23:44:55.880  INFO 2986 --- [pool-1-thread-1] m.d.r.AnnotationRetryRemoteCaller        : recover : class me.dong.retrybasic.MyException, url : testUrl
 ```
-* include된 exception이 발생했을 때만 retry한다
+* retryFor에 정의된 exception이 발생했을 때만 retry한다
 * log를 보면 2~5초의 간격을 두고 3번 호출된 것을 알 수 있다
+
+<br>
 
 ### 4. @Recover
 ```java
 @Recover
 public String recover()) {
-    log.info("recover");
-    return "";
+  log.info("recover");
+  return "";
 }
 
 // method parameter optional
 @Recover
 public String recover(MyException e, String url) {
-    log.info("recover : {}, url : {}", e.getClass(), url);
-    return url;
+  log.info("recover : {}, url : {}", e.getClass(), url);
+  return url;
 }
 ```
-* 정해진 횟수만큼 retry 후 실패시 동작하는 메소드로 선언
+* 정해진 횟수만큼 retry 후 실패시 동작하는 fallback 메소드 선언시 사용
 * retry를 시도한 method(@Retryable이 선언된)와 return type이 같으면 `@Recover`가 동작한다 
   * parameter는 optional
 
@@ -109,26 +122,28 @@ public String recover(MyException e, String url) {
 // private여도 실행
 @Recover
 private String recover() {
-    log.info("recover");
-    return "";
+  log.info("recover");
+  return "";
 }
 
 // 여러개의 @Recover가 있을 경우 더 자세한(parameter가 있는) 메소드가 실행된다
 // 이게 실행된다
 @Recover
 public String recover(MyException e, String url) {
-    log.info("recover : {}, url : {}", e.getClass(), url);
-    return url;
+  log.info("recover : {}, url : {}", e.getClass(), url);
+  return url;
 }
 
 // 실행이 안된다
 @Recover
 public void recoverVoid(MyException e, String url) {
-    log.info("recover : {}, url : {}", e.getClass(), url);
+  log.info("recover : {}, url : {}", e.getClass(), url);
 }
 ```
 
-### 5. output
+<br>
+
+### 5. Output
 ```java
 call : testUrl
 call : testUrl
@@ -142,20 +157,21 @@ recover : class me.dong.retrybasic.MyException, url : testUrl
 ## RetryTemplate
 * `RetryTemplate`은 RetryOperations의 가장 단순한 범용 구현체
 
+<br>
+
 ### RetryOperation
 * Spring Retry가 제공하는 retry를 자동화하기 위한 interface
 * parameter로 retry할 logic을 RetryCallback으로 받아 callback 방식으로 retry한다
 ```java
 public interface RetryOperations {
     
-    <T, E extends Throwable> T execute(RetryCallback<T, E> retryCallback) throws E;
+  <T, E extends Throwable> T execute(RetryCallback<T, E> retryCallback) throws E;
     
-    <T, E extends Throwable> T execute(RetryCallback<T, E> retryCallback, RecoveryCallback<T> recoveryCallback) throws E;
+  <T, E extends Throwable> T execute(RetryCallback<T, E> retryCallback, RecoveryCallback<T> recoveryCallback) throws E;
     
-    <T, E extends Throwable> T execute(RetryCallback<T, E> retryCallback, RetryState retryState) throws E, ExhaustedRetryException;
+  <T, E extends Throwable> T execute(RetryCallback<T, E> retryCallback, RetryState retryState) throws E, ExhaustedRetryException;
     
-    <T, E extends Throwable> T execute(RetryCallback<T, E> retryCallback, RecoveryCallback<T> recoveryCallback, RetryState retryState)
-			throws E;
+  <T, E extends Throwable> T execute(RetryCallback<T, E> retryCallback, RecoveryCallback<T> recoveryCallback, RetryState retryState) throws E;
 }
 ```
 * callback이 실행되어 exception 발생되어 실패하면, 성공할 때까지 또는 중단될 때까지 retry
@@ -167,7 +183,7 @@ public interface RetryOperations {
 * 재시도해야 하는 `business logic을 구현할 수 있는 interface`
 ```java
 public interface RetryCallback<T, E extends Throwable> {
-    T doWithRetry(RetryContext context) throws E;
+  T doWithRetry(RetryContext context) throws E;
 }
 ```
 
@@ -179,22 +195,22 @@ public interface RetryCallback<T, E extends Throwable> {
 @Configuration
 public class RetryConfiguration {
 
-    @Bean
-    public RetryTemplate retryTemplate() {
-        RetryTemplate retryTemplate = new RetryTemplate();
+  @Bean
+  public RetryTemplate retryTemplate() {
+    RetryTemplate retryTemplate = new RetryTemplate();
 
-        // retry 전에 고정된 시간동안 일시 중지하는 backOff
-        FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
-        backOffPolicy.setBackOffPeriod(2000L);
-        retryTemplate.setBackOffPolicy(backOffPolicy);
+    // retry 전에 고정된 시간동안 일시 중지하는 backOff
+    FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
+    backOffPolicy.setBackOffPeriod(2000L);
+    retryTemplate.setBackOffPolicy(backOffPolicy);
 
-        // 고정된 횟수만큼 retry하는 policy
-        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
-        retryPolicy.setMaxAttempts(4);
-        retryTemplate.setRetryPolicy(retryPolicy);
+    // 고정된 횟수만큼 retry하는 policy
+    SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+    retryPolicy.setMaxAttempts(4);
+    retryTemplate.setRetryPolicy(retryPolicy);
 
-        return retryTemplate;
-    }
+    return retryTemplate;
+  }
 }
 ```
 
@@ -204,20 +220,20 @@ public class RetryConfiguration {
 ```java
 public String  call(String url) {
 
-    // using anonymous class
-    return retryTemplate.execute(new RetryCallback<String, RuntimeException>() {
-            @Override
-            public String doWithRetry(RetryContext context) {
-                // business logic here
-                return "OK";
-            }
-    });
+  // using anonymous class
+  return retryTemplate.execute(new RetryCallback<String, RuntimeException>() {
+    @Override
+    public String doWithRetry(RetryContext context) {
+      // business logic here
+      return "OK";
+    }
+  });
 
-    // using lambda
-    return retryTemplate.execute(context -> {
-            // business logic here
-            return "OK";
-    });
+  // using lambda
+  return retryTemplate.execute(context -> {
+    // business logic here
+    return "OK";
+  });
 }
 ```
 
@@ -231,16 +247,18 @@ public String  call(String url) {
   * callback이 RetryContext를 무시할 수 있다
 * 동일한 thread에서 진행 중인 nested retry가 있는 경우 parent context를 가지는데 `execute()` 호출에서 공유해야 하는 데이터를 저장하는데 유용
 
+<br>
+
 #### Class Structure
 ```
 RetryContext(I)
-  └── RetryContextSupport(C)
-        ├── SimpleRetryContext(C) => SimpleRetryPolicy에서 사용
-        ├── NeverRetryContext(C) => NeverRetryPolicy에서 사용
-        ├── TimeoutRetryContext(C) => TimeoutRetryPolicy에서 사용
-        ├── ExceptionClassifierRetryContext(C) => ExceptionClassifierRetryPolicy에서 사용
-        ├── CircuitBreakerRetryContext(C) => CircuitBreakerRetryPolicy에서 사용
-        └── CompositeRetryContext(C) => CompositeRetryPolicy에서 사용
+└── RetryContextSupport(C)
+    ├── SimpleRetryContext(C) => SimpleRetryPolicy에서 사용
+    ├── NeverRetryContext(C) => NeverRetryPolicy에서 사용
+    ├── TimeoutRetryContext(C) => TimeoutRetryPolicy에서 사용
+    ├── ExceptionClassifierRetryContext(C) => ExceptionClassifierRetryPolicy에서 사용
+    ├── CircuitBreakerRetryContext(C) => CircuitBreakerRetryPolicy에서 사용
+    └── CompositeRetryContext(C) => CompositeRetryPolicy에서 사용
 
 I - interface
 C - class
@@ -255,18 +273,18 @@ C - class
 ```java
 @Override
 public String call(String url) {
-    return retryTemplate.execute(context -> {  
-        // retry callback - business logic here
+  return retryTemplate.execute(context -> {  
+    // retry callback - business logic here
 
-        log.info("call : {}", url);
+    log.info("call : {}", url);
 
-        return restTemplate.getForEntity(url, String.class).getBody();
-    }, context -> {
-        // recovery callback - recover logic here
+    return restTemplate.getForEntity(url, String.class).getBody();
+  }, context -> {
+    // recovery callback - recover logic here
     
-        log.info("recover. retryCount : {}, exception : {}", context.getRetryCount(), context.getLastThrowable().getMessage());
-        return "failure";
-    });
+    log.info("recover. retryCount : {}, exception : {}", context.getRetryCount(), context.getLastThrowable().getMessage());
+    return "failure";
+  });
 }
 ```
 
@@ -298,6 +316,7 @@ public String call(String url) {
     * 필요한 경우 이런한 기능이 포함된 Map 사용을 고려
   * cluster에서 여러 프로세스를 사용하는 경우 cluster cache에서 RetryContextCache 구현을 고려 -> over engineering이 될 수 있다
 
+<br>
 
 ### RetryState 추상화
 * RetryOperations은 실패한 작업이 재시도시 새로운 실행(새로운 트랜잭션 등)으로 돌아 왔을 때 인식하기 위해 RetryState 추상화 제공
@@ -328,13 +347,13 @@ public String call(String url) {
 
 ```java
 protected <E extends Throwable> void rethrow(RetryContext context, String message) throws E {
-    if (this.throwLastExceptionOnExhausted) {
-        @SuppressWarnings("unchecked")
-        E rethrow = (E) context.getLastThrowable();
-        throw rethrow;
-    } else {
-        throw new ExhaustedRetryException(message, context.getLastThrowable());
-    }
+  if (this.throwLastExceptionOnExhausted) {
+    @SuppressWarnings("unchecked")
+    E rethrow = (E) context.getLastThrowable();
+    throw rethrow;
+  } else {
+    throw new ExhaustedRetryException(message, context.getLastThrowable());
+  }
 }
 ```
 
@@ -364,9 +383,9 @@ SimpleRetryPolicy policy = new SimpleRetryPolicy(5, Collections.singletonMap(Exc
 RetryTemplate template = new RetryTemplate();
 template.setRetryPolicy(policy);
 template.execute(new RetryCallback<Foo>() {
-    public Foo doWithRetry(RetryContext context) {
-        // business logic here
-    }
+  public Foo doWithRetry(RetryContext context) {
+    // business logic here
+  }
 });
 ```
 
@@ -375,17 +394,17 @@ template.execute(new RetryCallback<Foo>() {
 #### Class Structure
 ```
 RetryPolicy(I)
-  ├── SimpleRetryPolicy(C) => 정의된 exception 리스트에서 정해진 최대 횟수만큼 재시도
-  │     └── ExpressionRetryPolicy(C) => 마지막으로 throw된 exception에 대해 표현식을 평가하여 재시도
-  ├── NeverRetryPolicy(C) => 항상 재시도하지 않는다
-  │     └── AlwaysRetryPolicy(C) => 항상 재시도한다
-  ├── TimeoutRetryPolicy(C) => timeout에 도달할 때까지 재시도
-  ├── ExceptionClassifierRetryPolicy(C) => ExceptionClassifier로 마지막 exception에 따라 동적으로 retryPolicy를 적용해서 재시도
-  │                                        특정 exception을 다른 retryPolicy에 매핑하여 다른 exception보다 1번 더 재시도 가능하도록 구성할 수 있다
-  ├── ExceptionClassifierRetryContext(C) => ExceptionClassifierRetryPolicy의 static inner class                             
-  ├── CircuitBreakerRetryPolicy(C) => circuit이 close인 경우에만 delegate된 retryPolicy에 따라 재시도
-  │                                   circuit - CircuitBreakerRetryContext로 표현
-  └── CompositeRetryPolicy(C) => 여러 retryPolicy를 호출 순서에 따라 적용해서 재시도
+├── SimpleRetryPolicy(C) => 정의된 exception 리스트에서 정해진 최대 횟수만큼 재시도
+│   └── ExpressionRetryPolicy(C) => 마지막으로 throw된 exception에 대해 표현식을 평가하여 재시도
+├── NeverRetryPolicy(C) => 항상 재시도하지 않는다
+│   └── AlwaysRetryPolicy(C) => 항상 재시도한다
+├── TimeoutRetryPolicy(C) => timeout에 도달할 때까지 재시도
+├── ExceptionClassifierRetryPolicy(C) => ExceptionClassifier로 마지막 exception에 따라 동적으로 retryPolicy를 적용해서 재시도
+│                                        특정 exception을 다른 retryPolicy에 매핑하여 다른 exception보다 1번 더 재시도 가능하도록 구성할 수 있다
+├── ExceptionClassifierRetryContext(C) => ExceptionClassifierRetryPolicy의 static inner class                             
+├── CircuitBreakerRetryPolicy(C) => circuit이 close인 경우에만 delegate된 retryPolicy에 따라 재시도
+│                                   circuit - CircuitBreakerRetryContext로 표현
+└── CompositeRetryPolicy(C) => 여러 retryPolicy를 호출 순서에 따라 적용해서 재시도
 
 I - interface
 C - class
@@ -412,13 +431,13 @@ C - class
 ```java
 public interface BackOffPolicy {
  
-    // backoff의 새로운 block 시작
-    // start()가 호출될 때 일시 정지되도록 할 수 있지만 일반적으로는 BackOffContext가 즉시 반환된다
-    BackOffContext start(RetryContext context);
+  // backoff의 새로운 block 시작
+  // start()가 호출될 때 일시 정지되도록 할 수 있지만 일반적으로는 BackOffContext가 즉시 반환된다
+  BackOffContext start(RetryContext context);
 
-    // 구현에 따라 일시 정지
-    // BackOffContext는 start()에서 가져온것과 대응된다
-    void backOff(BackOffContext backOffContext) throws BackOffInterruptedException;
+  // 구현에 따라 일시 정지
+  // BackOffContext는 start()에서 가져온것과 대응된다
+  void backOff(BackOffContext backOffContext) throws BackOffInterruptedException;
 }
 ```
 
@@ -448,16 +467,16 @@ C - class
 package org.springframework.retry.backoff;
 
 public interface Sleeper extends Serializable {
-    void sleep(long var1) throws InterruptedException;
+  void sleep(long var1) throws InterruptedException;
 }
 ```
 
 #### Class Structure
 ```
 Sleeper(I)
-  ├── ObjectWaitSleeper(C) => local object를 wait()로 대기시키는 구현체, deprecated되어 ThreadWaitSleeper 사용 권장
-  ├── ThreadWaitSleeper(C) => 현재 thread를 sleep시켜서 대기시키는 구현체
-  └── StealingSleeper(C) => RetrySimulator에서 사용
+├── ObjectWaitSleeper(C) => local object를 wait()로 대기시키는 구현체, deprecated되어 ThreadWaitSleeper 사용 권장
+├── ThreadWaitSleeper(C) => 현재 thread를 sleep시켜서 대기시키는 구현체
+└── StealingSleeper(C) => RetrySimulator에서 사용
 
 I - interface
 C - class 
@@ -468,35 +487,35 @@ C - class
 @Deprecated  // deprecated되어 ThreadWaitSleeper 사용 권장
 public class ObjectWaitSleeper implements Sleeper {
     
-    public void sleep(long backOffPeriod) throws InterruptedException {
-        Object mutex = new Object();
-        synchronized (mutex) {
-            mutex.wait(backOffPeriod);
-        }
+  public void sleep(long backOffPeriod) throws InterruptedException {
+    Object mutex = new Object();
+    synchronized (mutex) {
+      mutex.wait(backOffPeriod);
     }
+  }
 }
 
 // 현재 thread를 sleep시켜서 대기시키는 구현체
 public class ThreadWaitSleeper implements Sleeper {
     
-    @Override
-    public void sleep(long backOffPeriod) throws InterruptedException {
-        Thread.sleep(backOffPeriod);
-    }
+  @Override
+  public void sleep(long backOffPeriod) throws InterruptedException {
+    Thread.sleep(backOffPeriod);
+  }
 }
 
 // RetrySimulator에서 사용. static inner class로 구현
 static class StealingSleeper implements Sleeper {
     
-    private final List<Long> sleeps = new ArrayList<Long>();
+  private final List<Long> sleeps = new ArrayList<Long>();
     
-    public void sleep(long backOffPeriod) throws InterruptedException {
-        sleeps.add(backOffPeriod);
-    }
+  public void sleep(long backOffPeriod) throws InterruptedException {
+    sleeps.add(backOffPeriod);
+  }
     
-    public List<Long> getSleeps() {
-        return sleeps;
-    }
+  public List<Long> getSleeps() {
+    return sleeps;
+  }
 }
 ```
 
@@ -508,30 +527,30 @@ static class StealingSleeper implements Sleeper {
 * retry시 추가 callback 제공
 * 서로 다른 retry간의 cross-cutting 문제에 사용
 * callback은 RetryListener에서 callback 제공
-  * open(), close()는 전체 retry 전후 발생
-  * onError()는 개별 RetryCallback 호출시 적용
+  * `open()`, `close()`는 전체 retry 전후 발생
+  * `onError()`는 개별 RetryCallback 호출시 적용
 
 ```java
 @Slf4j
 public class DefaultListenerSupport extends RetryListenerSupport {
     
-    @Override
-    public <T, E extends Throwable> boolean open(RetryContext context, RetryCallback<T, E> callback) {
-        log.info("open");
-        return super.open(context, callback);
-    }
+  @Override
+  public <T, E extends Throwable> boolean open(RetryContext context, RetryCallback<T, E> callback) {
+    log.info("open");
+    return super.open(context, callback);
+  }
 
-    @Override
-    public <T, E extends Throwable> void close(RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
-        super.close(context, callback, throwable);
-        log.info("close");
-    }
+  @Override
+  public <T, E extends Throwable> void close(RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
+    super.close(context, callback, throwable);
+    log.info("close");
+  }
 
-    @Override
-    public <T, E extends Throwable> void onError(RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
-        super.onError(context, callback, throwable);
-        log.info("onError");
-    }
+  @Override
+  public <T, E extends Throwable> void onError(RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
+    super.onError(context, callback, throwable);
+    log.info("onError");
+  }
 }
 ```
 
@@ -540,15 +559,13 @@ public class DefaultListenerSupport extends RetryListenerSupport {
 @Configuration
 public class RetryConfiguration {
 
-    @Bean
-    public RetryTemplate retryTemplate() {
-        RetryTemplate retryTemplate = new RetryTemplate();
-
-        ...
-
-        retryTemplate.registerListener(new DefaultListenerSupport());
-        return retryTemplate;
-    }
+  @Bean
+  public RetryTemplate retryTemplate() {
+    RetryTemplate retryTemplate = new RetryTemplate();
+    ...
+    retryTemplate.registerListener(new DefaultListenerSupport());
+    return retryTemplate;
+  }
 }
 ```
 
@@ -558,6 +575,7 @@ public class RetryConfiguration {
 
 ## Declarative Retry
 * AOP를 사용해 retry를 지원
+  * `org.springframework:spring-aspects` dependency 필요
 * RetryOperation call을 wrapping 하는 interceptor인 `RetryOperationsInterceptor`를 제공
    * intercept된 메소드를 호출하고 실패시 RepeatTemplate의 RetryPolicy에 따라 retry
 
@@ -566,26 +584,28 @@ public class RetryConfiguration {
 @EnableRetry
 public class RetryConfiguration {
 
-    @Bean
-    public RetryListener retryListener1() {
-        return new RetryListener() { ... }
-    }
+  @Bean
+  public RetryListener retryListener1() {
+    return new RetryListener() { ... }
+  }
 
-    @Bean
-    public RetryListener retryListener2() {
-        return new RetryListener() { ... }
-    }
+  @Bean
+  public RetryListener retryListener2() {
+    return new RetryListener() { ... }
+  }
 }
 
 @Service
 public class {
     
-    @Retryable(maxAttempts = 12, backoff = @Backoff(delay = 100, maxDelay = 500))
-    public service() {
-        ...
-    }
+  @Retryable(maxAttempts = 12, backoff = @Backoff(delay = 100, maxDelay = 500))
+  public service() {
+    ...
+  }
 }
 ```
+
+<br>
 
 ### @EnableRetry
 * runtime시 retry 제어를 위한 RetryTemplate과 interceptor에 사용되는 Sleeper 등을 찾는다
@@ -593,10 +613,9 @@ public class {
   * proxy는 application의 bean instance에 Retryable interface를 추가
 
 
----
+<br><br>
 
-<br>
-
-> #### 참고
+> #### Reference
 > * [spring-projects/spring-retry](https://github.com/spring-projects/spring-retry)
 > * [Guide to Spring Retry](http://www.baeldung.com/spring-retry)
+> * [Circuit Breaker](https://martinfowler.com/bliki/CircuitBreaker.html)
