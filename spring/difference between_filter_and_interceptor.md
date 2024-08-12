@@ -1,13 +1,14 @@
 # [Spring] Difference between Filter and Interceptor
 > filter와 interceptor의 차이에 대해 정리하고 각각의 사용법에 대해 정리하자
 
+<br>
 
 ## Spring MVC Request Lifecycle
-
 <div align="center">
-<img src="https://github.com/opklnm102/study/blob/master/spring/images/spring-request-lifecycle.jpg" alt="spring mvc request lifecycle" width="400" height="400"/>
+  <img src="./images/spring-request-lifecycle.jpg" alt="spring mvc request lifecycle" width="80%" height="80%"/>
 </div>
 
+<br>
 
 ### 처리 시점
 1. 브라우저가 요청
@@ -20,6 +21,7 @@
 8. Filter
 9. 브라우저에게 응답
 
+<br>
 
 ### Request가 어떻게 Filter와 Interceptor로 진입할까?
 * `ApplicationFilterChain`로 Filter 호출
@@ -167,12 +169,14 @@ public class HandlerExecutionChain {
 * `DispatcherServlet.doDispatch()`에서 `HandlerExecutionChain`으로 handler(controller) 호출 전후로 interceptor의 메소드 호출
 * Controller에서 처리 완료 후 call stack을 제거해가면서 Filter.doFilter() 이후의 로직 실행 
 
----
+
+<br>
 
 ## Interceptor
 * Handler(Controller)로 가기 전에 정보 처리
 * Spring Framework에서 제공하는 기능
 
+<br>
 
 ### 언제 사용하면 좋을까?
 * 요청 경로마다 접근 제어를 다르게 해야 할 때
@@ -213,6 +217,7 @@ public interface HandlerInterceptor {
 >     └── WebContentInterceptor(C)
 > ```
 
+<br>
 
 ### Interceptor 구현 해보기
 
@@ -260,9 +265,11 @@ public class InterceptorConfiguration extends WebMvcConfigurerAdapter {
 * XML
 ```xml
 <mvc:interceptors>
-    <bean id="authInterceptor" class="xx.yy.zz.AuthInterceptor">
+  <bean id="authInterceptor" class="xx.yy.zz.AuthInterceptor">
 </mvc:interceptors>
 ```
+
+<br>
 
 ### interceptor 적용 순서
 * `InterceptorRegistry`에 등록한 순서대로 동작한다
@@ -441,7 +448,8 @@ public class HandlerExecutionChain {
 }
 ```
 
----
+
+<br>
 
 ## Filter
 * Dispatcher servlet 앞에서 처리
@@ -451,6 +459,7 @@ public class HandlerExecutionChain {
 * filter chain에서 전달되는 request, response 객체를 교환할 수 있다
 * J2EE 표준 스펙에 정의되어 있는 기능
 
+<br>
 
 ### 공통 기능을 넣을 수 있는 부분
 ```java
@@ -469,6 +478,7 @@ public interface Filter {
 1. Dispatcher Servlet에게 요청하기 직전
 2. Dispatcher Servlet에게 요청하기 직후
 
+<br>
 
 ### Filter 구현 해보기
 ```java
@@ -504,11 +514,30 @@ public class FeedgetApiApplication {
 }
 ```
 
-## 정리
+### Exception handling
+```java
+@Slf4j
+public class TestFilter implements Filter {
+
+  @Override
+  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+    ...
+    throw new CustomException("custom exception");
+  }
+}
+```
+filter에서 `throw CustomException()`을 하면 `@RestControllerAdvice`, `@ExceptionHandler`에서 처리할까?  
+-> X, filter는 DispatchServlet 외부이기 때문에 handler가 동작할 수 없음!  
+HandlerExceptionResolver가 처리할 수 없으므로!
+
+<br>
+
+## Conclusion
 * `Filter`와 `Interceptor`는 처리 시점이 다르기 때문에 적절하게 사용하자
 
+<br><br>
 
-> #### 참고
+> #### Reference
 > * [인터셉터 인터페이스](http://egloos.zum.com/charmpa/v/2922178)
 > * [Spring MVC - Intercepting requests with a HandlerInterceptor](https://www.logicbig.com/tutorials/spring-framework/spring-web-mvc/spring-handler-interceptor.html)
 > * [스프링 3.1 (2) HandlerInterceptor의 적용순서](http://toby.epril.com/?cat=134&paged=3)
