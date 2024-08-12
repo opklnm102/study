@@ -432,8 +432,7 @@ cache.set(data_id, data, 300)
 > * [What is Caching?](https://medium.com/system-design-blog/what-is-caching-1492abb92143)
 > * [Caching Strategies and How to Choose the Right One](https://codeahoy.com/2017/08/11/caching-strategies-and-how-to-choose-the-right-one/)
 > * [Consistency between Cache and Database, Part 1](https://lazypro.medium.com/consistency-between-cache-and-database-part-1-f64f4a76720)
-> * [Consistency between Cache and Database, Part 2](https://lazyp
--> rro.medium.com/consistency-between-cache-and-database-part-2-e28fc7f8a7c3)
+> * [Consistency between Cache and Database, Part 2](https://lazyprro.medium.com/consistency-between-cache-and-database-part-2-e28fc7f8a7c3)
 
 <br>
 
