@@ -7,6 +7,7 @@
 
 ## Cache란?
 * 느린 component를 빠른 중간 component로 대체하는 것
+* **더 가까운(빠른) 임시 저장소**로 data를 복사하여 저장해두고 사용하는 것이 caching
 * 한번 전달 받은 data를 어딘가에 저장해두고 다시 사용할 때 꺼내 쓴다면 반복적으로 data 요청할 필요가 없다
 * 반복적으로 사용하는 data를 빠르게 사용할 수 있고(응답 시간 감소), network 전송량을 감소시켜 비용 효율적이다
 * 일반적으로 enterprise에서 L1 cache와 L2 cache로 나누어진다
@@ -14,19 +15,75 @@
   * L2 cache - global cache
 * system performance를 높이는 가장 쉬운 방법 중 하나
 
-
 <br>
 
 ### Local Cache
 * client side에서 유저가 가장 가까이 접하는 cache는 browser cache
 * server side에서는 [Caffeine](https://github.com/ben-manes/caffeine) 같은 library로 구현
   * async loading, refresh 사용
+  * 별도의 infrastructure 불필요하며 application memory를 사용하므로 접근 속도가 매우 빠르다
+  * application의 memory 사용량이 증가하여 `OOM`이 발생할 수 있고, 여러 application 간의 data 정합성(consistency)을 보장할 수 없다
+* 변경이 거의 없는 data or 동일 data를 매우 빈번하게 사용하는 경우 유용
 
 <br>
 
 ### Global Cache
 * Redis 같은 In-Memory DB를 사용하여 구현
   * Redis에서 여러건 조회시 `Loop + GET`은 network latency로 인해서 느리므로 `MGET`을 사용
+* 여러 application이 동일한 곳을 사용하기 때문에 data 정합성은 local cache에 비해 유리
+* 별도의 infrastructure 필요
+* network를 사용하므로 local cache보다 느리다
+  * local cache보다 멀기 때문
+
+
+<br>
+
+## Cache 사용시 고려 사항
+* 변경에 민감한 data인가?
+* 연산이 비싼 data인가?
+* 얼마나 자주 사용되는 data인가?
+
+<br>
+
+### 변경에 민감한 data인가?
+* 티켓팅 등 재고가 중요한 경우 data의 변화가 실시간으로 반영되는 것이 중요하다면 변경이 자주 발생하므로 caching의 의미가 없다
+* 재고 같은 경우 빠르게 반영되지 않는다면 이후 재고 부족으로 강제 취소될 수 있으므로 UX에 안좋은 영향이 발생할 수 있다
+* 실시간으로 반영되지 않더라도 UX에 큰 영향이 없는 SNS 피드 같은 data일 때 유용
+
+<br>
+
+### 연산이 비싼 data인가?
+* data를 만들기 위해 필요한 연산이 비쌀수록 반복적인 수행을 줄이는 것이 중요
+* 적절한 TTL(Time-To-Live)을 설정하여 cache hit ratio를 높이면 성능을 높이면서, 리소스를 절감할 수 있다
+
+<br>
+
+### 얼마나 자주 사용되는 data인가?
+* 연산이 비쌀수록 cache의 효과는 좋아지지만 사용량이 미비하다면 caching하는 의미가 없을 수 있다
+* cache miss ratio가 높아져 효과가 떨어지게 된다
+
+
+<br>
+
+## Cache 설계하기
+* memory는 disk보다 성능이 좋지만, 비싸고 용량이 적기 때문에 어떤 data를 얼마나, 어떻게 저장할 것인지가 중요
+* 무분별하게 사용하면 Out Of Memory error가 발생하거나 리소스 낭비가 발생하게 된다
+
+<br>
+
+### 어떤 data를 얼마나 저장할 것인가?
+* 수많은 data 중 cache에 저장할 때 효과가 높은 data를 저장해야한다
+* 자주 변경되는 data 보다는 변경에 민감하지 않은 data가 좋다
+* 거의 변경이 일어나지 않는 data라면 global cache 보다는 local cache를 이용하면 더 빠르고 효율적
+
+<br>
+
+### 어떻게 저장할 것인가?
+* data에 따라 적절한 **data structure**를 사용하여 저장해야하며 TTL 등을 이용한 갱신 방법도 중요
+  * 단건 저장보다는 list or hash, bitmap 사용
+* TTL이 길면 길수록 raw data의 접근이 줄어들어 성능을 높일 수 있지만, 그 사이 data 변경이 발생할 수 있다면 정합성은 상대적으로 떨어지게된다
+* event 등으로 data 변경을 추적할 수 있는 경우, TTL을 길게 가져가고 변경이 발생하는 즉시 event를 이용해 갱신하여 정합성을 보장할 수 있다
+  * 그렇지 않은 경우 TTL을 짧게 가져가 갱신을 자주하여 정합성을 보장한다
 
 
 <br>
@@ -41,6 +98,10 @@ data access pattern에 따라 선택
 * [Write-Back](#write-backwrite-behind)
 * [Adding TTL](#adding-ttl)
 * [Refresh Ahead](#refresh-ahead)
+
+<div align="center">
+  <img src="./images/cache_aside.png" alt="cache aside" width="70%" height="70%" />
+</div>
 
 <br>
 
@@ -215,3 +276,11 @@ cache.set(data_id, data, 300)
 > * [Caching strategies - Amazon ElastiCache for Redis Docs](https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Strategies.html)
 > * [What is Caching?](https://medium.com/system-design-blog/what-is-caching-1492abb92143)
 > * [Caching Strategies and How to Choose the Right One](https://codeahoy.com/2017/08/11/caching-strategies-and-how-to-choose-the-right-one/)
+> * [Consistency between Cache and Database, Part 1](https://lazypro.medium.com/consistency-between-cache-and-database-part-1-f64f4a76720)
+> * [Consistency between Cache and Database, Part 2](https://lazypro.medium.com/consistency-between-cache-and-database-part-2-e28fc7f8a7c3)
+
+<br>
+
+> #### Further reading
+> * [TAO: The power of the graph](https://engineering.fb.com/2013/06/25/core-data/tao-the-power-of-the-graph/)
+> * [Cache made consistent: Meta’s cache invalidation solution](https://engineering.fb.com/2022/06/08/core-data/cache-invalidation/)
