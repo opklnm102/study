@@ -278,6 +278,7 @@ spec:
 ```
 * maxSkew
   * 균등하지 않게 분산될 수 있는 정도로 whenUnsatisfiable에 따라 의미가 달라진다
+  * maxSkew가 클수록 pod가 덜 분산되고, 너무 작으면 scheduling이 지연될 수 있으므로 node/pod의 규모를 고려해 적절한 값 설정 필요
   * whenUnsatisfiable: DoNotSchedule면 topology의 pod수와 global minimum 사이의 최대 허용치가 된다
     * 3개의 zone에 5개의 pod를 2, 2, 1로 배치하고 싶으면 maxSkew: 1로 설정, 이때 global minimum 1이 된다
   * whenUnsatisfiable: ScheduleAnyway면 skew를 줄이는데 도움이 되는 topology에 더 높은 우선순위 부여
@@ -295,6 +296,7 @@ spec:
   * 적합한 도메인 - nodeAffinityPolicy, nodeTaintsPolicy의 요구 사항을 충족하는 도메인
 * whenUnsatisfiable
   * 조건을 만족하지 않을 경우 처리 방법
+    * e.g. topologyKey, maxSkew 등이 허용되는 node에 resource 부족으로 scheduling이 불가할 때
   * DoNotSchedule(default) - scheduling 하지 않는다
   * ScheduleAnyway - skew를 최소화하는 node에 우선순위를 부여하며 scheduling
 
