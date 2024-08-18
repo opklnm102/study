@@ -44,6 +44,19 @@
 
 <br>
 
+### Singals in Unix
+* [singal](https://en.wikipedia.org/wiki/Signal_(IPC))은 특정 사항을 process에 전달하는 간단한 방법으로 signal의 작동 방식을 이해하고 활용하면 graceful shutdown을 구현할 수 있다
+
+| Signal | Description |
+|:--|:--|
+| SIGTERM | request termination |
+| SIGKILL | quit immediately |
+| SIGINT | interrupt(such as Ctrl + C)|
+| SIGQUIT | quit(such as Ctrl + D)|
+
+
+<br>
+
 ## Before Spring Boot 2.3.0
 * Spring Boot에서 graceful shutdown에 대한 feature가 없어서 직접 구현하거나 third party library 사용
 
@@ -512,11 +525,14 @@ lifecycle:
       command: ["sh", "-c", "sleep 10"]
 ```
 
-* test
+<br>
+
+#### test
 ```sh
 $ echo "GET {HOST}/actuator/health/readiness" | vegeta attack -rate=1 -duration=10s | vegeta report
 ```
 * [vegeta](../test/load-testing/vegeta.md)를 참고하여 다양한 시나리오 작성 가능
+* e.g. 40초 동안 초당 25개 request 발생시키고, rolling update 실행하여 traffic이 유실되는지 확인
 
 <br>
 
@@ -733,6 +749,12 @@ spec:
 
 <br>
 
+### Go
+* [plutov/packagemain/graceful-shutdown](https://github.com/plutov/packagemain/tree/master/graceful-shutdown) 참고
+
+
+<br>
+
 ## Conclusion
 * 지금까지 Spring Boot, Node.js, Nginx, Kubernetes에서 Graceful shutdown하는 방법을 정리해보았다
 * process, signal, container, framework 등 알아야 하는게 많지만 위의 방법대로 적용해보면 매끄러운 applicaiton을 만들 수 있지 않을까 한다
@@ -749,6 +771,7 @@ spec:
 > * [Graceful shutdown of pods with Kubernetes](https://pracucci.com/graceful-shutdown-of-kubernetes-pods.html)
 > * [Controlling nginx - Nginx Docs](http://nginx.org/en/docs/control.html)
 > * [Graceful shutdown in Kubernetes is not always trivial](https://medium.com/flant-com/kubernetes-graceful-shutdown-nginx-php-fpm-d5ab266963c2)
+> * [Signal (IPC)](https://en.wikipedia.org/wiki/Signal_(IPC))
 
 <br>
 
