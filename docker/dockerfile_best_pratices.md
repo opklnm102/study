@@ -5,6 +5,57 @@
 
 <br>
 
+<!-- TOC depthfrom:2 depthto:3 orderedlist:false -->
+
+- [General guidelines and recommendations](#general-guidelines-and-recommendations)
+    - [Create ephemeral containers](#create-ephemeral-containers)
+    - [Understand build context](#understand-build-context)
+    - [Pipe Dockerfile through stdin](#pipe-dockerfile-through-stdin)
+- [Incremental build time](#incremental-build-time)
+    - [Order matters for caching](#order-matters-for-caching)
+    - [More specific COPY to limit cache busts](#more-specific-copy-to-limit-cache-busts)
+    - [Identity cacheable units such as apt-get update & install](#identity-cacheable-units-such-as-apt-get-update--install)
+- [Reduce Image size](#reduce-image-size)
+    - [Remove unnecessary dependencies](#remove-unnecessary-dependencies)
+    - [Remove package manager cache](#remove-package-manager-cache)
+- [Maintainability](#maintainability)
+    - [Use official images when possible](#use-official-images-when-possible)
+    - [Use more specific tags](#use-more-specific-tags)
+    - [Look for minimal flavors](#look-for-minimal-flavors)
+- [Reproducibility](#reproducibility)
+    - [Build from source in a consistent environment](#build-from-source-in-a-consistent-environment)
+    - [Fetch dependencies in a separate step](#fetch-dependencies-in-a-separate-step)
+    - [Use multi-stage builds to remove build dependenciesrecommended Dockerfile](#use-multi-stage-builds-to-remove-build-dependenciesrecommended-dockerfile)
+- [mkdir + cd](#mkdir--cd)
+- [exec form](#exec-form)
+- [Transparency Matters](#transparency-matters)
+    - [Solution: specific dependency](#solution-specific-dependency)
+- [Keep It Light](#keep-it-light)
+    - [dockerignore rule](#dockerignore-rule)
+- [container, 1 process](#container-1-process)
+- [Create ephemeral containers](#create-ephemeral-containers)
+- [Pipe Dockerfile through stdin](#pipe-dockerfile-through-stdin)
+    - [remote git repository를 사용하여 build](#remote-git-repository%EB%A5%BC-%EC%82%AC%EC%9A%A9%ED%95%98%EC%97%AC-build)
+- [Using Pipes](#using-pipes)
+- [ADD or COPY](#add-or-copy)
+- [CMD](#cmd)
+- [ENTRYPOINT](#entrypoint)
+- [sudo 사용 X](#sudo-%EC%82%AC%EC%9A%A9-x)
+- [ONBUILD](#onbuild)
+- [SHELL](#shell)
+- [ARG, ENV](#arg-env)
+- [Metadata 생성](#metadata-%EC%83%9D%EC%84%B1)
+- [A few language-specific best pratices](#a-few-language-specific-best-pratices)
+    - [Golang](#golang)
+    - [Ruby](#ruby)
+    - [Python](#python)
+    - [Node.js](#nodejs)
+    - [Java](#java)
+
+<!-- /TOC -->
+
+<br>
+
 ## General guidelines and recommendations
 ### Create ephemeral containers
 * 최소한의 configuration만으로 container를 교체할 수 있도록 ephemeral container를 생성해야한다
@@ -551,6 +602,37 @@ $ docker run --rm -it postgres bash
 * dockerfile에서 shell command 사용 사능
 ```dockerfile
 SHELL ["/bin/bash", "-c", "ls"]
+```
+
+
+<br>
+
+## ARG, ENV
+<div align="center">
+  <img src="./images/arg_env.png" alt="arg_env" height="70%"/>
+</div>
+
+* `ARG`
+  * image build시에만 사용되고, 이후에는 필요 없는 변수에 사용
+  * `docker build --build-arg <key=value>`로 overriding 가능
+* `ENV`
+  * container 내부에서 사용되는 변수에 사용
+  * `docker build -e <key=value>`로 overriding 가능
+* 변수에 따라 동작이 달라지는 경우 아래처럼 할 수 있다
+```dockerfile
+FROM php:8.1.12-fpm-alpine
+
+ARG DD_TRACE_VERSION=1.2.0
+
+RUN if [ "$(uname -m)" = "aarch64" ]; then \
+      wget -O /tmp/datadog-php-tracer.apk https://github.com/DataDog/dd-trace-php/releases/download/${DD_TRACE_VERSION}/datadog-php-tracer_${DD_TRACE_VERSION}_aarch64.apk ; \
+    else \
+      wget -O /tmp/datadog-php-tracer.apk https://github.com/DataDog/dd-trace-php/releases/download/${DD_TRACE_VERSION}/datadog-php-tracer_${DD_TRACE_VERSION}_x86_64.apk ; \
+    fi
+
+RUN apk add --no-cache /tmp/datadog-php-tracer.apk --allow-untrusted  \
+    && rm -rf /tmp/datadog-php-tracer.apk \
+    && rm -rf /var/cache/apk/*
 ```
 
 
