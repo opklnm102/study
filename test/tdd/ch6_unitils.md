@@ -17,19 +17,19 @@
 ```java
 @Test
 public void testBook() throw Exception {
-    Book aBook = new Book("a Book", "a", 9000);
-    Book otherBook = new Book("a Book", "a", 9000);
+  Book aBook = new Book("a Book", "a", 9000);
+  Book otherBook = new Book("a Book", "a", 9000);
 
-    assertEquals(aBook, otherBook);  // 서로 다르다고 판정
+  assertEquals(aBook, otherBook);  // 서로 다르다고 판정
 }
 
 @Test
 public void testBook() throw Exception {
-    Book aBook = new Book("a Book", "a", 9000);
-    Book otherBook = new Book("a Book", "a", 9000);
+  Book aBook = new Book("a Book", "a", 9000);
+  Book otherBook = new Book("a Book", "a", 9000);
 
-    assertEquals(aBook.getName(), otherBook.getName());  // 필드를 비교해야 한다
-    assertEquals(aBook.getPrice(), otherBook.getPrice());
+  assertEquals(aBook.getName(), otherBook.getName());  // 필드를 비교해야 한다
+  assertEquals(aBook.getPrice(), otherBook.getPrice());
 }
 ```
 * 일일이 필드를 비교하면 필드가 많아지면 불편하다
@@ -38,10 +38,10 @@ public void testBook() throw Exception {
 ```java
 @Test
 public void testBook() throw Exception {
-    Book aBook = new Book("a Book", "a", 9000);
-    Book otherBook = new Book("a Book", "a", 9000);
+  Book aBook = new Book("a Book", "a", 9000);
+  Book otherBook = new Book("a Book", "a", 9000);
 
-    assertReflectionEquals(aBook, otherBook);
+  assertReflectionEquals(aBook, otherBook);
 }
 ```
 
@@ -54,21 +54,29 @@ public void testBook() throw Exception {
 
 ```java
 public class Player {
-    private String name;
-    private int age;
-    private int experienceYear;
+  private String name;
+  private int age;
+  private int experienceYear;
 
-    public int getAbilityPoint() {
-        return (30 - age) + experienceYear;
-    }
+  public int getAbilityPoint() {
+    return (30 - age) + experienceYear;
+  }
 }
 
 @Test
 public void test() throw Exception {
-    Player player = new Player("player a", 31, 15);
+  Player player = new Player("player a", 31, 15);
     
-    assertPropertyLenienEquals("age", 31, player);  // reflection으로 내부의 필드값을 비교해 준다
+  assertPropertyLenienEquals("age", 31, player);  // reflection으로 내부의 필드값을 비교해 준다
 }
+```
+* private field는 reflection으로도 가능
+```java
+Field contactNumberField = person.getClass().getDeclaredField("contactNumber");
+contactNumberField.setAccessible(true);
+
+long contactNumber = contactNumberField.getLong(person);
+Assertions.assertEquals(123456789L, contactNumber);
 ```
 
 <br>
