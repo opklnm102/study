@@ -51,8 +51,8 @@ referrer: "https://www.example.com/static/event/index.html"
 ### 1. Increase buffers
 * 해당 현상(warning log)이 발생하지 않을 때 까지 buffer size를 2배씩 증가시킨다
 ```conf
-proxy_buffers 16 16k;
-proxy_buffer_size 16k;
+proxy_buffers 16 16k;  # default - 8 4k|8k(one memory page size로 platform에 따라 다르다)
+proxy_buffer_size 16k;  # default -  8k|16k
 ```
 
 <br>
