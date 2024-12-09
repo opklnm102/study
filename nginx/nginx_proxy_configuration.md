@@ -6,7 +6,7 @@
 <br>
 
 ## Nginx Configuration
-```conf
+```nginx
 daemon off;
 user nginx nginx;
 worker_processes auto;
@@ -43,6 +43,10 @@ http {
       proxy_pass http://app_server
       proxy_redirect off;  # upstream에서 발생한 redirection(Location header)을 그대로 전달
 
+      # keepalive 활성화시 HTTP/1.1 사용 권장
+      proxy_http_version 1.1;
+      proxy_set_header Connection "";
+
       # `proxy_set_header`를 통해 upstream으로 트래픽을 라우팅할 때 `X-Forwarded-For` 같은 header를 설정
       proxy_set_header Host $host
       proxy_set_header X-Real-IP $remote_addr;
@@ -58,6 +62,7 @@ http {
   }
 }
 ```
+* upstream server로 proxy할 때 HTTP/1.0(default) 및 `Connection: close` header 사용, [keepalive](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive) 활성화시 HTTP/1.1 사용 권장
 
 
 <br><br>
@@ -65,3 +70,5 @@ http {
 > #### Reference
 > * [GoogleCloudPlatform/endpoints-samples](https://github.com/GoogleCloudPlatform/endpoints-samples/blob/master/k8s/nginx.conf)
 > * [Module ngx_http_core_module - Nginx Docs](http://nginx.org/en/docs/http/ngx_http_core_module.html)
+> * [proxy_http_version - Nginx Docs](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_http_version)
+> * [keepalive - Nginx Docs](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive)
