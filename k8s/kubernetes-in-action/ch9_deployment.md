@@ -134,6 +134,7 @@ This is v1 running in pod kubia-1581283744-sfgqk
 ...
 ```
 > Pod의 이름은 ReplicaSet에 포함된 hash 사용
+> <deployment name>-<ReplicaSet unique name>-<Pod hash>
 
 <br>
 

@@ -1,11 +1,13 @@
 # [Spring] Spring Events
 > spring boot의 graceful shutdown 구현을 위해 코드를 보던 중 ContextClosedEvent를 보고 Spring Event에 대해 공부한 내용을 정리 
 
+<br>
 
 ## Application Event
 * 느슨하게 결합된 Component간 정보를 전달하는 수단
 * 기본적으로 synchronous
 
+<br>
 
 ## 기본적인 방법
 ```java 
@@ -19,6 +21,7 @@ public class CustomListener implements ApplicationListener<ContextRefreshedEvent
 }
 ```
 
+<br>
 
 ## Geenric
 * event 전달시 Listener의 signature를 이용하여 들어오는 event와 일치하는지 판단
@@ -50,6 +53,7 @@ public class CustomListener implements ApplicationListener<CustomEvent<Order>> {
 }
 ```
 
+<br>
 
 ## Annotation 기반 Event Listener
 * JMS, AMQP endpoint와 유사한 `Annotation 기반 Event Listener` 지원
@@ -96,6 +100,7 @@ public class CustomListener {
 }
 ```
 
+<br>
 
 ## Event Publish
 * `@EventListener`가 붙은 메소드의 리턴 타입이 void가 아닌 타입 정의 가능
@@ -124,6 +129,7 @@ public class EventPublisher {
 }
 ```
 
+<br>
 
 ## Transaction bound events
 * Event Listener를 Transaction 단계에 바인드하는 기능
@@ -162,6 +168,7 @@ public @interface TransactionalEventListener {
 }
 ```
 
+<br>
 
 ## Async Events
 * `ApplicationEventMulticaster`에 `AsyncTaskExecutor` 사용
@@ -206,10 +213,17 @@ public void handleOrderCreatedEvent(OrderCreatedEvent createdEvent) {
 [         Test-1] k.c.m.creationfeedback.CustomListener    : test MyEvent Thread[Test-1,5,main] 
 ```
 
-</br>
+---
+
+<br>
 
 > #### 참고
 > * [Better application events in Spring Framework 4.2](https://spring.io/blog/2015/02/11/better-application-events-in-spring-framework-4-2)
 > * [Spring Events](http://www.baeldung.com/spring-events)
-> * [스프링 ApplicationEventPublisher, @EventListener, @TransactionalEventListener를 이용한 도메인 이벤트 처리
-](http://javacan.tistory.com/entry/Handle-DomainEvent-with-Spring-ApplicationEventPublisher-EventListener-TransactionalEventListener)
+> * [스프링 ApplicationEventPublisher, @EventListener, @TransactionalEventListener를 이용한 도메인 이벤트 처리](http://javacan.tistory.com/entry/Handle-DomainEvent-with-Spring-ApplicationEventPublisher-EventListener-TransactionalEventListener)
+
+
+TODO: 이 내용 추가
+https://supawer0728.github.io/2018/03/24/spring-event/
+
+

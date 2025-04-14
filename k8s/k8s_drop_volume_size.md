@@ -23,3 +23,60 @@ The PersistentVolumeClaim "[pvc name]" is invalid: spec.resources.requests.stora
 
 ### Snapshot을 이용
 TBD
+
+https://base-on.tistory.com/m/534
+https://repost.aws/ko/knowledge-center/eks-modify-persistent-storage-snapshot
+
+
+
+
+
+대상 Volume
+신규 Snapshot 생성 -> 신규 Volume 생성
+
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jenkins-pv
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 300Gi
+  csi:
+    driver: ebs.csi.aws.com
+    volumeHandle: ...
+  storageClassName: gp3
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: topology.ebs.csi.aws.com/zone
+              operator: In
+              values:
+                - ap-northeast-2b
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins
+  namespace: development
+spec:
+  storageClassName: gp3
+  volumeName: jenkins-pv
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 300Gi
+---
+## values.yaml
+persistence:
+  ...
+  existingClaim: jenkins
+...
+```
+
+

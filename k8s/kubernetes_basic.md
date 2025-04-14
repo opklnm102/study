@@ -105,25 +105,30 @@ kubernetes architecture overview
 
 <img src="./images/kubernetes_node_overview.png" alt="node overview" height="400">
 
-<img >
-
 ### Master Node(Cluster control plane)
-* 클러스터에 대한 관리 역할
+* Hosts cluster-level control services
+  * 클러스터에 대한 관리 담
 * Rest API로 Client, Worker Node와 통신
-* Scheduler, Replication Controller
+* Scheduler
+* Replication Controller
+  * pod의 lifecycle, replication 관리
+* Controller Manager
 
 ### Worker Node
+* docker host running kubelet
+* proxy service
 * 실제 Container가 실행되어 사용자가 사용할 수 있도록 서비스 제공
 
 ### [etcd](https://github.com/etcd-io/etcd) Node
-* distributed key value store
-* k8s cluster의 모든 상태 저장
-* k8s API object 저장
+* kubernetes system 상태를 저장하기 위한 distributed key-value store
+  * k8s cluster의 모든 상태 저장
+  * k8s API object 저장
 
 ### Kubelet
 * Node에서 동작하는 Agent
   * Container Runtime(docker..) 연동
-* health check
+* Node level Pod management 담당
+  * health check
 
 ### kube-Proxy
 * 외부의 사용자 요청을 처리, Service들의 Load balancer
@@ -173,6 +178,7 @@ kubernetes architecture overview
 <!-- ![kubernetes service](./images/kubernetes_service.png) -->
 * component communication 관리
   * pod간의 트래픽 라우팅
+  * Load Balancer
 
 ### Service Discovery
 <img src="./images/kubernetes_service_discovery1.png" alt="kubernetes service discovery1" height="250">
@@ -200,6 +206,7 @@ kubernetes architecture overview
 <img src="./images/kubernetes_service_with_labels.png" alt="kubernetes service with labels" height="400">
 
 * pod, service 등을 동일한 label로 관리 가능
+* component들을 group으로 관리할 수 있다
 
 <br>
 
@@ -276,3 +283,106 @@ $ kubectl get pods
 > * [Oracle meetup kubernetes_171118](https://www.slideshare.net/OracleDeveloperkr/oracle-meetup-kubernetes171118)
 > * [Container Orchestration Wars (2017 Edition)](https://www.slideshare.net/KarlIsenberg/container-orchestration-wars-2017-edition)
 > * [CNCF Survey: Use of Cloud Native Technologies in Production Has Grown Over 200% - 2018.08.29](https://www.cncf.io/blog/2018/08/29/cncf-survey-use-of-cloud-native-technologies-in-production-has-grown-over-200-percent/)
+
+
+
+
+
+
+
+
+
+https://nodesource.com/blog/orchestrating-nodejs-containers-with-kubernetes/
+-> 여기의 controlplane 이미지랑 k8s relation image 너무 좋은듯 사용해서 정리하자
+https://wooono.tistory.com/116
+이것도 좋음!
+
+
+
+k8s basic
+
+
+컨테이너
+
+싱글 프로세스를 실행하는데 필요한 모든 것이 포함된 이미지가 있음을 의미
+컨테이너는 싱글 프로세스로 동작하고 실행하는데 최적화되어 있다
+
+container != virtual machine
+
+
+Pod
+k8s가 관리하는 가장 작은 단위
+
+1개 이상의 컨테이너로 구성
+영구 관리가 아닌 쉽게 재시작이 가능한 단위
+수명이 매우 짧다
+
+Pod의 모든 컨테이너는 동일한 노드에서 실행
+Pod 내의 컨테이너들은
+    네트워크에 포함되며 상호 통신 가능
+    Pod에 연결된 볼륨을 통해 파일 공유 가능
+    Pod는 lifecycle을 가지고 있으며 재시작시 같은 노드에서 실행
+
+컨테이너 status
+Running
+Terminated
+Waiting
+
+Pod lifecycle
+Phase
+    Pending
+    Running
+    Succeed
+    Fail
+    Unkonwn
+PodStatus
+    ...
+> https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
+
+
+namespace
+다양한 목적별로 그룹화
+CPU, memory 리소스 제한
+DNS name, ACL(network) policy에서 사용
+
+Node
+k8s cluster에 추가된 머신(물리, 가상)
+
+Network
+동일한 Pod의 컨테이너는 노드의 network를 공유
+
+Controller
+사용자가 원하는 것을 말하고, k8s는 그것을 수행하기 위해 무엇을 해야할지 알고 있다는 개념으로 만들어짐
+deployment, replica set controller…
+
+ReplicaSet
+Pod의 상위 개념
+동시에 실행해야 하는 Pod의 수를 정의
+Deployment의 하위 개념
+horizontal scale에 중요한 역할
+지속적으로 Pod의 상태를 검사해 정의된 수만큼 실행 상태를 유지하도록 한다
+
+
+
+
+
+
+Pod Status phase는 매우 잘 그려졌네요. 지금까지 본 것 중에 가장 시각적으로 좋은거 같아요. Probe 계열만 따로 보면 될꺼 같아요.
+https://spectrumstutz.com/k8s/kubernetes-pod/
+
+
+https://kubernetes.io/ko/docs/concepts/overview/components 도 정리
+
+
+
+
+
+<br><br>
+
+> #### Reference
+> * [reference link 1](http://xxx)
+
+<br>
+
+> #### Further reading
+> * [Learn Kubernetes with Google](https://learnkubernetes.withgoogle.com)

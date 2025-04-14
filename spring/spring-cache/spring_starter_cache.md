@@ -231,3 +231,10 @@ public class SimpleBookRepositoryTest {
 
 > #### Further reading
 > * [스프링 부트에서 레디스 캐시 유효시간 설정 기능 추가하기](http://javacan.tistory.com/entry/customize-redis-cache-expire-time-in-boot)
+
+
+http://jojoldu.tistory.com/57?category=635883
+https://blog.outsider.ne.kr/1094
+https://heowc.github.io/2018/02/05/spring-boot-cache/
+
+내용추가?

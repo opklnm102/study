@@ -121,6 +121,12 @@ $ brew install docker-compose
 * Kubernetes - k8s 관련 자동 완성 지원 등
 
 
+https://github.com/ChangJoo-Park/mac-dev-setup
+
+참고하여 VS code plugin
+intelilJ plugin
+brew 같은거도 정리?
+
 <br><br>
 
 > #### Reference
