@@ -24,11 +24,9 @@
 ```sh
 $ brew install helmfile
 
-## install helm diff for helmfile diff
-$ helm plugin install https://github.com/databus23/helm-diff
-
-## install helm-secret for helmfile secrets
-$ helm plugin install https://github.com/jkroepke/helm-secrets
+## install helm diff for helmfile diff - helm plugin install https://github.com/databus23/helm-diff
+## install helm-secret for helmfile secrets - helm plugin install https://github.com/jkroepke/helm-secrets
+$ helmfile init
 ```
 
 * [run as container](https://github.com/helmfile/helmfile/pkgs/container/helmfile)
@@ -229,11 +227,11 @@ releases:
 <br><br>
 
 > #### Reference
-> * [roboll/helmfile - GitHub](https://github.com/roboll/helmfile)
+> * [helmfile/helmfile - GitHub](https://github.com/helmfile/helmfile)
 > * [databus23/helm-diff - GitHub](https://github.com/databus23/helm-diff)
 
 <br>
 
 > #### Further reading
-> * [The Helmfile Best Practices Guide - GitHub](https://github.com/roboll/helmfile/blob/master/docs/writing-helmfile.md)
+> * [The Helmfile Best Practices Guide - GitHub](https://github.com/helmfile/helmfile/blob/main/docs/writing-helmfile.md)
 > * [Kubernetes Korea Group feed](https://www.facebook.com/groups/k8skr/permalink/2651428451805478/)
