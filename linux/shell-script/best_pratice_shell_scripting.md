@@ -39,12 +39,20 @@ $(cd "$(dirname ${0})" && pwd)
 
 ## set -euo pipefail 사용
 
+| Command | Shortcut | Description |
+|:--|:--|:--|
+| set -o errexit | -e | 명령어가 실패하면 즉시 종료 |
+| set -o nounset | -u | 선언되지 않은 변수를 사용하면 오류 |
+| set -o pipefail | - | pipeline에서 어느 하나라도 실패하면 전체 실패로 간주 |
+
+<br>
+
 ### set -e
 shell script는 python 같은 프로그래밍 언어들과 다르게 error가 발생해도 계속 수행되기 때문에 `-e`를 사용하여 error 발생시 control flow를 중단해야 side effect를 방지할 수 있다
 
 * bad
 ```sh
-#!/bin/bash
+#!/usr/bin/env bash
 touch newfile
 cp newfil newfile2
 echo "Success"
@@ -52,7 +60,7 @@ echo "Success"
 
 * good
 ```sh
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 touch newfile
 cp newfil newfile2
@@ -66,7 +74,7 @@ unknown variable에 대해 python에서는 NameError가 발생하지만 shell sc
 
 * bad
 ```sh
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 export PATH="venv/bin:$PTH"
 ls
@@ -74,7 +82,7 @@ ls
 
 * good
 ```sh
-#!/bin/bash
+#!/usr/bin/env bash
 set -eu
 export PATH="venv/bin:$PTH"
 ls
@@ -87,7 +95,7 @@ ls
 
 * bad
 ```sh
-#!/bin/bash
+#!/usr/bin/env bash
 set -eu
 nonexistenprogram | echo
 echo "Success"
@@ -95,7 +103,7 @@ echo "Success"
 
 * good
 ```sh
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 nonexistenprogram | echo
 echo "Success"
@@ -108,7 +116,7 @@ echo "Success"
 
 * bad
 ```sh
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 export VAR=$(echo hello | nonexistentprogram)
 echo "Success"
@@ -116,7 +124,7 @@ echo "Success"
 
 * good
 ```sh
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 VAR=$(echo hello | nonexistentprogram)  # here
 export VAR
