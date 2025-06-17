@@ -111,7 +111,7 @@ echo "Success"
 
 <br>
 
-### Subshells are weird
+## Subshells are weird
 `$()`로 subshell을 실행하는데 subshell의 error가 variable의 일부인 경우 error로 처리되지 않아서 subshell 실행과 export를 분리하면 error로 처리될 수 있다
 
 * bad
@@ -130,6 +130,32 @@ VAR=$(echo hello | nonexistentprogram)  # here
 export VAR
 echo "Success"
 ```
+
+<br>
+
+## `#!/usr/bin/env bash` 사용
+* shebang으로 이식성과 유연성이 좋은 `#!/usr/bin/env bash`를 사용
+
+| Use case | recommand shebang |
+|:--|:--|
+| OSS, cross platform 등 다양한 OS, 환경에서 실행 | `#!/usr/bin/env bash` |
+| `/etc.init.d`, container, CI/CD 등 환경에서 고정된 경로 사용 | `#!/bin/bash` |
+
+<br>
+
+### `#!/bin/bash`
+* `/bin/bash`가 존재한다는 전제하에 bash를 실행
+* `env`를 거치지 않고 bash를 호출하므로 명확하고, process가 하나 덜 생성되어 성능이 미세하게 좋다
+* 대부분의 linux에는 존재하지만 일부 OS는 bash의 경로가 다를 수 있어 하드코딩으로 이식성에 제한
+
+<br>
+
+### `#!/usr/bin/env bash`
+* 유저의 `$PATH` 환경 변수에서 bash를 찾아 실행
+  * `$PATH`가 잘못 설정되어 있으면 예상한 bash가 실행되지 않을 수 있다
+* 일반적으로 `/usr/bin/env`는 거의 모든 unix-like 시스템에 존재하므로 bash가 다른 경로에 있을 때에도 동작하므로 이식성이 높다
+* 가상 환경이나 다른 shell을 사용하는 경우에도 bash 경로를 자동으로 추적 가능
+`env`를 통해 bash를 호출하므로 process가 하나 더 생성되어 성능이 미세한 차이가 있으나 일반적으로 무시해도 될 정도
 
 <br>
 
