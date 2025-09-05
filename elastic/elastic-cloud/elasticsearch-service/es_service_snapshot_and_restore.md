@@ -5,6 +5,20 @@
 
 <br>
 
+## Snapshot?
+* 즉각적으로 생성되지 않고, 완료하는 데 시간이 걸린다
+* snapshot을 시작한 시점에 존재하는 primary shard 포함
+  * snapshot 진행 중에도 indexing 가능하지만 이때 변경된 내용은 snapshot에 포함되지 않는다 -> cluster의 완벽한 snapshot이 아니다
+* incremental(증분식) snapshot으로 마지막으로 성공한 snapshot 이후로 변경된 data를 저장
+* incremental snapshot의 특성으로 자주 생성되는 snapshot과 그렇지 않은 snapshot의 disk size 차이가 거의 없는 경우가 많다는 것을 의미
+  * 시간별 snapshot 1주일치(총 168개)와 주말 1번의 snapshot이 큰 차이가 없다
+* 자주 snapshot을 생성할수록 걸리는 시간이 줄어든다
+  * daily snapshot은 20 ~ 30분 소요된다면, hourly snapshot은 몇 분안에 완료될 수 있다
+  * 30분 마다 생성할 수도 있다
+
+
+<br>
+
 ## Snapshot and restore
 * data backup을 위한 **모든 Elasticsearch의 Snapshot and Restore API를 지원**
 * custom repositories 추가 가능
