@@ -451,9 +451,34 @@ spec:
               servicePort: use-annotation
 ```
 
+<br>
+
+## Path types
+ingress의 각 path에는 `pathType` 필요
+
+*  ImplementationSpecific
+  * IngressClass에 따라 달라지며, 구현할 때 Prefix, Exact와 동일하게 처리되거나 별도 pathType으로 처리
+* Exact
+  * URL path의 대소문자 구분
+* Prefix
+  * URL path의 prefix를 `/`를 기준으로 분리한 값과 일치시킨다
+
+
+### Path Types in AWS LBC
+* Exact - 정확한 경로가 항상 먼저 정렬
+* Prefix - prefix 경로가 가장 긴 것 부터 먼저 사용
+* ImplementationSpecific - manifest에 나열된 순서대로 정렬
+
+| Path type | path | ELB Listener rules |
+|:--|:--|:--|
+| ImplementationSpecific | `/` | `/` |
+| | `/*` | `/*` |
+| Prefix | `/` | `/*` |
+
 
 <br><br>
 
 > #### Reference
 > * [AWS Load Balancer Controller Docs](https://kubernetes-sigs.github.io/aws-load-balancer-controller)
 > * [AWS Load Balancer Controller Helm Chart](https://github.com/aws/eks-charts/tree/master/stable/aws-load-balancer-controller)
+> * [Ingress - Kubernetes Docs](https://kubernetes.io/docs/concepts/services-networking/ingress)
