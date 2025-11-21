@@ -26,6 +26,8 @@
 * [kubectl-view-utilization](#kubectl-view-utilization)
 * [Kor](#kor)
 * [list all resources in same namespace](#list-all-resources-in-same-namespace)
+* [Kubernetes Spec Explorer](#kubernetes-spec-explorer)
+
 
 <br>
 
@@ -1062,6 +1064,12 @@ alias kl="kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 k
 $ kl kube-system
 ```
 
+<br>
+
+## [Kubernetes Spec Explorer](https://kubespec.dev)
+* Find the documentation for all Kubernetes resources, properties, types, and examples
+
+
 
 <br><br>
 
@@ -1087,3 +1095,4 @@ $ kl kube-system
 > * [etopeter/kubectl-view-utilization - GitHub](https://github.com/etopeter/kubectl-view-utilization)
 > * [yonahd/kor - GitHub](https://github.com/yonahd/kor)
 > * [stern/stern - GitHub](https://github.com/stern/stern)
+> * [Kubernetes Spec Explorer](https://kubespec.dev)
