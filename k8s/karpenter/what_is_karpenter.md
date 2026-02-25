@@ -787,6 +787,15 @@ $ eksctl delete cluster --name ${CLUSTER_NAME}
 
 ## Best Practices
 
+### production cluster에서 AMI 잠금
+* production cluster에서 `@latest` 같은 것을 사용하게 되면 test되지 않은 AMI가 배포되어 중단이 발생할 수 있으므로 AMI를 고정시키는게 좋다
+```yaml
+amiSelectorTerms
+  - alias: al2023@v20240807
+```
+
+<br>
+
 ### karpenter 배포
 * karpenter는 karpenter가 생성한 node가 아닌 managed node group, fargate에 배포
 * managed node group은 karpenter로 인한 scaling이 되지 않기 때문에 미리 생성
