@@ -19,6 +19,7 @@
 * [kubectl-whoami](#kubectl-whoami)
 * [kube-lineage](#kube-lineage)
 * [kube-tree](#kube-tree)
+* [kube-capacity](#kube-capacity)
 * [실습하기에 좋은 무료 서비스](#실습하기에-좋은-무료-서비스)
 * [kubeshark](#kubeshark)
 * [kubectl-graph](#kube-graph)
@@ -701,6 +702,49 @@ default      ├─Pod/app-6f9f5bd5d5-262jl  True           22h
 default      └─Pod/app-6f9f5bd5d5-d4q7w  True           22h
 ```
 
+<br>
+
+## kube-capacity
+* k8s cluster node의 resoruce requests, limits, utilization overview 제공
+* `kubectl top`, `kubectl describe`의 output 중 유용한 부분을 결합하여 제공
+
+
+<br>
+
+### Install
+* krew
+```sh
+$ kubectl krew install resource-capacity
+```
+
+* Homebrew
+```sh
+$ brew tap robscott/tap
+$ brew install robscott/tap/kube-capacity
+```
+
+
+<br>
+
+### Usage
+
+| Command | Description |
+|:--|:--|
+| `kube-capacity` | resource requests/limits 조회 |
+| `kube-capacity --pods(or -p)` | pod 정보 포함 |
+| `kube-capacity --util` | resource utilization 포함(metrics-server 필요) |
+| `kube-capacity --available` | available resource 포함 |
+| `kube-capacity --util --sort cpu.util` | `--sort <field>`로 sorting(e.g. `--sort cpu.util.percentage`) |
+| `kube-capacity --pod-count` | pod 수 포함 |
+
+* Filtering By Labels
+```sh
+kube-capacity --pod-labels app=nginx
+kube-capacity --namespace default
+kube-capacity --namespace-labels team=api
+kube-capacity --node-labels kubernetes.io/role=node
+```
+
 
 <br>
 
@@ -1096,3 +1140,4 @@ $ kl kube-system
 > * [yonahd/kor - GitHub](https://github.com/yonahd/kor)
 > * [stern/stern - GitHub](https://github.com/stern/stern)
 > * [Kubernetes Spec Explorer](https://kubespec.dev)
+> * [robscott/kube-capacity - GitHub](https://github.com/robscott/kube-capacity)
