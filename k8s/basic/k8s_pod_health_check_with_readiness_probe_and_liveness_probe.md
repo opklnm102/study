@@ -9,9 +9,28 @@
 * `kubelet`이 주기적으로 container의 handler 호출
 * 문제 발생시 container의 process가 자체적으로 중단될 수 있는 경우에는 `kubelet`이 Pod의 restartPolicy에 따른 동작을 수행하기 때문에 반드시 필요하지 않다
 
+<br>
+
+| 구분 | 목적 | 실패 시 동작 | use case |
+|:--|:--|:--|:--|
+| startupProbe | application의 최초 기동 완료 여부 확인 | container restart | 초기 구동 시간이 오래 걸리는 application |
+| readinessProbe | traffic을 받을 준비가 되었는지 확인 | Service endpoint에서 제외(traffic 차단) | DB 연결 지연, data loading 상태 |
+| livenessProbe | application이 살아있는지(정상 동작) 확인 | container 강제 종료 후 restart | deadlock, infinite loop 발생 시 |
+
+<br>
+
+### Probe Workflow
+
 <div align="center">
   <img src="./images/pod_lifecycle_with_probe.png" alt="pod_lifecycle_with_probe" width="70%" height="70%"/>
 </div>
+
+1. container 생성 - `startupProbe`만 주기적으로 검사 시작 (readiness/liveness 비활성)
+2. 초기화 완료 - `startupProbe` 성공 판정 즉시 `readinessProbe`와 `livenessProbe` 활성화
+3. traffic 투입 - `readinessProbe`가 성공하면 Pod IP가 Service endpoint에 등록되어 traffic 수신 시작
+4. runtime 유지
+  * 서비스 실행 중 일시적 장애 발생 시 → `readinessProbe` 실패로 traffic만 차단 (컨테이너 유지)
+  * process 정지 또는 deadlock 발생 시 → `livenessProbe` 실패로 container restart
 
 
 <br>
@@ -50,7 +69,7 @@ spec:
 
 <br>
 
-### HTTPGetAction(https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#httpgetaction-v1-core)
+### [HTTPGetAction](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#httpgetaction-v1-core)
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -191,8 +210,9 @@ spec:
 
 ## Startup Probe
 * container가 시작되었는지 확인할 때 사용
-* startup probe가 설정되어 있으면, 성공할 떄까지 다른 probe가 활성화되지 않는다
-  * startup이 오래 걸릴 때(initialDelaySeconds + failureThreshold x periodSeconds 이후 시작) readiness/livenessProbe에 initialDelaySeconds를 설정하지 않아도 되므로 유용
+* startup probe가 설정되어 있으면, startup probe가 성공하기 전까지 다른 probe 비활성화
+  * startup이 오래 걸릴 때(initialDelaySeconds + failureThreshold x periodSeconds 이후 시작) readiness/liveness probe에 initialDelaySeconds를 설정하지 않아도 되므로 유용
+  * startup probe가 최초 기동을 보장하는 역할을 담당하므로, startup probe 성공 후 즉시 readiness 검사가 이루어지도록 readiness probe의 initialDelaySeconds는 최소한의 시간(e.g. 0s or 2 ~ 5s)로 설정하는 것이 service 투입 시점을 단축하는데 효과적
 * startup probe가 실패하면 liveness probe 같이 restart policy에 의해 restart
 
 
