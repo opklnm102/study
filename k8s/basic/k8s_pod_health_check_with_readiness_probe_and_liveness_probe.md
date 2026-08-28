@@ -173,6 +173,7 @@ spec:
 ## Configure Probes
 * `initialDelaySeconds`
   * 1번째 probe 수행 전 기다릴 시간
+  * 시간은 container 시작부터 계산(`PodReadyToStartContainers` 이후)
 * `periodSeconds`
   * probe 수행 빈도(s)
   * default - 10
