@@ -422,6 +422,8 @@ public class TaskExecutorGracefulShutdownLifecycle implements SmartLifecycle {
 <br>
 
 ## Kubernetes Environment
+
+### Handle Signal
 * Kubernetes 환경에서 graceful shutdown 위해 container가 아래의 flow에 맞게 동작해야 한다
 
 <div align="center">
@@ -440,13 +442,24 @@ public class TaskExecutorGracefulShutdownLifecycle implements SmartLifecycle {
 > - SIGTERM(15) -> 128 + 15 = 143
 > - SIGKILL(9) -> 128 + 9 = 137
 
+
 <br>
+
+### preStop hook
 
 <div align="center">
   <img src="./images/kubernetes_pod_termination_process.png" alt="kubernetes_pod_termination_process" width="70%" height="70%"/>
 </div>
 
 * 위의 3번 과정 동안 유입되는 traffic을 방지하기 위해 `preStop hook`을 이용하며 `preStop + timeout-per-shutdown-phase < terminationGracePeriodSeconds`를 지켜야한다
+  * `Pod` 종료되면 Pod `Endpoint`가 `Service`에서 제거되는데, `Pod` 종료(A1)와 `Endpoint` 제거(B1)가 병렬로 발생하므로 종료된 Pod로 traffic이 전달될 수 있다
+  * [kube-proxy는 30s(default)](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-proxy/#options) 마다 rule 동기화(B4), 동기화되기 전에는 종료된 Pod로 traffic이 전달될 수 있다
+    * kube-proxy가 service와 rule이 많은 iptables를 사용하는 경우 동기화에도 지연이 있을 수 있다
+* `preStop hook`을 다음의 용도로 사용
+  * in-flight request가 완료될 수 있는 시간 보장
+  * Client가 DNS resolved 전에 확인한 Pod에 연결할 수 있도록 보장
+  * kube-proxy가 모든 node에서 ipvs/iptables rule을 동기화할 시간 보장
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -780,6 +793,7 @@ spec:
 > * [Controlling nginx - Nginx Docs](http://nginx.org/en/docs/control.html)
 > * [Graceful shutdown in Kubernetes is not always trivial](https://medium.com/flant-com/kubernetes-graceful-shutdown-nginx-php-fpm-d5ab266963c2)
 > * [Signal (IPC)](https://en.wikipedia.org/wiki/Signal_(IPC))
+> * [Pod PreStop hook - Elastic Docs](https://www.elastic.co/guide/en/cloud-on-k8s/2.6/k8s-prestop.html)
 
 <br>
 
