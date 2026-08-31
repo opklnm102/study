@@ -434,6 +434,14 @@ public class TaskExecutorGracefulShutdownLifecycle implements SmartLifecycle {
 4. Application start graceful shutdown(e.g. DB Connection close..)
 5. Kubernetes는 terminationGracePeriodSeconds(default. 30s) 후 application으로 `SIGKILL` signal로 강제 종료
 
+<br>
+
+> Linux에서 signal로 process가 종료될 때, 별도의 signal handler가 없거나 기본 동작으로 동료되면 exit code는 `128 + signal number`
+> - SIGTERM(15) -> 128 + 15 = 143
+> - SIGKILL(9) -> 128 + 9 = 137
+
+<br>
+
 <div align="center">
   <img src="./images/kubernetes_pod_termination_process.png" alt="kubernetes_pod_termination_process" width="70%" height="70%"/>
 </div>
