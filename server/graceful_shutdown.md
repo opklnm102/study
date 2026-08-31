@@ -459,6 +459,8 @@ public class TaskExecutorGracefulShutdownLifecycle implements SmartLifecycle {
   * in-flight request가 완료될 수 있는 시간 보장
   * Client가 DNS resolved 전에 확인한 Pod에 연결할 수 있도록 보장
   * kube-proxy가 모든 node에서 ipvs/iptables rule을 동기화할 시간 보장
+* 종료되는 Pod가 primary replica or leader, quorum 유지에 pod 존재가 필수인 경우, preStop hook에서 leader election을 trigger
+
 
 ```yaml
 apiVersion: apps/v1
