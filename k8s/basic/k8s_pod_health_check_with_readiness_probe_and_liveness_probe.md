@@ -42,6 +42,8 @@
   * deadlock 등 발생시 kubernetes에서 자동으로 감지하여 restart
 * readiness probe보다 실패할 떄까지 2배 정도 더 많은 시간을 허용해야한다
   * periodSeconds + failureThreshold의 조합으로 더 많은 시간 허용
+* external service(e.g. DB, API, cache) health check를 포함하면 안된다
+  * external service에 장애가 발생하면 pod restart로 인해 cascading failures(연쇄적인 장애)가 발생할 수 있다
 
 <br>
 
@@ -146,8 +148,10 @@ livenessProbe:
   * Non Ready인 Pod는 service의 load balancing에서 제거
 * application이 일시적으로 traffic을 처리할 수 없는 경우를 처리할 수 있다
   * 최초 config loading, 의존성을 가지고 있는 external service의 장애 등
-* application과 연결된 dependency의 가용성도 확인 필요
-  * dependency의 장애시 Pod restart는 거의 도움이 되지 않으니 readiness probe로 확인하는게 좋다
+* external service health check를 readiness probe에 포함시키는 것은 신중하게 결정 필요
+  * external service를 readiness에 포함시 -> external service 장애시 application service 중단
+  * external service를 readiness에 제외시 -> external service 장애시 circuit breaker 등으로 처리
+  * circuit breaker & fallback으로 external service가 필수적이지 않을 경우 readiness에서 제외 추천
 
 ```yaml
 apiVersion: v1
