@@ -6,6 +6,10 @@
 <br>
 
 ## AWS LBC(Load Balancer Controller)란?
+<div align="center">
+  <img src="./images/aws_lbc_eks.png" alt="aws_lbc_design" width="70%" height="70%"/>
+</div>
+
 * Kubernetes cluster의 Service, Ingress로 [AWS ELB](https://aws.amazon.com/elasticloadbalancing)를 관리하는 controller
 * [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress)로 [ALB(Application Load Balancer)](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) provisiong
 * LoadBalancer type [Service](https://kubernetes.io/docs/concepts/services-networking/service)로 [NLB(Network Load Balancer)](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) provisiong
@@ -277,13 +281,19 @@ spec:
 <br>
 
 ## 불필요한 security group 생성 방지
-* `alb.ingress.kubernetes.io/inbound-cidrs` 사용
-  * ingress별로 security group을 사용
-  * ELB 마다 security group이 생성되고, EC2의 security group에 chain으로 설정된다
-  * 무분별하게 생성되면 limit에 걸릴 수 있다
-* `alb.ingress.kubernetes.io/security-groups` 사용
-  * 기존에 생성된 security group을 사용
-  * 적절한 관리를 통해 limit를 방지할 수 있다
+
+### `alb.ingress.kubernetes.io/inbound-cidrs` 사용
+* ingress별로 security group을 사용
+* ELB 마다 security group이 생성되고, EC2의 security group에 chain으로 설정된다
+* 무분별하게 생성되면 limit에 걸릴 수 있다
+
+### `alb.ingress.kubernetes.io/security-groups` 사용
+* 기존에 생성된 security group을 사용
+* 적절한 관리를 통해 limit를 방지할 수 있다
+* AWS LBC가 관리하지 않는 sg를 2개 설정(외부 trafic 용, ELB → Node or Pod 용)하거나 외부 trafic 용 SG 설정 & `alb.ingress.kubernetes.io/manage-backend-security-group-rules: "true"` 사용
+  * ELB → Node/Pod 용은 Node/Pod에 공통으로 설정 필요
+  * `alb.ingress.kubernetes.io/manage-backend-security-group-rules: "true"`은 security group 지정시 Node/Pod에 security group rule을 구성할지 여부
+
 
 <br>
 
