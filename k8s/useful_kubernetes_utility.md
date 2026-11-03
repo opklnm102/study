@@ -217,7 +217,7 @@ $ curl -sS -o ~/.kubectl_aliases https://raw.githubusercontent.com/ahmetb/kubect
 
 $ cat >> ~/.zshrc << EOF
 [ -f ~/.kubectl_aliases ] && source ~/.kubectl_aliases
-function kubectl() { echo "+ kubectl $@">&2; command kubectl $@; }
+function kubectl() { echo "+ kubectl $@">&2; command kubectl "$@"; }
 EOF
 ```
 
